@@ -8,6 +8,7 @@ import { useAppStore } from '@/store';
 import { routeComfort, findAlternatives } from '@/engine/scoring';
 import { Header } from './components/Header';
 import { ScoreBadge, getScoreLabel } from './components/ScoreBadge';
+import { WeekendForecast } from './components/WeekendForecast';
 import type { ActivityType, ScoredRoute } from '@/engine/types';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -387,13 +388,24 @@ export default function Home() {
               </div>
             </div>
 
+            {/* 7-Day Forecast */}
+            <WeekendForecast />
+
             {/* Explore map CTA */}
-            <Link
-              href="/explore"
-              className="block text-center py-4 rounded-xl border border-compass-gold text-compass-gold font-semibold hover:bg-compass-gold/10 hover:shadow-lg hover:shadow-compass-gold/10 transition-all"
-            >
-              Explore the full bay map →
-            </Link>
+            <div className="flex gap-3">
+              <Link
+                href="/explore"
+                className="flex-1 block text-center py-4 rounded-xl border border-compass-gold text-compass-gold font-semibold hover:bg-compass-gold/10 hover:shadow-lg hover:shadow-compass-gold/10 transition-all"
+              >
+                Explore map →
+              </Link>
+              <Link
+                href="/schedule"
+                className="flex-1 block text-center py-4 rounded-xl border border-reef-teal text-reef-teal font-semibold hover:bg-reef-teal/10 hover:shadow-lg hover:shadow-reef-teal/10 transition-all"
+              >
+                Departure board →
+              </Link>
+            </div>
 
             {/* All destinations */}
             <details className="bg-[var(--card)] border border-[var(--border)] rounded-xl">
