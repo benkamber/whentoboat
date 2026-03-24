@@ -9,6 +9,8 @@ import { routeComfort, findAlternatives } from '@/engine/scoring';
 import { Header } from './components/Header';
 import { ScoreBadge, getScoreLabel } from './components/ScoreBadge';
 import { WeekendForecast } from './components/WeekendForecast';
+import { BoatSelector } from './components/BoatSelector';
+import { SavedSpots } from './components/SavedSpots';
 import type { ActivityType, ScoredRoute } from '@/engine/types';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -20,6 +22,7 @@ export default function Home() {
   const { activity, month, hour, vessel, homeBaseId, setActivity, setMonth, setHour, setHomeBase } = useAppStore();
   const [step, setStep] = useState<Step>('activity');
   const [timeMode, setTimeMode] = useState<'weekend' | 'month'>('weekend');
+  const [boatSelectorOpen, setBoatSelectorOpen] = useState(false);
 
   const currentActivity = getActivity(activity);
   const origin = sfBay.destinations.find((d) => d.id === homeBaseId) ?? sfBay.destinations[0];
@@ -134,6 +137,12 @@ export default function Home() {
               </select>
             </div>
 
+            {/* Vessel selector */}
+            <BoatSelector
+              collapsed={!boatSelectorOpen}
+              onToggle={() => setBoatSelectorOpen((o) => !o)}
+            />
+
             {/* Time mode toggle */}
             <div className="flex gap-2 justify-center">
               <button
@@ -233,6 +242,9 @@ export default function Home() {
                 From {origin.name} · {scoredRoutes.filter(r => r.score >= 7).length} of {scoredRoutes.length} destinations scoring 7+
               </p>
             </div>
+
+            {/* Saved spots */}
+            <SavedSpots />
 
             {/* Top recommendations */}
             <div className="space-y-4">
