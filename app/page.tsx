@@ -16,12 +16,12 @@ const MONTH_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'Jul
 type Step = 'activity' | 'when' | 'results';
 
 export default function Home() {
-  const { activity, month, hour, vessel, setActivity, setMonth, setHour } = useAppStore();
+  const { activity, month, hour, vessel, homeBaseId, setActivity, setMonth, setHour, setHomeBase } = useAppStore();
   const [step, setStep] = useState<Step>('activity');
   const [timeMode, setTimeMode] = useState<'weekend' | 'month'>('weekend');
 
   const currentActivity = getActivity(activity);
-  const origin = sfBay.destinations[0]; // Sausalito default
+  const origin = sfBay.destinations.find((d) => d.id === homeBaseId) ?? sfBay.destinations[0];
 
   // Score all destinations (only compute when on results step)
   const scoredRoutes = useMemo(() => {
@@ -105,10 +105,26 @@ export default function Home() {
 
             <div className="text-center space-y-2">
               <span className="text-3xl">{currentActivity.icon}</span>
-              <h1 className="text-3xl font-bold tracking-tight">When?</h1>
+              <h1 className="text-3xl font-bold tracking-tight">Plan Your Outing</h1>
               <p className="text-[var(--muted)]">
-                Pick a time frame to see the best destinations
+                Set your departure point and time
               </p>
+            </div>
+
+            {/* Home base selector */}
+            <div className="space-y-2">
+              <label className="text-sm text-[var(--muted)]">Departing from</label>
+              <select
+                value={homeBaseId}
+                onChange={(e) => setHomeBase(e.target.value)}
+                className="w-full bg-[var(--card)] border border-[var(--border)] rounded-lg px-4 py-3 text-[var(--foreground)] appearance-none cursor-pointer focus:border-compass-gold focus:outline-none"
+              >
+                {sfBay.destinations.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name} — {d.dockInfo}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Time mode toggle */}
