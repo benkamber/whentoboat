@@ -11,6 +11,7 @@ import { useAppStore } from '@/store';
 import { useDestinationGeoJSON, useRouteGeoJSON } from '@/hooks/useMapData';
 import { Header } from '../components/Header';
 import { ScoreBadge } from '../components/ScoreBadge';
+import { TrajectoryPanel } from '../components/TrajectoryPanel';
 import type { ActivityType } from '@/engine/types';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -86,6 +87,7 @@ export default function ExplorePage() {
   } = useAppStore();
   const [popup, setPopup] = useState<PopupInfo | null>(null);
   const [cursor, setCursor] = useState('auto');
+  const [trajectoryRoute, setTrajectoryRoute] = useState<{ originId: string; destId: string } | null>(null);
 
   const destinationsGeoJSON = useDestinationGeoJSON(activity, month, hour, vessel, selectedOriginId);
   const routesGeoJSON = useRouteGeoJSON(activity, month, hour, vessel, selectedOriginId);
@@ -112,25 +114,24 @@ export default function ExplorePage() {
       if (layerId === 'destination-circles' || layerId === 'destination-labels') {
         const id = feature.properties?.id;
         if (selectedOriginId === id) {
-          setSelectedOrigin(null); // deselect
+          setSelectedOrigin(null);
         } else {
           setSelectedOrigin(id);
         }
         setPopup(null);
+        setTrajectoryRoute(null);
       } else if (layerId === 'route-lines-hit') {
-        setPopup({
-          lng: e.lngLat.lng,
-          lat: e.lngLat.lat,
-          type: 'route',
-          name: `${feature.properties?.fromName} → ${feature.properties?.toName}`,
-          score: feature.properties?.score ?? 5,
-          detail: `${feature.properties?.distance} mi · ${feature.properties?.transitMinutes} min`,
-        });
+        const fromId = feature.properties?.fromId;
+        const toId = feature.properties?.toId;
+        if (fromId && toId) {
+          setTrajectoryRoute({ originId: fromId, destId: toId });
+          setPopup(null);
+        }
       }
     } else {
-      // Click on empty water — deselect
       setSelectedOrigin(null);
       setPopup(null);
+      setTrajectoryRoute(null);
     }
   }, [selectedOriginId, setSelectedOrigin]);
 
@@ -327,6 +328,15 @@ export default function ExplorePage() {
           </div>
         )}
       </div>
+
+      {/* Trajectory panel */}
+      {trajectoryRoute && (
+        <TrajectoryPanel
+          originId={trajectoryRoute.originId}
+          destinationId={trajectoryRoute.destId}
+          onClose={() => setTrajectoryRoute(null)}
+        />
+      )}
     </div>
   );
 }
