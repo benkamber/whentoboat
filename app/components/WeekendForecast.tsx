@@ -68,14 +68,18 @@ function computeDaySummaries(
 
     if (daytimeHours.length === 0) continue;
 
+    // Check if wave data is available (sentinel -1 means unavailable)
+    const hasWaveData = daytimeHours.some((h) => h.waveHeightFt >= 0);
+
     // Compute score for each daytime hour
+    // If wave data unavailable, use conservative 1.5ft assumption (not 0)
     const hourScores = daytimeHours.map((h) => ({
       hour: new Date(h.time).getHours(),
       score: activityScore(
         activity,
         h.windSpeedKts,
-        h.waveHeightFt,
-        h.wavePeriodS > 0 ? h.wavePeriodS : 3 // default 3s period if missing
+        h.waveHeightFt >= 0 ? h.waveHeightFt : 1.5, // conservative fallback, not 0
+        h.wavePeriodS > 0 ? h.wavePeriodS : 3
       ),
       data: h,
     }));
@@ -84,9 +88,10 @@ function computeDaySummaries(
     const avgScore =
       hourScores.reduce((sum, hs) => sum + hs.score, 0) / hourScores.length;
 
-    // Peak wind/wave during the day
+    // Peak wind/wave during the day (ignore -1 sentinels)
     const peakWind = Math.max(...daytimeHours.map((h) => h.windSpeedKts));
-    const peakWave = Math.max(...daytimeHours.map((h) => h.waveHeightFt));
+    const validWaves = daytimeHours.filter((h) => h.waveHeightFt >= 0).map((h) => h.waveHeightFt);
+    const peakWave = validWaves.length > 0 ? Math.max(...validWaves) : -1;
 
     // Average temperature
     const avgTemp =
@@ -144,25 +149,31 @@ export function WeekendForecast() {
   const [error, setError] = useState<string | null>(null);
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
 
-  const fetchForecast = useCallback(async () => {
+  const fetchForecast = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(
-        `/api/forecast?lat=${SF_BAY_LAT}&lng=${SF_BAY_LNG}&days=7`
+        `/api/forecast?lat=${SF_BAY_LAT}&lng=${SF_BAY_LNG}&days=7`,
+        { signal }
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: ForecastResponse = await res.json();
-      setForecast(data);
+      if (!signal?.aborted) setForecast(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load forecast');
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      if (!signal?.aborted) {
+        setError(err instanceof Error ? err.message : 'Failed to load forecast');
+      }
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchForecast();
+    const controller = new AbortController();
+    fetchForecast(controller.signal);
+    return () => controller.abort();
   }, [fetchForecast]);
 
   const days = useMemo(() => {
@@ -231,7 +242,7 @@ export function WeekendForecast() {
           </span>
         </div>
         <button
-          onClick={fetchForecast}
+          onClick={() => fetchForecast()}
           className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
           title="Refresh forecast"
         >

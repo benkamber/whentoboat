@@ -28,12 +28,13 @@ export default function Home() {
   const origin = sfBay.destinations.find((d) => d.id === homeBaseId) ?? sfBay.destinations[0];
 
   // Score all destinations (only compute when on results step)
+  // Per-destination error handling: one failure doesn't blank everything
   const scoredRoutes = useMemo(() => {
     if (step !== 'results') return [];
-    try {
-      return sfBay.destinations
-        .filter((d) => d.id !== origin.id && d.activityTags.includes(activity))
-        .map((dest) => {
+    return sfBay.destinations
+      .filter((d) => d.id !== origin.id && d.activityTags.includes(activity))
+      .map((dest) => {
+        try {
           const scored = routeComfort(origin, dest, month, hour, currentActivity, vessel, sfBay);
           const alts = scored.score < 7
             ? findAlternatives(origin, month, hour, currentActivity, vessel, sfBay, dest.id)
@@ -41,14 +42,15 @@ export default function Home() {
           return {
             ...scored,
             alternatives: alts,
-            dest: sfBay.destinations.find((d) => d.id === dest.id)!,
+            dest,
           };
-        })
-        .sort((a, b) => b.score - a.score);
-    } catch (e) {
-      console.error('Scoring error:', e);
-      return [];
-    }
+        } catch (e) {
+          console.error(`Scoring error for ${dest.id}:`, e);
+          return null;
+        }
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null)
+      .sort((a, b) => b.score - a.score);
   }, [activity, month, hour, vessel, origin, currentActivity, step]);
 
   const top3 = scoredRoutes.slice(0, 3);
