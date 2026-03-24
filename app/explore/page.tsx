@@ -79,6 +79,65 @@ interface PopupInfo {
   detail: string;
 }
 
+function ScoreLegend() {
+  const [open, setOpen] = useState(true);
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="absolute bottom-24 left-4 pointer-events-auto w-8 h-8 rounded-full bg-ocean-900/90 backdrop-blur-md border border-ocean-700/50 flex items-center justify-center text-ocean-200 hover:text-white hover:bg-ocean-800/90 transition-colors shadow-lg text-sm font-bold"
+        aria-label="Show score legend"
+      >
+        ?
+      </button>
+    );
+  }
+
+  return (
+    <div className="absolute bottom-24 left-4 pointer-events-auto">
+      <div className="bg-ocean-900/90 backdrop-blur-md rounded-xl border border-ocean-700/50 shadow-xl p-3.5 w-64">
+        <div className="flex items-center justify-between mb-2.5">
+          <h3 className="text-xs font-semibold text-ocean-100 tracking-wide uppercase">
+            Comfort Score (1-10)
+          </h3>
+          <button
+            onClick={() => setOpen(false)}
+            className="text-ocean-400 hover:text-ocean-100 transition-colors text-sm leading-none p-0.5"
+            aria-label="Close legend"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="space-y-1.5 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-score-8 shrink-0" />
+            <span className="text-ocean-100 font-medium">8-10</span>
+            <span className="text-ocean-300">Excellent — go for it</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-score-5 shrink-0" />
+            <span className="text-ocean-100 font-medium">5-7</span>
+            <span className="text-ocean-300">Fair — check conditions</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-score-1 shrink-0" />
+            <span className="text-ocean-100 font-medium">1-4</span>
+            <span className="text-ocean-300">Poor — not recommended</span>
+          </div>
+        </div>
+
+        <div className="mt-2.5 pt-2 border-t border-ocean-700/50">
+          <p className="text-[10px] text-ocean-400 leading-snug">
+            Scores are specific to your activity. Click a destination to see routes from it.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ExplorePage() {
   const mapRef = useRef<MapRef>(null);
   const {
@@ -286,6 +345,9 @@ export default function ExplorePage() {
             ))}
           </div>
         </div>
+
+        {/* Score legend */}
+        <ScoreLegend />
 
         {/* Time slider */}
         <div className="absolute bottom-6 left-4 right-4 pointer-events-auto">

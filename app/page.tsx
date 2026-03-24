@@ -54,11 +54,11 @@ export default function Home() {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="flex-1 flex flex-col items-center px-4 py-8">
+      <main className="flex-1 flex flex-col items-center px-4 py-10">
         {/* Step 1: Activity */}
         {step === 'activity' && (
-          <div className="max-w-lg w-full space-y-8 animate-in fade-in">
-            <div className="text-center space-y-2">
+          <div className="max-w-lg w-full space-y-10 animate-in fade-in">
+            <div className="text-center space-y-3">
               <h1 className="text-3xl font-bold tracking-tight">
                 What are you doing today?
               </h1>
@@ -75,17 +75,23 @@ export default function Home() {
                     setActivity(a.id);
                     setStep('when');
                   }}
-                  className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 text-left hover:border-reef-teal hover:bg-[var(--card-elevated)] transition-all group"
+                  className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 text-left hover:border-reef-teal hover:bg-[var(--card-elevated)] transition-all group relative overflow-hidden"
                 >
+                  {/* Left accent border */}
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-reef-teal/0 group-hover:bg-reef-teal transition-colors" />
                   <div className="flex items-center gap-4">
-                    <span className="text-3xl">{a.icon}</span>
+                    <span className="text-3xl w-12 h-12 flex items-center justify-center rounded-xl bg-[var(--card-elevated)] group-hover:bg-reef-teal/10 transition-colors shrink-0">
+                      {a.icon}
+                    </span>
                     <div className="flex-1">
                       <h3 className="font-semibold text-lg group-hover:text-reef-teal transition-colors">
                         {a.name}
                       </h3>
                       <p className="text-sm text-[var(--muted)]">{a.description}</p>
                     </div>
-                    <span className="text-[var(--muted)] group-hover:text-reef-teal transition-colors">→</span>
+                    <span className="text-[var(--muted)] group-hover:text-reef-teal group-hover:translate-x-1 transition-all text-lg">
+                      →
+                    </span>
                   </div>
                 </button>
               ))}
@@ -95,10 +101,10 @@ export default function Home() {
 
         {/* Step 2: When */}
         {step === 'when' && (
-          <div className="max-w-lg w-full space-y-8 animate-in fade-in">
+          <div className="max-w-lg w-full space-y-10 animate-in fade-in">
             <button
               onClick={() => setStep('activity')}
-              className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+              className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
             >
               ← Change activity
             </button>
@@ -131,7 +137,7 @@ export default function Home() {
             <div className="flex gap-2 justify-center">
               <button
                 onClick={() => setTimeMode('weekend')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   timeMode === 'weekend'
                     ? 'bg-reef-teal text-white'
                     : 'bg-[var(--card)] text-[var(--secondary)] border border-[var(--border)]'
@@ -141,7 +147,7 @@ export default function Home() {
               </button>
               <button
                 onClick={() => setTimeMode('month')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   timeMode === 'month'
                     ? 'bg-reef-teal text-white'
                     : 'bg-[var(--card)] text-[var(--secondary)] border border-[var(--border)]'
@@ -192,7 +198,7 @@ export default function Home() {
 
             <button
               onClick={() => setStep('results')}
-              className="w-full py-3 rounded-xl bg-reef-teal text-white font-semibold text-lg hover:bg-reef-teal/90 transition-colors"
+              className="w-full py-4 rounded-xl bg-reef-teal text-white font-semibold text-lg hover:bg-reef-teal/90 hover:shadow-lg hover:shadow-reef-teal/20 hover:-translate-y-0.5 active:translate-y-0 transition-all"
             >
               Show me where to go
             </button>
@@ -201,11 +207,11 @@ export default function Home() {
 
         {/* Step 3: Results */}
         {step === 'results' && (
-          <div className="max-w-2xl w-full space-y-6 animate-in fade-in">
+          <div className="max-w-2xl w-full space-y-8 animate-in fade-in">
             <div className="flex items-center justify-between">
               <button
                 onClick={() => setStep('when')}
-                className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+                className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
               >
                 ← Change time
               </button>
@@ -214,7 +220,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="text-center space-y-1">
+            <div className="text-center space-y-2">
               <h1 className="text-2xl font-bold tracking-tight">
                 {top3.length > 0 && top3[0].score >= 7
                   ? 'Great conditions today'
@@ -228,39 +234,41 @@ export default function Home() {
             </div>
 
             {/* Top recommendations */}
-            <div className="space-y-3">
+            <div className="space-y-4">
               {top3.map((route, i) => (
                 <div
                   key={route.destinationId}
-                  className={`bg-[var(--card)] border rounded-xl p-5 transition-all ${
+                  className={`bg-[var(--card)] border rounded-xl p-6 transition-all ${
                     i === 0 && route.score >= 7
                       ? 'border-reef-teal shadow-lg shadow-reef-teal/10'
                       : 'border-[var(--border)]'
                   }`}
                 >
                   {i === 0 && route.score >= 7 && (
-                    <div className="text-xs font-medium text-reef-teal mb-2 uppercase tracking-wider">
+                    <div className="text-xs font-medium text-reef-teal mb-3 uppercase tracking-wider">
                       Top Pick
                     </div>
                   )}
 
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-3">
-                        <ScoreBadge
-                          score={route.score}
-                          size={i === 0 ? 'lg' : 'md'}
-                          showRange={{ p10: route.scoreRange.p10, p90: route.scoreRange.p90 }}
-                        />
-                        <div>
-                          <h3 className="font-semibold text-lg">{route.dest.name}</h3>
-                          <p className="text-sm text-[var(--muted)]">
-                            {route.distance} mi · {route.transitMinutes} min ·{' '}
-                            {route.fuelGallons !== null
-                              ? `${route.fuelGallons} gal RT`
-                              : 'paddle power'}
-                          </p>
-                        </div>
+                  <div className="flex items-start gap-5">
+                    {/* Score badge — dominant element */}
+                    <div className="shrink-0">
+                      <ScoreBadge
+                        score={route.score}
+                        size={i === 0 ? 'lg' : 'lg'}
+                        showRange={{ p10: route.scoreRange.p10, p90: route.scoreRange.p90 }}
+                      />
+                    </div>
+
+                    <div className="flex-1 space-y-2 min-w-0">
+                      <div>
+                        <h3 className="font-semibold text-lg">{route.dest.name}</h3>
+                        <p className="text-sm text-[var(--muted)]">
+                          {route.distance} mi · {route.transitMinutes} min ·{' '}
+                          {route.fuelGallons !== null
+                            ? `${route.fuelGallons} gal RT`
+                            : 'paddle power'}
+                        </p>
                       </div>
 
                       <p className="text-sm text-[var(--secondary)]">
@@ -286,8 +294,8 @@ export default function Home() {
                       )}
                     </div>
 
-                    <div className="text-right text-xs text-[var(--muted)] space-y-1">
-                      <div className="font-medium text-[var(--foreground)]">
+                    <div className="text-right text-xs text-[var(--muted)] space-y-1 shrink-0">
+                      <div className="font-semibold text-[var(--foreground)]">
                         {getScoreLabel(route.score)}
                       </div>
                       <div>Wind: {route.riskFactors.length > 0 ? '⚠' : '✓'}</div>
@@ -296,7 +304,7 @@ export default function Home() {
 
                   {/* Where else? */}
                   {route.score < 7 && route.alternatives.length > 0 && (
-                    <div className="mt-4 pt-3 border-t border-[var(--border)] space-y-2">
+                    <div className="mt-5 pt-4 border-t border-[var(--border)] space-y-2">
                       <p className="text-xs font-medium text-reef-teal">
                         Better alternatives nearby:
                       </p>
@@ -322,39 +330,49 @@ export default function Home() {
             </div>
 
             {/* Before You Go */}
-            <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 space-y-3">
-              <h2 className="text-sm font-semibold text-reef-teal">
-                Before You Go — {currentActivity.name}
-              </h2>
-              {currentActivity.beforeYouGo.map((item, i) => (
-                <label key={i} className="flex items-start gap-2.5 cursor-pointer">
-                  <input type="checkbox" className="mt-0.5 accent-reef-teal" />
-                  <span className="text-sm text-[var(--secondary)]">
-                    {item.text}
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-[var(--border)] bg-[var(--card-elevated)]">
+                <h2 className="text-sm font-semibold text-reef-teal uppercase tracking-wider">
+                  Before You Go — {currentActivity.name}
+                </h2>
+              </div>
+              <div className="px-6 py-4 space-y-0">
+                {currentActivity.beforeYouGo.map((item, i) => (
+                  <label
+                    key={i}
+                    className="flex items-center gap-3 py-3 cursor-pointer border-b border-[var(--border)] last:border-b-0 group"
+                  >
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 rounded accent-reef-teal shrink-0"
+                    />
+                    <span className="text-sm text-[var(--secondary)] group-hover:text-[var(--foreground)] transition-colors flex-1">
+                      {item.text}
+                    </span>
                     {item.url && (
                       <a
                         href={item.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-safety-blue ml-1 hover:underline"
+                        className="text-safety-blue text-xs hover:underline shrink-0"
                       >
-                        →
+                        Link →
                       </a>
                     )}
-                  </span>
-                </label>
-              ))}
+                  </label>
+                ))}
+              </div>
             </div>
 
             {/* Verify links */}
-            <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 space-y-2">
-              <h2 className="text-sm font-semibold text-reef-teal">
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 space-y-3">
+              <h2 className="text-sm font-semibold text-reef-teal uppercase tracking-wider">
                 Verify Conditions
               </h2>
-              <p className="text-xs text-warning-amber mb-2">
+              <p className="text-xs text-warning-amber">
                 This is a planning tool based on historical patterns. Always check real-time conditions before departure.
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 pt-1">
                 {sfBay.verifyLinks.map((link, i) => (
                   <a
                     key={i}
@@ -372,21 +390,21 @@ export default function Home() {
             {/* Explore map CTA */}
             <Link
               href="/explore"
-              className="block text-center py-3 rounded-xl border border-compass-gold text-compass-gold font-medium hover:bg-compass-gold/10 transition-colors"
+              className="block text-center py-4 rounded-xl border border-compass-gold text-compass-gold font-semibold hover:bg-compass-gold/10 hover:shadow-lg hover:shadow-compass-gold/10 transition-all"
             >
               Explore the full bay map →
             </Link>
 
             {/* All destinations */}
             <details className="bg-[var(--card)] border border-[var(--border)] rounded-xl">
-              <summary className="p-4 cursor-pointer text-sm font-medium text-[var(--secondary)] hover:text-[var(--foreground)]">
+              <summary className="p-5 cursor-pointer text-sm font-medium text-[var(--secondary)] hover:text-[var(--foreground)] transition-colors">
                 All {scoredRoutes.length} destinations →
               </summary>
-              <div className="px-4 pb-4 space-y-2">
+              <div className="px-5 pb-5 space-y-2">
                 {scoredRoutes.slice(3).map((route) => (
                   <div
                     key={route.destinationId}
-                    className={`flex items-center gap-3 py-2 ${
+                    className={`flex items-center gap-3 py-2.5 ${
                       !route.inRange ? 'opacity-40' : ''
                     }`}
                   >
