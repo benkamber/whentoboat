@@ -42,7 +42,7 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       // Filters — defaults
       activity: 'kayak_sup',
-      month: new Date().getMonth(), // current month
+      month: 2, // March (0-indexed) — safe default, no hydration mismatch
       hour: 9, // 9 AM
       setActivity: (activity) => set({ activity }, undefined, 'setActivity'),
       setMonth: (month) => set({ month }, undefined, 'setMonth'),
