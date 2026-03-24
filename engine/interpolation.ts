@@ -13,8 +13,11 @@ export function getTimeConditions(
 ): ZoneConditions {
   const monthData = zone.monthlyConditions[month];
   if (!monthData) {
-    // Fallback to January if month data missing
-    return zone.monthlyConditions[0]?.am ?? { windKts: 0, waveHtFt: 0, wavePeriodS: 0, comfort: 5 };
+    // Fallback to January if month data missing — log warning since this indicates a data gap
+    if (typeof console !== 'undefined') {
+      console.warn(`[interpolation] No data for zone "${zone.id}" month ${month}, using January fallback`);
+    }
+    return zone.monthlyConditions[0]?.am ?? { windKts: 5, waveHtFt: 1.0, wavePeriodS: 3, comfort: 5 };
   }
 
   const { am, pm } = monthData;
