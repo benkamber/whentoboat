@@ -23,23 +23,29 @@ export default function Home() {
   const currentActivity = getActivity(activity);
   const origin = sfBay.destinations[0]; // Sausalito default
 
-  // Score all destinations
+  // Score all destinations (only compute when on results step)
   const scoredRoutes = useMemo(() => {
-    return sfBay.destinations
-      .filter((d) => d.id !== origin.id && d.activityTags.includes(activity))
-      .map((dest) => {
-        const scored = routeComfort(origin, dest, month, hour, currentActivity, vessel, sfBay);
-        const alts = scored.score < 7
-          ? findAlternatives(origin, month, hour, currentActivity, vessel, sfBay, dest.id)
-          : [];
-        return {
-          ...scored,
-          alternatives: alts,
-          dest: sfBay.destinations.find((d) => d.id === dest.id)!,
-        };
-      })
-      .sort((a, b) => b.score - a.score);
-  }, [activity, month, hour, vessel, origin, currentActivity]);
+    if (step !== 'results') return [];
+    try {
+      return sfBay.destinations
+        .filter((d) => d.id !== origin.id && d.activityTags.includes(activity))
+        .map((dest) => {
+          const scored = routeComfort(origin, dest, month, hour, currentActivity, vessel, sfBay);
+          const alts = scored.score < 7
+            ? findAlternatives(origin, month, hour, currentActivity, vessel, sfBay, dest.id)
+            : [];
+          return {
+            ...scored,
+            alternatives: alts,
+            dest: sfBay.destinations.find((d) => d.id === dest.id)!,
+          };
+        })
+        .sort((a, b) => b.score - a.score);
+    } catch (e) {
+      console.error('Scoring error:', e);
+      return [];
+    }
+  }, [activity, month, hour, vessel, origin, currentActivity, step]);
 
   const top3 = scoredRoutes.slice(0, 3);
   const timeLabel = hour <= 12 ? `${hour}:00 AM` : `${hour - 12}:00 PM`;
