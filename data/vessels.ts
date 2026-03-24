@@ -3,13 +3,23 @@ import type { VesselProfile, VesselType } from '@/engine/types';
 export const vesselPresets: VesselProfile[] = [
   {
     type: 'kayak',
-    name: 'Recreational Kayak',
-    loa: 14,
+    name: 'Sea Kayak',
+    loa: 16,
     cruiseSpeed: 4,
     fuelCapacity: null,
     gph: null,
     draft: 0.5,
-    maxEnduranceHours: 2.5,
+    maxEnduranceHours: 3,
+  },
+  {
+    type: 'sup',
+    name: 'Stand-Up Paddleboard',
+    loa: 11,
+    cruiseSpeed: 3,
+    fuelCapacity: null,
+    gph: null,
+    draft: 0.3,
+    maxEnduranceHours: 2,
   },
   {
     type: 'powerboat',

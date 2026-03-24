@@ -5,7 +5,7 @@
 
 // --- Activity ---
 
-export type ActivityType = 'kayak_sup' | 'powerboat_cruise' | 'casual_sail';
+export type ActivityType = 'kayak' | 'sup' | 'powerboat_cruise' | 'casual_sail';
 
 export interface ActivityProfile {
   id: ActivityType;
@@ -19,11 +19,16 @@ export interface ActivityProfile {
   preferredZoneTypes: string[]; // zone characteristic tags
   beforeYouGo: BeforeYouGoItem[];
   notes: string;
+  maxShoreDistanceM: number | null; // max distance from shore in meters (null = unlimited)
+  maxRangeRoundTripMi: number | null; // max round trip range in miles (null = vessel-limited)
+  requiresOpenWaterCrossing: boolean; // if false, warn when route crosses >500m of open water
 }
 
 // --- Vessel ---
 
 export type VesselType = 'kayak' | 'sup' | 'powerboat' | 'sailboat';
+// Note: 'sup' was originally grouped with 'kayak' but is now separate due to
+// significantly different wind tolerance, wave limits, and near-shore requirements
 
 export interface VesselProfile {
   type: VesselType;

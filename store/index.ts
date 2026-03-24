@@ -16,10 +16,14 @@ interface AppState {
   setMonth: (m: number) => void;
   setHour: (h: number) => void;
 
+  // Home base / origin
+  homeBaseId: string; // user's selected departure point
+  setHomeBase: (id: string) => void;
+
   // Vessel
   vessel: VesselProfile;
   setVessel: (v: VesselProfile) => void;
-  setVesselPreset: (type: 'kayak' | 'powerboat' | 'sailboat') => void;
+  setVesselPreset: (type: string) => void;
 
   // Trajectory selection
   selectedOriginId: string | null;
@@ -34,19 +38,37 @@ interface AppState {
   toggleDarkMode: () => void;
 }
 
-// Default to kayak preset
 const defaultVessel = vesselPresets.find((v) => v.type === 'kayak') ?? vesselPresets[0];
 
 export const useAppStore = create<AppState>()(
   devtools(
     (set) => ({
-      // Filters — defaults
-      activity: 'kayak_sup',
-      month: 2, // March (0-indexed) — safe default, no hydration mismatch
-      hour: 9, // 9 AM
-      setActivity: (activity) => set({ activity }, undefined, 'setActivity'),
+      // Filters
+      activity: 'kayak',
+      month: 2, // March — safe default
+      hour: 9,
+      setActivity: (activity) => {
+        // Auto-switch vessel when activity changes
+        const vesselMap: Record<string, string> = {
+          kayak: 'kayak',
+          sup: 'sup',
+          powerboat_cruise: 'powerboat',
+          casual_sail: 'sailboat',
+        };
+        const vesselType = vesselMap[activity];
+        const preset = vesselPresets.find((v) => v.type === vesselType);
+        set(
+          { activity, ...(preset ? { vessel: preset } : {}) },
+          undefined,
+          'setActivity'
+        );
+      },
       setMonth: (month) => set({ month }, undefined, 'setMonth'),
       setHour: (hour) => set({ hour }, undefined, 'setHour'),
+
+      // Home base — defaults to Sausalito, persisted per session
+      homeBaseId: 'sau',
+      setHomeBase: (id) => set({ homeBaseId: id, selectedOriginId: id }, undefined, 'setHomeBase'),
 
       // Vessel
       vessel: defaultVessel,
