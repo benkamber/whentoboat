@@ -235,13 +235,16 @@ export default function Home() {
             <div className="text-center space-y-2">
               <h1 className="text-2xl font-bold tracking-tight">
                 {top3.length > 0 && top3[0].score >= 7
-                  ? 'Great conditions today'
+                  ? 'Great conditions expected'
                   : top3.length > 0 && top3[0].score >= 4
                     ? 'Fair conditions — check alternatives'
                     : 'Tough conditions — consider waiting'}
               </h1>
               <p className="text-[var(--muted)]">
                 From {origin.name} · {scoredRoutes.filter(r => r.score >= 7).length} of {scoredRoutes.length} destinations scoring 7+
+              </p>
+              <p className="text-xs text-warning-amber">
+                Based on historical patterns for {MONTH_FULL[month]}. Check the live forecast below for this week.
               </p>
             </div>
 

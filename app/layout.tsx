@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 import { Onboarding } from "./components/Onboarding";
 import { Disclaimer } from "./components/Disclaimer";
 
@@ -48,6 +49,7 @@ export default function RootLayout({
         {children}
         <Disclaimer />
         <Onboarding />
+        <Analytics />
       </body>
     </html>
   );

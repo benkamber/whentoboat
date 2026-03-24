@@ -303,8 +303,8 @@ export function WeekendForecast() {
               </div>
               <div className="flex justify-between">
                 <span>Waves</span>
-                <span className="font-mono text-[var(--foreground)]">
-                  {day.peakWaveHtFt}ft
+                <span className={`font-mono ${day.peakWaveHtFt < 0 ? 'text-warning-amber' : 'text-[var(--foreground)]'}`}>
+                  {day.peakWaveHtFt >= 0 ? `${day.peakWaveHtFt}ft` : 'N/A'}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -397,7 +397,7 @@ function HourlyBreakdown({
                     {Math.round(h.windGustKts)}kt
                   </td>
                   <td className="py-1 px-2 text-right font-mono text-[var(--foreground)]">
-                    {(Math.round(h.waveHeightFt * 10) / 10).toFixed(1)}ft
+                    {h.waveHeightFt >= 0 ? `${(Math.round(h.waveHeightFt * 10) / 10).toFixed(1)}ft` : 'N/A'}
                   </td>
                   <td className="py-1 px-2 text-right font-mono text-[var(--foreground)]">
                     {Math.round(h.tempF)}&deg;
