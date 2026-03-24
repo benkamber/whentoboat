@@ -92,6 +92,18 @@ export function BoatSelector({
   };
 
   const handleCustomChange = (field: keyof VesselProfile, value: string | number | null) => {
+    // Validate numeric fields to prevent nonsensical values
+    if (typeof value === 'number') {
+      const limits: Record<string, [number, number]> = {
+        loa: [4, 200],          // 4ft kayak to 200ft yacht
+        cruiseSpeed: [1, 80],   // 1mph SUP to 80mph speed boat
+        fuelCapacity: [0, 1000],
+        gph: [0, 100],
+        draft: [0, 30],         // 0ft SUP to 30ft deep keel
+      };
+      const [min, max] = limits[field] ?? [0, Infinity];
+      value = Math.max(min, Math.min(max, value));
+    }
     const updated = { ...customVessel, [field]: value };
     setCustomVessel(updated);
     setVessel(updated);
