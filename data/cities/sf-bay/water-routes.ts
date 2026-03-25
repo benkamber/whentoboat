@@ -1894,17 +1894,271 @@ export const waterRoutes: WaterRoute[] = [
   //     — covered by ang → p39 reverse lookup
   // ──────────────────────────────────────────
 
-  // ──────────────────────────────────────────
-  // 73. sau → ptr already covered as #21
-  // 74. sau → mcc already covered as #19
-  // 75. sau → alm already covered as #20
-  // ──────────────────────────────────────────
+  // ══════════════════════════════════════════
+  // HALF MOON BAY — remaining ocean routes
+  // All share the same coast-following segment
+  // south of the Golden Gate. Scoring engine
+  // will rate these 1/10 for kayak/SUP (ocean
+  // passage, dangerous) and variable for
+  // powerboat/sail based on conditions.
+  // ══════════════════════════════════════════
+
+  // Shared coastline waypoints south of the Gate to HMB
+  // (reused across all HMB routes below)
 
   // ──────────────────────────────────────────
-  // 76. alm → clp (reverse of #61)
-  // 77. alm → jls (reverse of #16)
-  // These are all handled by the reverse lookup in getWaterRoute()
+  // 70. tib → hmb
   // ──────────────────────────────────────────
+  {
+    fromId: 'tib',
+    toId: 'hmb',
+    vesselType: 'default',
+    waypoints: [
+      [-122.4562, 37.8735], // Tiburon
+      [-122.4650, 37.8650], // Across Richardson Bay
+      [-122.4790, 37.8470], // Toward Golden Gate
+      [-122.4850, 37.8300], // Under the Golden Gate Bridge
+      [-122.4900, 37.8200], // Exiting the Gate
+      [-122.4950, 37.8080], // Past Mile Rock
+      [-122.5050, 37.7700], // Offshore Ocean Beach
+      [-122.5050, 37.7500], // South along coast
+      [-122.5020, 37.7250], // Fort Funston
+      [-122.4950, 37.6700], // Pacifica
+      [-122.4900, 37.6100], // Montara
+      [-122.4850, 37.5500], // Approaching Pillar Point
+      [-122.4830, 37.5100], // Entering HMB
+      [-122.4816, 37.5050], // Pillar Point Harbor
+    ],
+    distance: 29.0,
+    zones: ['richardson', 'central_bay', 'ocean_south'],
+    notes: 'OCEAN ROUTE from Tiburon. Through Richardson Bay to Golden Gate, then south along coast.',
+  },
+
+  // ──────────────────────────────────────────
+  // 71. ang → hmb
+  // ──────────────────────────────────────────
+  {
+    fromId: 'ang',
+    toId: 'hmb',
+    vesselType: 'default',
+    waypoints: [
+      [-122.4330, 37.8636], // Angel Island (Ayala Cove)
+      [-122.4500, 37.8550], // South of Angel Island
+      [-122.4700, 37.8450], // Toward Golden Gate
+      [-122.4850, 37.8300], // Under the Golden Gate Bridge
+      [-122.4900, 37.8200], // Exiting the Gate
+      [-122.4950, 37.8080], // Past Mile Rock
+      [-122.5050, 37.7700], // Offshore Ocean Beach
+      [-122.5050, 37.7500], // South along coast
+      [-122.5020, 37.7250], // Fort Funston
+      [-122.4950, 37.6700], // Pacifica
+      [-122.4900, 37.6100], // Montara
+      [-122.4850, 37.5500], // Approaching Pillar Point
+      [-122.4830, 37.5100], // Entering HMB
+      [-122.4816, 37.5050], // Pillar Point Harbor
+    ],
+    distance: 29.5,
+    zones: ['richardson', 'central_bay', 'ocean_south'],
+    notes: 'OCEAN ROUTE from Angel Island. Through central bay to Golden Gate, then south along coast.',
+  },
+
+  // ──────────────────────────────────────────
+  // 72. p39 → hmb
+  // ──────────────────────────────────────────
+  {
+    fromId: 'p39',
+    toId: 'hmb',
+    vesselType: 'default',
+    waypoints: [
+      [-122.4098, 37.8087], // Pier 39
+      [-122.4200, 37.8090], // West along SF waterfront
+      [-122.4400, 37.8100], // Past Aquatic Park
+      [-122.4700, 37.8250], // Approaching Golden Gate
+      [-122.4850, 37.8300], // Under the Golden Gate Bridge
+      [-122.4900, 37.8200], // Exiting the Gate
+      [-122.4950, 37.8080], // Past Mile Rock
+      [-122.5050, 37.7700], // Offshore Ocean Beach
+      [-122.5050, 37.7500], // South along coast
+      [-122.5020, 37.7250], // Fort Funston
+      [-122.4950, 37.6700], // Pacifica
+      [-122.4900, 37.6100], // Montara
+      [-122.4850, 37.5500], // Approaching Pillar Point
+      [-122.4816, 37.5050], // Pillar Point Harbor
+    ],
+    distance: 25.0,
+    zones: ['sf_shore', 'central_bay', 'ocean_south'],
+    notes: 'OCEAN ROUTE from Pier 39. West along waterfront to Golden Gate, then south along coast.',
+  },
+
+  // ──────────────────────────────────────────
+  // 73. mcc → hmb
+  // ──────────────────────────────────────────
+  {
+    fromId: 'mcc',
+    toId: 'hmb',
+    vesselType: 'default',
+    waypoints: [
+      [-122.3893, 37.7786], // McCovey Cove
+      [-122.3935, 37.7955], // North along SF waterfront
+      [-122.4098, 37.8087], // Past Pier 39
+      [-122.4400, 37.8100], // Past Aquatic Park
+      [-122.4700, 37.8250], // Approaching Golden Gate
+      [-122.4850, 37.8300], // Under the Golden Gate Bridge
+      [-122.4900, 37.8200], // Exiting the Gate
+      [-122.4950, 37.8080], // Past Mile Rock
+      [-122.5050, 37.7700], // Offshore Ocean Beach
+      [-122.5020, 37.7250], // Fort Funston
+      [-122.4950, 37.6700], // Pacifica
+      [-122.4900, 37.6100], // Montara
+      [-122.4850, 37.5500], // Approaching Pillar Point
+      [-122.4816, 37.5050], // Pillar Point Harbor
+    ],
+    distance: 27.0,
+    zones: ['sf_shore', 'central_bay', 'ocean_south'],
+    notes: 'OCEAN ROUTE from McCovey Cove. North along SF waterfront to Golden Gate, then south.',
+  },
+
+  // ──────────────────────────────────────────
+  // 74. clp → hmb
+  // ──────────────────────────────────────────
+  {
+    fromId: 'clp',
+    toId: 'hmb',
+    vesselType: 'default',
+    waypoints: [
+      [-122.3695, 37.8185], // Clipper Cove
+      [-122.3800, 37.8150], // West from Treasure Island
+      [-122.4098, 37.8087], // Past Pier 39
+      [-122.4400, 37.8100], // Past Aquatic Park
+      [-122.4700, 37.8250], // Approaching Golden Gate
+      [-122.4850, 37.8300], // Under the Golden Gate Bridge
+      [-122.4900, 37.8200], // Exiting the Gate
+      [-122.4950, 37.8080], // Past Mile Rock
+      [-122.5050, 37.7700], // Offshore Ocean Beach
+      [-122.5020, 37.7250], // Fort Funston
+      [-122.4950, 37.6700], // Pacifica
+      [-122.4900, 37.6100], // Montara
+      [-122.4850, 37.5500], // Approaching Pillar Point
+      [-122.4816, 37.5050], // Pillar Point Harbor
+    ],
+    distance: 28.0,
+    zones: ['central_bay', 'sf_shore', 'ocean_south'],
+    notes: 'OCEAN ROUTE from Clipper Cove. West across central bay to Golden Gate, then south.',
+  },
+
+  // ──────────────────────────────────────────
+  // 75. jls → hmb
+  // ──────────────────────────────────────────
+  {
+    fromId: 'jls',
+    toId: 'hmb',
+    vesselType: 'default',
+    waypoints: [
+      [-122.2795, 37.7955], // Jack London Square
+      [-122.3000, 37.8000], // Out of Oakland Estuary
+      [-122.3500, 37.8100], // West across central bay
+      [-122.4098, 37.8087], // Past Pier 39
+      [-122.4400, 37.8100], // Past Aquatic Park
+      [-122.4700, 37.8250], // Approaching Golden Gate
+      [-122.4850, 37.8300], // Under the Golden Gate Bridge
+      [-122.4900, 37.8200], // Exiting the Gate
+      [-122.4950, 37.8080], // Past Mile Rock
+      [-122.5050, 37.7700], // Offshore Ocean Beach
+      [-122.5020, 37.7250], // Fort Funston
+      [-122.4950, 37.6700], // Pacifica
+      [-122.4900, 37.6100], // Montara
+      [-122.4850, 37.5500], // Approaching Pillar Point
+      [-122.4816, 37.5050], // Pillar Point Harbor
+    ],
+    distance: 32.0,
+    zones: ['east_bay', 'central_bay', 'sf_shore', 'ocean_south'],
+    notes: 'OCEAN ROUTE from JLS. Long trip — through estuary, across central bay, through Gate, south along coast.',
+  },
+
+  // ──────────────────────────────────────────
+  // 76. alm → hmb
+  // ──────────────────────────────────────────
+  {
+    fromId: 'alm',
+    toId: 'hmb',
+    vesselType: 'default',
+    waypoints: [
+      [-122.2820, 37.7735], // Alameda
+      [-122.3000, 37.7900], // Out of estuary
+      [-122.3500, 37.8100], // West across central bay
+      [-122.4098, 37.8087], // Past Pier 39
+      [-122.4400, 37.8100], // Past Aquatic Park
+      [-122.4700, 37.8250], // Approaching Golden Gate
+      [-122.4850, 37.8300], // Under the Golden Gate Bridge
+      [-122.4900, 37.8200], // Exiting the Gate
+      [-122.4950, 37.8080], // Past Mile Rock
+      [-122.5050, 37.7700], // Offshore Ocean Beach
+      [-122.5020, 37.7250], // Fort Funston
+      [-122.4950, 37.6700], // Pacifica
+      [-122.4900, 37.6100], // Montara
+      [-122.4850, 37.5500], // Approaching Pillar Point
+      [-122.4816, 37.5050], // Pillar Point Harbor
+    ],
+    distance: 33.0,
+    zones: ['east_bay', 'central_bay', 'sf_shore', 'ocean_south'],
+    notes: 'OCEAN ROUTE from Alameda. Very long trip — through estuary, across bay, through Gate, south.',
+  },
+
+  // ──────────────────────────────────────────
+  // 77. brk → hmb
+  // ──────────────────────────────────────────
+  {
+    fromId: 'brk',
+    toId: 'hmb',
+    vesselType: 'default',
+    waypoints: [
+      [-122.3150, 37.8650], // Berkeley Marina
+      [-122.3500, 37.8500], // West across bay
+      [-122.4000, 37.8300], // Approaching Alcatraz area
+      [-122.4400, 37.8200], // Past Alcatraz
+      [-122.4700, 37.8250], // Approaching Golden Gate
+      [-122.4850, 37.8300], // Under the Golden Gate Bridge
+      [-122.4900, 37.8200], // Exiting the Gate
+      [-122.4950, 37.8080], // Past Mile Rock
+      [-122.5050, 37.7700], // Offshore Ocean Beach
+      [-122.5020, 37.7250], // Fort Funston
+      [-122.4950, 37.6700], // Pacifica
+      [-122.4900, 37.6100], // Montara
+      [-122.4850, 37.5500], // Approaching Pillar Point
+      [-122.4816, 37.5050], // Pillar Point Harbor
+    ],
+    distance: 31.0,
+    zones: ['east_bay', 'central_bay', 'ocean_south'],
+    notes: 'OCEAN ROUTE from Berkeley. Across bay, past Alcatraz, through Gate, south along coast.',
+  },
+
+  // ──────────────────────────────────────────
+  // 78. ptr → hmb
+  // ──────────────────────────────────────────
+  {
+    fromId: 'ptr',
+    toId: 'hmb',
+    vesselType: 'default',
+    waypoints: [
+      [-122.3815, 37.9085], // Pt Richmond
+      [-122.3900, 37.8800], // South along east shore
+      [-122.4000, 37.8500], // Past Angel Island (east side)
+      [-122.4400, 37.8200], // Past Alcatraz
+      [-122.4700, 37.8250], // Approaching Golden Gate
+      [-122.4850, 37.8300], // Under the Golden Gate Bridge
+      [-122.4900, 37.8200], // Exiting the Gate
+      [-122.4950, 37.8080], // Past Mile Rock
+      [-122.5050, 37.7700], // Offshore Ocean Beach
+      [-122.5020, 37.7250], // Fort Funston
+      [-122.4950, 37.6700], // Pacifica
+      [-122.4900, 37.6100], // Montara
+      [-122.4850, 37.5500], // Approaching Pillar Point
+      [-122.4816, 37.5050], // Pillar Point Harbor
+    ],
+    distance: 33.0,
+    zones: ['north_bay', 'central_bay', 'ocean_south'],
+    notes: 'OCEAN ROUTE from Pt Richmond. Longest HMB route — south past Angel Island, through Gate, south along coast.',
+  },
 ];
 
 /**
