@@ -8,6 +8,9 @@ import { activities, getActivity } from '@/data/activities';
 import { useAppStore } from '@/store';
 import { routeComfort, findAlternatives } from '@/engine/scoring';
 import { useDestinationGeoJSON, useRouteGeoJSON } from '@/hooks/useMapData';
+import { useZoneOverlay } from '@/hooks/useZoneOverlay';
+import { useLiveForecast } from '@/hooks/useLiveForecast';
+import { fullConditionsScore } from '@/engine/scoring';
 import { Header } from './components/Header';
 import { ScoreBadge, getScoreLabel } from './components/ScoreBadge';
 import { TrajectoryPanel } from './components/TrajectoryPanel';
@@ -92,10 +95,29 @@ const destinationLabelLayer = {
   },
 };
 
+const zoneFillLayer = {
+  id: 'zone-fill',
+  type: 'fill' as const,
+  paint: {
+    'fill-color': ['get', 'color'] as any,
+    'fill-opacity': ['get', 'opacity'] as any,
+  },
+};
+
+const zoneBorderLayer = {
+  id: 'zone-border',
+  type: 'line' as const,
+  paint: {
+    'line-color': ['get', 'color'] as any,
+    'line-width': 1,
+    'line-opacity': 0.15,
+  },
+};
+
 interface PopupInfo {
   lng: number;
   lat: number;
-  type: 'destination' | 'route';
+  type: 'destination' | 'route' | 'zone';
   name: string;
   score: number;
   detail: string;
@@ -120,6 +142,10 @@ export default function Home() {
   const [beforeYouGoOpen, setBeforeYouGoOpen] = useState(false);
   const [verifyLinksOpen, setVerifyLinksOpen] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [useLiveData, setUseLiveData] = useState(false);
+
+  // Live forecast data
+  const { forecast, loading: forecastLoading, getConditionsForHour, hasLiveDataForDate, sources: forecastSources } = useLiveForecast();
 
   const mapRef = useRef<any>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -137,13 +163,27 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [homeBaseId]);
 
-  // Score all destinations (always computed, no wizard step gate)
+  // Score all destinations — uses live forecast when toggled on, historical otherwise
   const scoredRoutes = useMemo(() => {
+    // When live mode is on and we have forecast data, use live conditions
+    const liveConditions = useLiveData ? getConditionsForHour(new Date(), Math.floor(hour)) : null;
+
     return sfBay.destinations
       .filter((d) => d.id !== origin.id && d.activityTags.includes(activity))
       .map((dest) => {
         try {
+          // Base scoring always uses historical route comfort (for distance, fuel, zones, etc.)
           const scored = routeComfort(origin, dest, month, hour, currentActivity, vessel, sfBay);
+
+          // If live forecast is available, override the score with live conditions
+          if (liveConditions) {
+            const { score: liveScore, factors } = fullConditionsScore(currentActivity, liveConditions, vessel);
+            scored.score = liveScore;
+            scored.riskFactors = [...factors, ...scored.riskFactors.filter(f =>
+              !factors.some(lf => lf.factor === f.factor)
+            )];
+          }
+
           const alts = scored.score < 7
             ? findAlternatives(origin, month, hour, currentActivity, vessel, sfBay, dest.id)
             : [];
@@ -159,7 +199,7 @@ export default function Home() {
       })
       .filter((r): r is NonNullable<typeof r> => r !== null)
       .sort((a, b) => b.score - a.score);
-  }, [activity, month, hour, vessel, origin, currentActivity]);
+  }, [activity, month, hour, vessel, origin, currentActivity, useLiveData, getConditionsForHour]);
 
   // Format time with minutes (hour can be decimal, e.g., 9.5 = 9:30 AM)
   const formatTime = (h: number) => {
@@ -175,6 +215,7 @@ export default function Home() {
   // Map data hooks
   const destinationsGeoJSON = useDestinationGeoJSON(activity, month, hour, vessel, homeBaseId);
   const routesGeoJSON = useRouteGeoJSON(activity, month, hour, vessel, homeBaseId);
+  const zoneOverlayGeoJSON = useZoneOverlay(activity, month, hour, vessel);
 
   // --- Map callbacks ---
 
@@ -256,9 +297,19 @@ export default function Home() {
           score: feature.properties?.score ?? 5,
           detail: `${feature.properties?.distance} mi | ${feature.properties?.transitMinutes} min`,
         });
+      } else if (layerId === 'zone-fill') {
+        const score = feature.properties?.score ?? 5;
+        setPopup({
+          lng: e.lngLat.lng,
+          lat: e.lngLat.lat,
+          type: 'zone',
+          name: feature.properties?.zoneName ?? 'Zone',
+          score,
+          detail: `${getScoreLabel(score)} for ${currentActivity.name}`,
+        });
       }
     }
-  }, []);
+  }, [currentActivity]);
 
   // --- Sidebar card interactions ---
 
@@ -382,16 +433,47 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Data source toggle: Historical vs Live */}
+          <div className="px-3 py-1.5 border-b border-[var(--border)] shrink-0">
+            <div className="flex gap-1">
+              <button
+                onClick={() => setUseLiveData(false)}
+                className={`flex-1 px-2 py-1 rounded text-[10px] font-medium transition-colors ${
+                  !useLiveData
+                    ? 'bg-compass-gold/20 text-compass-gold border border-compass-gold/30'
+                    : 'text-[var(--muted)] hover:bg-[var(--card-elevated)]'
+                }`}
+              >
+                Seasonal ({MONTHS[month]})
+              </button>
+              <button
+                onClick={() => setUseLiveData(true)}
+                className={`flex-1 px-2 py-1 rounded text-[10px] font-medium transition-colors ${
+                  useLiveData
+                    ? 'bg-reef-teal/20 text-reef-teal border border-reef-teal/30'
+                    : 'text-[var(--muted)] hover:bg-[var(--card-elevated)]'
+                }`}
+              >
+                {forecastLoading ? 'Loading...' : 'Live Forecast'}
+              </button>
+            </div>
+          </div>
+
           {/* Score summary bar */}
           <div className="px-3 py-2 border-b border-[var(--border)] bg-[var(--card-elevated)] shrink-0">
             <div className="flex items-center justify-between text-xs">
               <span className="text-[var(--muted)]">
-                {currentActivity.icon} {currentActivity.name} · {MONTHS[month]} · {timeLabel}
+                {currentActivity.icon} {currentActivity.name} · {useLiveData ? 'Live' : MONTHS[month]} · {timeLabel}
               </span>
               <span className="text-reef-teal font-medium">
                 {scoredRoutes.filter(r => r.score >= 7).length}/{scoredRoutes.length} good
               </span>
             </div>
+            {useLiveData && forecastSources.length > 0 && (
+              <div className="text-[9px] text-[var(--muted)] mt-0.5">
+                Sources: {forecastSources.join(' · ')}
+              </div>
+            )}
           </div>
 
           {/* Scrollable destination list */}
@@ -595,7 +677,7 @@ export default function Home() {
                 }}
                 style={{ width: '100%', height: '100%' }}
                 mapStyle="mapbox://styles/mapbox/dark-v11"
-                interactiveLayerIds={['destination-circles', 'destination-labels', 'route-lines-hit']}
+                interactiveLayerIds={['zone-fill', 'destination-circles', 'destination-labels', 'route-lines-hit']}
                 onClick={onMapClick}
                 onMouseEnter={onMouseEnter}
                 onMouseLeave={onMouseLeave}
@@ -604,6 +686,12 @@ export default function Home() {
                 cursor={cursor}
               >
                 <NavigationControl position="bottom-right" />
+
+                {/* Zone heat overlay (behind everything) */}
+                <Source id="zones" type="geojson" data={zoneOverlayGeoJSON}>
+                  <Layer {...zoneFillLayer} />
+                  <Layer {...zoneBorderLayer} />
+                </Source>
 
                 {/* Route lines */}
                 <Source id="routes" type="geojson" data={routesGeoJSON}>
