@@ -2,6 +2,7 @@ import type {
   ActivityProfile,
   City,
   Destination,
+  FullConditions,
   RiskFactor,
   ScoreRange,
   ScoredRoute,
@@ -12,6 +13,7 @@ import type {
 } from './types';
 import { getTimeConditions } from './interpolation';
 import { getRouteZones, transitTime, fuelRoundTrip, isInRange, draftClearance } from './routing';
+import { getSeasonalConditions } from '@/data/cities/sf-bay/seasonal-conditions';
 
 // ============================================
 // Activity Comfort Scoring
@@ -66,6 +68,173 @@ export function activityScore(
 
   const raw = windScore * 0.5 + waveScore * 0.5 + periodAdjust;
   return Math.max(1, Math.min(10, Math.round(raw)));
+}
+
+/**
+ * Comprehensive scoring using ALL environmental factors.
+ * This is the full scoring function that considers:
+ * wind, waves, period, water temp, air temp, current, tide, visibility.
+ *
+ * Returns 1-10 with detailed breakdown of what contributed to the score.
+ */
+export function fullConditionsScore(
+  activity: ActivityProfile,
+  conditions: FullConditions,
+  vessel: VesselProfile
+): { score: number; factors: RiskFactor[] } {
+  const factors: RiskFactor[] = [];
+
+  // 1. Base wind/wave/period score (existing algorithm)
+  const adjWave = conditions.waveHtFt / vesselWaveToleranceMultiplier(vessel.loa);
+  let baseScore = activityScore(activity, conditions.windKts, adjWave, conditions.wavePeriodS);
+
+  // 2. Wind-against-current modifier (can dramatically increase wave height)
+  if (conditions.currentKts > 0) {
+    const waveMultiplier = windCurrentInteraction(
+      conditions.windKts,
+      conditions.windDirDeg,
+      conditions.currentKts,
+      conditions.currentDirDeg
+    );
+    if (waveMultiplier > 1.3) {
+      const effectiveWaves = conditions.waveHtFt * waveMultiplier;
+      const penalizedScore = activityScore(activity, conditions.windKts, effectiveWaves / vesselWaveToleranceMultiplier(vessel.loa), conditions.wavePeriodS);
+      if (penalizedScore < baseScore) {
+        factors.push({
+          factor: 'Wind against current',
+          severity: waveMultiplier > 2 ? 'high' : 'medium',
+          description: `Wind opposing ${conditions.currentKts.toFixed(1)}kt ${conditions.tidePhase} current — effective waves ${effectiveWaves.toFixed(1)}ft (${waveMultiplier.toFixed(1)}x amplified).`,
+        });
+        baseScore = penalizedScore;
+      }
+    }
+  }
+
+  // 3. Tide phase bonus/penalty (for fishing especially)
+  let tidePenalty = 0;
+  if (conditions.tidePhase === 'ebb' && conditions.currentKts > 2) {
+    // Strong ebb at the Gate is dangerous for all small craft
+    if (activity.vesselType === 'kayak' || activity.vesselType === 'sup') {
+      tidePenalty = -2;
+      factors.push({
+        factor: 'Strong ebb current',
+        severity: 'high',
+        description: `${conditions.currentKts.toFixed(1)}kt ebb current — dangerous for ${activity.name}. Paddling against this is extremely difficult.`,
+      });
+    }
+  }
+
+  // 4. Water temperature factor
+  let waterTempPenalty = 0;
+  if (conditions.waterTempF > 0) {
+    if (conditions.waterTempF < 55 && (activity.vesselType === 'kayak' || activity.vesselType === 'sup')) {
+      waterTempPenalty = -1;
+      factors.push({
+        factor: 'Cold water risk',
+        severity: 'medium',
+        description: `Water temperature ${conditions.waterTempF}°F — cold water shock risk if capsized. Wear a wetsuit or drysuit.`,
+      });
+    }
+    if (conditions.waterTempF < 50) {
+      waterTempPenalty = -2;
+      factors.push({
+        factor: 'Very cold water',
+        severity: 'high',
+        description: `Water temperature ${conditions.waterTempF}°F — hypothermia risk within minutes of immersion. Immersion suit required.`,
+      });
+    }
+  }
+
+  // 5. Air temperature factor
+  let airTempPenalty = 0;
+  if (conditions.airTempF > 0) {
+    if (conditions.airTempF < 50) {
+      airTempPenalty = -0.5;
+      factors.push({
+        factor: 'Cold air temperature',
+        severity: 'low',
+        description: `Air temperature ${conditions.airTempF}°F — dress in warm layers.`,
+      });
+    }
+    if (conditions.airTempF > 85) {
+      // Hot days can be great for water activities
+      // But dehydration risk on long trips
+      factors.push({
+        factor: 'Hot weather',
+        severity: 'low',
+        description: `Air temperature ${conditions.airTempF}°F — bring extra water, sun protection.`,
+      });
+    }
+  }
+
+  // 6. Visibility / fog penalty
+  let visibilityPenalty = 0;
+  if (conditions.visibilityMi > 0 && conditions.visibilityMi < 10) {
+    if (conditions.visibilityMi < 1) {
+      visibilityPenalty = -3;
+      factors.push({
+        factor: 'Dense fog',
+        severity: 'high',
+        description: `Visibility ${conditions.visibilityMi.toFixed(1)} miles — cannot see other vessels. Ferry and shipping traffic risk. Do not depart.`,
+      });
+    } else if (conditions.visibilityMi < 3) {
+      visibilityPenalty = -1.5;
+      factors.push({
+        factor: 'Fog',
+        severity: 'medium',
+        description: `Visibility ${conditions.visibilityMi.toFixed(1)} miles — reduced visibility. Use navigation lights, sound signals. Stay clear of shipping lanes.`,
+      });
+    } else if (conditions.visibilityMi < 5) {
+      visibilityPenalty = -0.5;
+      factors.push({
+        factor: 'Haze',
+        severity: 'low',
+        description: `Visibility ${conditions.visibilityMi.toFixed(1)} miles — light haze. Maintain awareness.`,
+      });
+    }
+  }
+
+  // 7. Combine all factors
+  const totalScore = baseScore + tidePenalty + waterTempPenalty + airTempPenalty + visibilityPenalty;
+  return {
+    score: Math.max(1, Math.min(10, Math.round(totalScore))),
+    factors,
+  };
+}
+
+/**
+ * Build FullConditions from zone data + optional forecast overlay.
+ * This bridges the gap between historical zone data and the full scoring engine.
+ */
+export function buildFullConditions(
+  zoneConditions: ZoneConditions,
+  month?: number,
+  hour?: number,
+  defaults?: Partial<FullConditions>
+): FullConditions {
+  // Pull seasonal data for temperature, visibility, current
+  const seasonal = month !== undefined ? getSeasonalConditions(month) : null;
+  const isAM = (hour ?? 9) < 12;
+
+  return {
+    windKts: zoneConditions.windKts,
+    windDirDeg: defaults?.windDirDeg ?? 270, // prevailing westerly for SF Bay
+    waveHtFt: zoneConditions.waveHtFt,
+    wavePeriodS: zoneConditions.wavePeriodS,
+    waterTempF: zoneConditions.waterTempF ?? seasonal?.waterTempF ?? 58,
+    airTempF: zoneConditions.airTempF ?? (isAM
+      ? (seasonal?.airTempLowF ?? 55)
+      : (seasonal?.airTempHighF ?? 65)),
+    currentKts: zoneConditions.currentKts ?? defaults?.currentKts ?? (seasonal?.goldenGateMaxEbbKts ?? 0) * 0.5, // average current, not max
+    currentDirDeg: zoneConditions.currentDirDeg ?? defaults?.currentDirDeg ?? 0,
+    visibilityMi: zoneConditions.visibilityMi ?? (isAM
+      ? (seasonal?.typicalVisibilityAM_Mi ?? 10)
+      : (seasonal?.typicalVisibilityPM_Mi ?? 10)),
+    tideFt: zoneConditions.tideFt ?? defaults?.tideFt ?? 3,
+    tidePhase: zoneConditions.tidePhase ?? defaults?.tidePhase ?? 'flood',
+    isLiveForecast: defaults?.isLiveForecast ?? false,
+    isMissingWaveData: defaults?.isMissingWaveData ?? false,
+  };
 }
 
 /**
@@ -217,19 +386,29 @@ export function routeComfort(
   const rangeOk = isInRange(distance, vessel);
   const draft = draftClearance(destination, vessel);
 
-  // Score each zone — route comfort = worst zone (bottleneck rule)
+  // Score each zone using full conditions — route comfort = worst zone (bottleneck rule)
   let worstScore = 10;
+  let allRiskFactors: RiskFactor[] = [];
   for (const zone of zones) {
-    const conditions = getTimeConditions(zone, hour, month);
-    const adjWaveHt = effectiveWaveHeight(conditions.waveHtFt, vessel);
-    const score = activityScore(activity, conditions.windKts, adjWaveHt, conditions.wavePeriodS);
+    const zoneConditions = getTimeConditions(zone, Math.floor(hour), month);
+    const fullConds = buildFullConditions(zoneConditions, month, Math.floor(hour));
+    const { score, factors } = fullConditionsScore(activity, fullConds, vessel);
     if (score < worstScore) {
       worstScore = score;
     }
+    allRiskFactors = allRiskFactors.concat(factors);
   }
 
   const scoreRange = estimateScoreRange(worstScore);
-  const riskFactors = identifyRiskFactors(zones, month, hour, activity);
+  // Combine full-conditions risk factors with zone-level risk factors
+  const zoneRiskFactors = identifyRiskFactors(zones, month, Math.floor(hour), activity);
+  // Deduplicate by factor name
+  const seenFactors = new Set<string>();
+  const riskFactors = [...allRiskFactors, ...zoneRiskFactors].filter(f => {
+    if (seenFactors.has(f.factor)) return false;
+    seenFactors.add(f.factor);
+    return true;
+  });
   const variabilityWarning = getVariabilityWarning(zones, month);
 
   // Collect verify links from all traversed zones

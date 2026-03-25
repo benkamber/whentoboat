@@ -88,6 +88,35 @@ export interface ZoneConditions {
   waveHtFt: number;
   wavePeriodS: number;
   comfort: number; // 1-10 general comfort baseline
+  // Extended conditions (optional — filled from forecast or seasonal data)
+  waterTempF?: number; // SF Bay typically 50-65°F
+  airTempF?: number; // air temperature
+  currentKts?: number; // tidal current speed
+  currentDirDeg?: number; // tidal current direction
+  visibilityMi?: number; // fog/visibility in miles
+  tideFt?: number; // tide height above MLLW
+  tidePhase?: 'flood' | 'ebb' | 'slack_high' | 'slack_low';
+}
+
+/**
+ * Full environmental conditions for scoring — combines zone data with forecast.
+ * This is what the scoring engine uses to compute comfort.
+ */
+export interface FullConditions {
+  windKts: number;
+  windDirDeg: number;
+  waveHtFt: number;
+  wavePeriodS: number;
+  waterTempF: number;
+  airTempF: number;
+  currentKts: number;
+  currentDirDeg: number;
+  visibilityMi: number;
+  tideFt: number;
+  tidePhase: 'flood' | 'ebb' | 'slack_high' | 'slack_low';
+  // Source flags
+  isLiveForecast: boolean; // true = from Open-Meteo, false = historical average
+  isMissingWaveData: boolean;
 }
 
 // --- Scoring ---
