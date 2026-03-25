@@ -101,6 +101,8 @@ const zoneFillLayer = {
   paint: {
     'fill-color': ['get', 'color'] as any,
     'fill-opacity': ['get', 'opacity'] as any,
+    'fill-color-transition': { duration: 300 } as any,
+    'fill-opacity-transition': { duration: 300 } as any,
   },
 };
 
@@ -140,7 +142,7 @@ export default function Home() {
   const [selectedDestId, setSelectedDestId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [beforeYouGoOpen, setBeforeYouGoOpen] = useState(false);
-  const [verifyLinksOpen, setVerifyLinksOpen] = useState(false);
+  // verifyLinksOpen removed — verify links only in trajectory panel now
   const [mapLoaded, setMapLoaded] = useState(false);
   const [useLiveData, setUseLiveData] = useState(false);
 
@@ -297,16 +299,7 @@ export default function Home() {
           score: feature.properties?.score ?? 5,
           detail: `${feature.properties?.distance} mi | ${feature.properties?.transitMinutes} min`,
         });
-      } else if (layerId === 'zone-fill') {
-        const score = feature.properties?.score ?? 5;
-        setPopup({
-          lng: e.lngLat.lng,
-          lat: e.lngLat.lat,
-          type: 'zone',
-          name: feature.properties?.zoneName ?? 'Zone',
-          score,
-          detail: `${getScoreLabel(score)} for ${currentActivity.name}`,
-        });
+      // Zone hover removed — zones are visual-only, not interactive
       }
     }
   }, [currentActivity]);
@@ -416,12 +409,12 @@ export default function Home() {
             </div>
 
             {/* Month selector */}
-            <div className="flex gap-0.5">
+            <div className="flex gap-0.5 overflow-x-auto">
               {MONTHS.map((m, i) => (
                 <button
                   key={i}
                   onClick={() => setMonth(i)}
-                  className={`flex-1 px-0 py-1 rounded text-[10px] font-medium transition-colors ${
+                  className={`flex-1 min-w-[28px] px-0.5 py-1.5 rounded text-[11px] font-medium transition-colors ${
                     month === i
                       ? 'bg-compass-gold text-ocean-950'
                       : 'text-[var(--muted)] hover:bg-[var(--card-elevated)]'
@@ -444,7 +437,7 @@ export default function Home() {
                     : 'text-[var(--muted)] hover:bg-[var(--card-elevated)]'
                 }`}
               >
-                Seasonal ({MONTHS[month]})
+                Typical for {MONTHS[month]}
               </button>
               <button
                 onClick={() => setUseLiveData(true)}
@@ -454,7 +447,7 @@ export default function Home() {
                     : 'text-[var(--muted)] hover:bg-[var(--card-elevated)]'
                 }`}
               >
-                {forecastLoading ? 'Loading...' : 'Live Forecast'}
+                {forecastLoading ? 'Loading...' : "This Week's Forecast"}
               </button>
             </div>
           </div>
@@ -542,13 +535,9 @@ export default function Home() {
                             </>
                           )}
                         </div>
-                        {/* Risk warnings (compact) */}
-                        {route.riskFactors.length > 0 && (
-                          <p className={`text-[10px] mt-0.5 truncate ${
-                            route.riskFactors[0].severity === 'high' ? 'text-danger-red' : 'text-warning-amber'
-                          }`}>
-                            {route.riskFactors[0].description}
-                          </p>
+                        {/* High-severity warning icon only — details in trajectory panel */}
+                        {route.riskFactors.some(r => r.severity === 'high') && (
+                          <span className="text-[10px] text-danger-red mt-0.5">⚠ Conditions warning</span>
                         )}
                       </div>
                     </div>
@@ -608,37 +597,6 @@ export default function Home() {
               )}
             </div>
 
-            {/* Verify Conditions (collapsible) */}
-            <div className="border-t border-[var(--border)]">
-              <button
-                onClick={() => setVerifyLinksOpen(!verifyLinksOpen)}
-                className="w-full px-4 py-3 text-left flex items-center justify-between text-sm font-medium text-[var(--secondary)] hover:text-[var(--foreground)] transition-colors"
-              >
-                <span>Verify Conditions</span>
-                <span className="text-xs text-[var(--muted)]">{verifyLinksOpen ? '−' : '+'}</span>
-              </button>
-              {verifyLinksOpen && (
-                <div className="px-4 pb-4 space-y-2">
-                  <p className="text-[10px] text-warning-amber">
-                    Planning tool only — always verify with authoritative sources.
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {sfBay.verifyLinks.map((link, i) => (
-                      <a
-                        key={i}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[var(--card-elevated)] text-[10px] text-safety-blue hover:underline border border-[var(--border)]"
-                      >
-                        {link.label}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Links to other pages */}
             <div className="border-t border-[var(--border)] p-3">
               <div className="flex gap-2">
@@ -677,7 +635,7 @@ export default function Home() {
                 }}
                 style={{ width: '100%', height: '100%' }}
                 mapStyle="mapbox://styles/mapbox/dark-v11"
-                interactiveLayerIds={['zone-fill', 'destination-circles', 'destination-labels', 'route-lines-hit']}
+                interactiveLayerIds={['destination-circles', 'destination-labels', 'route-lines-hit']}
                 onClick={onMapClick}
                 onMouseEnter={onMouseEnter}
                 onMouseLeave={onMouseLeave}
