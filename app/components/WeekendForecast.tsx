@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useAppStore } from '@/store';
-import { activityScore } from '@/engine/scoring';
+import { activityScore, fullConditionsScore, buildFullConditions } from '@/engine/scoring';
 import { getActivity } from '@/data/activities';
+import { vesselPresets } from '@/data/vessels';
 import { ScoreBadge, getScoreLabel } from './ScoreBadge';
 import type { ForecastHour, ForecastResponse } from '@/app/api/forecast/route';
 
@@ -28,6 +29,8 @@ interface DaySummary {
   peakWindKts: number;
   peakWaveHtFt: number;
   avgTempF: number;
+  maxPrecipProbPct: number;
+  totalPrecipIn: number;
   bestWindowStart: number | null;
   bestWindowEnd: number | null;
   bestWindowLabel: string;
@@ -71,18 +74,30 @@ function computeDaySummaries(
     // Check if wave data is available (sentinel -1 means unavailable)
     const hasWaveData = daytimeHours.some((h) => h.waveHeightFt >= 0);
 
-    // Compute score for each daytime hour
-    // If wave data unavailable, use conservative 1.5ft assumption (not 0)
-    const hourScores = daytimeHours.map((h) => ({
-      hour: new Date(h.time).getHours(),
-      score: activityScore(
-        activity,
-        h.windSpeedKts,
-        h.waveHeightFt >= 0 ? h.waveHeightFt : 1.5, // conservative fallback, not 0
-        h.wavePeriodS > 0 ? h.wavePeriodS : 3
-      ),
-      data: h,
-    }));
+    // Get vessel for full scoring
+    const vesselMap: Record<string, string> = { kayak: 'kayak', sup: 'sup', powerboat_cruise: 'powerboat', casual_sail: 'sailboat' };
+    const vessel = vesselPresets.find(v => v.type === (vesselMap[activity.id] ?? 'kayak')) ?? vesselPresets[0];
+
+    // Compute score using FULL conditions (wind, waves, temp, tide, visibility, current)
+    const hourScores = daytimeHours.map((h) => {
+      const conditions = {
+        windKts: h.windSpeedKts,
+        windDirDeg: h.windDirDeg,
+        waveHtFt: h.waveHeightFt >= 0 ? h.waveHeightFt : 1.5,
+        wavePeriodS: h.wavePeriodS > 0 ? h.wavePeriodS : 3,
+        waterTempF: (h as any).waterTempF ?? 58,
+        airTempF: (h as any).airTempF ?? h.airTempF ?? 62,
+        currentKts: (h as any).currentKts ?? 0,
+        currentDirDeg: (h as any).currentDirDeg ?? 0,
+        visibilityMi: h.visibilityMi,
+        tideFt: (h as any).tideFt ?? 3,
+        tidePhase: ((h as any).tidePhase ?? 'flood') as any,
+        isLiveForecast: true,
+        isMissingWaveData: !h.waveDataAvailable,
+      };
+      const { score, factors } = fullConditionsScore(activity, conditions, vessel);
+      return { hour: new Date(h.time).getHours(), score, factors, data: h };
+    });
 
     // Average score across daytime hours
     const avgScore =
@@ -93,9 +108,10 @@ function computeDaySummaries(
     const validWaves = daytimeHours.filter((h) => h.waveHeightFt >= 0).map((h) => h.waveHeightFt);
     const peakWave = validWaves.length > 0 ? Math.max(...validWaves) : -1;
 
-    // Average temperature
-    const avgTemp =
-      daytimeHours.reduce((sum, h) => sum + h.tempF, 0) / daytimeHours.length;
+    // Temperature and precipitation
+    const avgTemp = daytimeHours.reduce((sum, h) => sum + ((h as any).airTempF ?? 0), 0) / daytimeHours.length;
+    const maxPrecipProb = Math.max(...daytimeHours.map(h => (h as any).precipProbPct ?? 0));
+    const totalPrecip = daytimeHours.reduce((sum, h) => sum + ((h as any).precipitationIn ?? 0), 0);
 
     // Best window: contiguous hours with score >= 7
     let bestStart: number | null = null;
@@ -132,6 +148,8 @@ function computeDaySummaries(
       peakWindKts: Math.round(peakWind),
       peakWaveHtFt: Math.round(peakWave * 10) / 10,
       avgTempF: Math.round(avgTemp),
+      maxPrecipProbPct: Math.round(maxPrecipProb),
+      totalPrecipIn: Math.round(totalPrecip * 100) / 100,
       bestWindowStart: bestStart,
       bestWindowEnd: bestEnd,
       bestWindowLabel,
@@ -293,7 +311,7 @@ export function WeekendForecast() {
               )}
             </div>
 
-            {/* Conditions */}
+            {/* Conditions — all data types */}
             <div className="space-y-0.5 text-[11px] text-[var(--muted)]">
               <div className="flex justify-between">
                 <span>Wind</span>
@@ -313,6 +331,14 @@ export function WeekendForecast() {
                   {day.avgTempF}&deg;F
                 </span>
               </div>
+              {day.maxPrecipProbPct > 10 && (
+                <div className="flex justify-between">
+                  <span>Rain</span>
+                  <span className={`font-mono ${day.maxPrecipProbPct > 50 ? 'text-safety-blue' : 'text-[var(--foreground)]'}`}>
+                    {day.maxPrecipProbPct}%
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Best window */}
@@ -400,7 +426,7 @@ function HourlyBreakdown({
                     {h.waveHeightFt >= 0 ? `${(Math.round(h.waveHeightFt * 10) / 10).toFixed(1)}ft` : 'N/A'}
                   </td>
                   <td className="py-1 px-2 text-right font-mono text-[var(--foreground)]">
-                    {Math.round(h.tempF)}&deg;
+                    {Math.round(h.airTempF)}&deg;
                   </td>
                   <td className="py-1 pl-2 text-right font-mono text-[var(--muted)]">
                     {Math.round(h.cloudCoverPct)}%
