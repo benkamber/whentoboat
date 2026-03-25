@@ -1,36 +1,144 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useRef, useCallback, useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { sfBay } from '@/data/cities/sf-bay';
 import { activities, getActivity } from '@/data/activities';
 import { useAppStore } from '@/store';
 import { routeComfort, findAlternatives } from '@/engine/scoring';
+import { useDestinationGeoJSON, useRouteGeoJSON } from '@/hooks/useMapData';
 import { Header } from './components/Header';
 import { ScoreBadge, getScoreLabel } from './components/ScoreBadge';
-import { WeekendForecast } from './components/WeekendForecast';
-import { BoatSelector } from './components/BoatSelector';
-import { SavedSpots } from './components/SavedSpots';
-import type { ActivityType, ScoredRoute } from '@/engine/types';
+import { TrajectoryPanel } from './components/TrajectoryPanel';
+import type { ActivityType, Destination, ScoredRoute } from '@/engine/types';
+
+// Dynamically import react-map-gl to avoid SSR issues with mapbox-gl
+// This also lets the page render the sidebar even if the map fails to load
+const MapGL = dynamic(
+  () => import('react-map-gl/mapbox').then((mod) => mod.default),
+  { ssr: false }
+);
+const Source = dynamic(
+  () => import('react-map-gl/mapbox').then((mod) => mod.Source),
+  { ssr: false }
+);
+const Layer = dynamic(
+  () => import('react-map-gl/mapbox').then((mod) => mod.Layer),
+  { ssr: false }
+);
+const Popup = dynamic(
+  () => import('react-map-gl/mapbox').then((mod) => mod.Popup),
+  { ssr: false }
+);
+const NavigationControl = dynamic(
+  () => import('react-map-gl/mapbox').then((mod) => mod.NavigationControl),
+  { ssr: false }
+);
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const MONTH_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
-type Step = 'activity' | 'when' | 'results';
+// Mapbox layer styles (same as explore page)
+const routeLineLayer = {
+  id: 'route-lines',
+  type: 'line' as const,
+  layout: {
+    'line-join': 'round' as const,
+    'line-cap': 'round' as const,
+  },
+  paint: {
+    'line-color': ['get', 'color'] as any,
+    'line-width': 2.5,
+    'line-opacity': ['get', 'opacity'] as any,
+  },
+};
+
+const routeHitLayer = {
+  id: 'route-lines-hit',
+  type: 'line' as const,
+  paint: {
+    'line-color': 'transparent',
+    'line-width': 14,
+    'line-opacity': 0,
+  },
+};
+
+const destinationCircleLayer = {
+  id: 'destination-circles',
+  type: 'circle' as const,
+  paint: {
+    'circle-radius': ['case', ['get', 'isOrigin'], 10, 7] as any,
+    'circle-color': ['get', 'color'] as any,
+    'circle-stroke-width': 2,
+    'circle-stroke-color': '#0a1628',
+    'circle-opacity': 0.9,
+  },
+};
+
+const destinationLabelLayer = {
+  id: 'destination-labels',
+  type: 'symbol' as const,
+  layout: {
+    'text-field': ['get', 'score'] as any,
+    'text-size': 11,
+    'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+    'text-anchor': 'center' as const,
+    'text-allow-overlap': true,
+    'text-ignore-placement': true,
+  },
+  paint: {
+    'text-color': '#ffffff',
+  },
+};
+
+interface PopupInfo {
+  lng: number;
+  lat: number;
+  type: 'destination' | 'route';
+  name: string;
+  score: number;
+  detail: string;
+}
+
+type ScoredRouteWithDest = ScoredRoute & { dest: Destination; alternatives: ScoredRoute['alternatives'] };
 
 export default function Home() {
-  const { activity, month, hour, vessel, homeBaseId, setActivity, setMonth, setHour, setHomeBase } = useAppStore();
-  const [step, setStep] = useState<Step>('activity');
-  const [timeMode, setTimeMode] = useState<'weekend' | 'month'>('weekend');
-  const [boatSelectorOpen, setBoatSelectorOpen] = useState(false);
+  const {
+    activity, month, hour, vessel, homeBaseId,
+    selectedOriginId,
+    setActivity, setMonth, setHour, setHomeBase,
+    setSelectedOrigin,
+  } = useAppStore();
+
+  const [popup, setPopup] = useState<PopupInfo | null>(null);
+  const [cursor, setCursor] = useState('auto');
+  const [trajectoryRoute, setTrajectoryRoute] = useState<{ originId: string; destId: string } | null>(null);
+  const [hoveredDestId, setHoveredDestId] = useState<string | null>(null);
+  const [selectedDestId, setSelectedDestId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [beforeYouGoOpen, setBeforeYouGoOpen] = useState(false);
+  const [verifyLinksOpen, setVerifyLinksOpen] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
+
+  const mapRef = useRef<any>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const currentActivity = getActivity(activity);
   const origin = sfBay.destinations.find((d) => d.id === homeBaseId) ?? sfBay.destinations[0];
 
-  // Score all destinations (only compute when on results step)
-  // Per-destination error handling: one failure doesn't blank everything
+  // Sync selectedOriginId with homeBaseId
+  useEffect(() => {
+    if (selectedOriginId !== homeBaseId) {
+      setSelectedOrigin(homeBaseId);
+    }
+    // Only run when homeBaseId changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [homeBaseId]);
+
+  // Score all destinations (always computed, no wizard step gate)
   const scoredRoutes = useMemo(() => {
-    if (step !== 'results') return [];
     return sfBay.destinations
       .filter((d) => d.id !== origin.id && d.activityTags.includes(activity))
       .map((dest) => {
@@ -51,409 +159,543 @@ export default function Home() {
       })
       .filter((r): r is NonNullable<typeof r> => r !== null)
       .sort((a, b) => b.score - a.score);
-  }, [activity, month, hour, vessel, origin, currentActivity, step]);
+  }, [activity, month, hour, vessel, origin, currentActivity]);
 
-  const top3 = scoredRoutes.slice(0, 3);
-  const timeLabel = hour <= 12 ? `${hour}:00 AM` : `${hour - 12}:00 PM`;
+  // Format time with minutes (hour can be decimal, e.g., 9.5 = 9:30 AM)
+  const formatTime = (h: number) => {
+    const hrs = Math.floor(h);
+    const mins = Math.round((h - hrs) * 60);
+    const period = hrs < 12 ? 'AM' : 'PM';
+    const displayHrs = hrs === 0 ? 12 : hrs > 12 ? hrs - 12 : hrs;
+    return `${displayHrs}:${mins.toString().padStart(2, '0')} ${period}`;
+  };
+  const timeLabel = formatTime(hour);
+  const hasMapToken = MAPBOX_TOKEN && MAPBOX_TOKEN !== 'pk.your_token_here';
+
+  // Map data hooks
+  const destinationsGeoJSON = useDestinationGeoJSON(activity, month, hour, vessel, homeBaseId);
+  const routesGeoJSON = useRouteGeoJSON(activity, month, hour, vessel, homeBaseId);
+
+  // --- Map callbacks ---
+
+  const onMapLoad = useCallback(() => {
+    setMapLoaded(true);
+    const map = mapRef.current?.getMap?.();
+    if (map) {
+      try {
+        map.setPaintProperty('water', 'fill-color', '#0a1628');
+      } catch {
+        // Style may not have 'water' layer
+      }
+    }
+  }, []);
+
+  const onMapClick = useCallback((e: any) => {
+    if (e.features && e.features.length > 0) {
+      const feature = e.features[0];
+      const layerId = feature.layer.id;
+
+      if (layerId === 'destination-circles' || layerId === 'destination-labels') {
+        const id = feature.properties?.id;
+        if (id && id !== homeBaseId) {
+          setSelectedDestId(id);
+          setTrajectoryRoute({ originId: homeBaseId, destId: id });
+          // Scroll sidebar to this card
+          const card = cardRefs.current.get(id);
+          if (card && sidebarRef.current) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }
+        setPopup(null);
+      } else if (layerId === 'route-lines-hit') {
+        const fromId = feature.properties?.fromId;
+        const toId = feature.properties?.toId;
+        if (fromId && toId) {
+          setTrajectoryRoute({ originId: fromId, destId: toId });
+          setSelectedDestId(toId);
+          setPopup(null);
+        }
+      }
+    } else {
+      setSelectedDestId(null);
+      setPopup(null);
+      setTrajectoryRoute(null);
+    }
+  }, [homeBaseId]);
+
+  const onMouseEnter = useCallback(() => setCursor('pointer'), []);
+  const onMouseLeave = useCallback(() => {
+    setCursor('auto');
+    setPopup(null);
+  }, []);
+
+  const onMouseMove = useCallback((e: any) => {
+    if (e.features && e.features.length > 0) {
+      const feature = e.features[0];
+      const layerId = feature.layer.id;
+
+      if (layerId === 'destination-circles' || layerId === 'destination-labels') {
+        const dest = sfBay.destinations.find(d => d.id === feature.properties?.id);
+        const score = feature.properties?.score ?? 5;
+        if (dest) {
+          setPopup({
+            lng: dest.lng,
+            lat: dest.lat,
+            type: 'destination',
+            name: dest.name,
+            score,
+            detail: `${getScoreLabel(score)} for ${currentActivity.name} · ${dest.dockInfo}`,
+          });
+        }
+      } else if (layerId === 'route-lines-hit') {
+        setPopup({
+          lng: e.lngLat.lng,
+          lat: e.lngLat.lat,
+          type: 'route',
+          name: `${feature.properties?.fromName} -> ${feature.properties?.toName}`,
+          score: feature.properties?.score ?? 5,
+          detail: `${feature.properties?.distance} mi | ${feature.properties?.transitMinutes} min`,
+        });
+      }
+    }
+  }, []);
+
+  // --- Sidebar card interactions ---
+
+  const handleCardClick = useCallback((destId: string) => {
+    setSelectedDestId(destId);
+    setTrajectoryRoute({ originId: homeBaseId, destId });
+
+    // Fly the map to the destination
+    if (mapRef.current) {
+      const dest = sfBay.destinations.find(d => d.id === destId);
+      if (dest) {
+        mapRef.current.flyTo({
+          center: [dest.lng, dest.lat],
+          zoom: 13,
+          duration: 1000,
+        });
+      }
+    }
+
+    // On mobile, close sidebar when card is tapped
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+  }, [homeBaseId]);
+
+  const handleCardHover = useCallback((destId: string | null) => {
+    setHoveredDestId(destId);
+  }, []);
+
+  // Wind/wave display helper for scored routes
+  const getConditionsSummary = (route: ScoredRouteWithDest) => {
+    const hasRisk = route.riskFactors.length > 0;
+    const windRisk = route.riskFactors.find(r => r.factor.toLowerCase().includes('wind'));
+    const waveRisk = route.riskFactors.find(r => r.factor.toLowerCase().includes('wave'));
+    return {
+      hasRisk,
+      windLabel: windRisk ? windRisk.description.match(/(\d+)\s*(?:kts?|knots?)/i)?.[1] + 'kt' : null,
+      waveLabel: waveRisk ? waveRisk.description.match(/(\d+\.?\d*)\s*ft/i)?.[1] + 'ft' : null,
+    };
+  };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen flex flex-col overflow-hidden">
       <Header />
 
-      <main className="flex-1 flex flex-col items-center px-4 py-10">
-        {/* Step 1: Activity */}
-        {step === 'activity' && (
-          <div className="max-w-lg w-full space-y-10 animate-in fade-in">
-            <div className="text-center space-y-3">
-              <h1 className="text-3xl font-bold tracking-tight">
-                What are you doing today?
-              </h1>
-              <p className="text-[var(--muted)]">
-                Choose your activity — conditions score differently for each one
-              </p>
-            </div>
+      <div className="flex-1 flex flex-col md:flex-row relative overflow-hidden">
+        {/* Mobile: toggle button for sidebar */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="md:hidden absolute top-3 left-3 z-30 bg-ocean-900/90 backdrop-blur-md text-ocean-100 px-3 py-2 rounded-lg border border-ocean-700/50 text-sm font-medium shadow-lg"
+        >
+          {sidebarOpen ? 'Show Map' : `Destinations (${scoredRoutes.length})`}
+        </button>
 
-            <div className="space-y-3">
+        {/* Sidebar */}
+        <div
+          ref={sidebarRef}
+          className={`
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+            md:translate-x-0
+            absolute md:relative z-20
+            w-full md:w-[360px] lg:w-[380px]
+            h-full
+            bg-[var(--background)]
+            border-r border-[var(--border)]
+            flex flex-col
+            transition-transform duration-200 ease-out
+            shrink-0
+          `}
+        >
+          {/* Sidebar header: Activity + Home Base */}
+          <div className="p-3 border-b border-[var(--border)] space-y-2 shrink-0 bg-[var(--card)]">
+            {/* Activity selector */}
+            <div className="flex gap-1">
               {activities.map((a) => (
                 <button
                   key={a.id}
-                  onClick={() => {
-                    setActivity(a.id);
-                    setStep('when');
-                  }}
-                  className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 text-left hover:border-reef-teal hover:bg-[var(--card-elevated)] transition-all group relative overflow-hidden"
+                  onClick={() => setActivity(a.id)}
+                  className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    activity === a.id
+                      ? 'bg-reef-teal text-white shadow-sm'
+                      : 'bg-[var(--card-elevated)] text-[var(--secondary)] border border-[var(--border)] hover:border-reef-teal/50'
+                  }`}
                 >
-                  {/* Left accent border */}
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-reef-teal/0 group-hover:bg-reef-teal transition-colors" />
-                  <div className="flex items-center gap-4">
-                    <span className="text-3xl w-12 h-12 flex items-center justify-center rounded-xl bg-[var(--card-elevated)] group-hover:bg-reef-teal/10 transition-colors shrink-0">
-                      {a.icon}
-                    </span>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg group-hover:text-reef-teal transition-colors">
-                        {a.name}
-                      </h3>
-                      <p className="text-sm text-[var(--muted)]">{a.description}</p>
-                    </div>
-                    <span className="text-[var(--muted)] group-hover:text-reef-teal group-hover:translate-x-1 transition-all text-lg">
-                      →
-                    </span>
-                  </div>
+                  {a.icon} {a.name}
                 </button>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Step 2: When */}
-        {step === 'when' && (
-          <div className="max-w-lg w-full space-y-10 animate-in fade-in">
-            <button
-              onClick={() => setStep('activity')}
-              className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-            >
-              ← Change activity
-            </button>
-
-            <div className="text-center space-y-2">
-              <span className="text-3xl">{currentActivity.icon}</span>
-              <h1 className="text-3xl font-bold tracking-tight">Plan Your Outing</h1>
-              <p className="text-[var(--muted)]">
-                Set your departure point and time
-              </p>
-            </div>
 
             {/* Home base selector */}
-            <div className="space-y-2">
-              <label className="text-sm text-[var(--muted)]">Departing from</label>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[var(--muted)] shrink-0">From:</span>
               <select
                 value={homeBaseId}
                 onChange={(e) => setHomeBase(e.target.value)}
-                className="w-full bg-[var(--card)] border border-[var(--border)] rounded-lg px-4 py-3 text-[var(--foreground)] appearance-none cursor-pointer focus:border-compass-gold focus:outline-none"
+                className="flex-1 bg-[var(--card-elevated)] border border-[var(--border)] rounded-lg px-2 py-1.5 text-sm text-[var(--foreground)] appearance-none cursor-pointer focus:border-compass-gold focus:outline-none"
               >
                 {sfBay.destinations.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.name} — {d.dockInfo}
+                    {d.name}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Vessel selector */}
-            <BoatSelector
-              collapsed={!boatSelectorOpen}
-              onToggle={() => setBoatSelectorOpen((o) => !o)}
-            />
+            {/* Month selector */}
+            <div className="flex gap-0.5">
+              {MONTHS.map((m, i) => (
+                <button
+                  key={i}
+                  onClick={() => setMonth(i)}
+                  className={`flex-1 px-0 py-1 rounded text-[10px] font-medium transition-colors ${
+                    month === i
+                      ? 'bg-compass-gold text-ocean-950'
+                      : 'text-[var(--muted)] hover:bg-[var(--card-elevated)]'
+                  }`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+          </div>
 
-            {/* Time mode toggle */}
-            <div className="flex gap-2 justify-center">
-              <button
-                onClick={() => setTimeMode('weekend')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  timeMode === 'weekend'
-                    ? 'bg-reef-teal text-white'
-                    : 'bg-[var(--card)] text-[var(--secondary)] border border-[var(--border)]'
-                }`}
-              >
-                This weekend
-              </button>
-              <button
-                onClick={() => setTimeMode('month')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  timeMode === 'month'
-                    ? 'bg-reef-teal text-white'
-                    : 'bg-[var(--card)] text-[var(--secondary)] border border-[var(--border)]'
-                }`}
-              >
-                Pick a month
-              </button>
+          {/* Score summary bar */}
+          <div className="px-3 py-2 border-b border-[var(--border)] bg-[var(--card-elevated)] shrink-0">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-[var(--muted)]">
+                {currentActivity.icon} {currentActivity.name} · {MONTHS[month]} · {timeLabel}
+              </span>
+              <span className="text-reef-teal font-medium">
+                {scoredRoutes.filter(r => r.score >= 7).length}/{scoredRoutes.length} good
+              </span>
+            </div>
+          </div>
+
+          {/* Scrollable destination list */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-2 space-y-1.5">
+              {scoredRoutes.map((route, i) => {
+                const isSelected = selectedDestId === route.destinationId;
+                const isHovered = hoveredDestId === route.destinationId;
+                const conditions = getConditionsSummary(route);
+
+                return (
+                  <div
+                    key={route.destinationId}
+                    ref={(el) => {
+                      if (el) cardRefs.current.set(route.destinationId, el);
+                    }}
+                    onClick={() => handleCardClick(route.destinationId)}
+                    onMouseEnter={() => handleCardHover(route.destinationId)}
+                    onMouseLeave={() => handleCardHover(null)}
+                    className={`
+                      rounded-lg p-3 cursor-pointer transition-all border
+                      ${isSelected
+                        ? 'border-reef-teal bg-reef-teal/10 shadow-md shadow-reef-teal/10'
+                        : isHovered
+                          ? 'border-[var(--border)] bg-[var(--card-elevated)]'
+                          : 'border-transparent bg-[var(--card)] hover:bg-[var(--card-elevated)]'
+                      }
+                      ${!route.inRange ? 'opacity-50' : ''}
+                    `}
+                  >
+                    <div className="flex items-center gap-3">
+                      {/* Rank number */}
+                      <span className="text-xs font-bold text-[var(--muted)] w-4 text-right shrink-0">
+                        {i + 1}
+                      </span>
+
+                      {/* Score badge */}
+                      <div className="shrink-0">
+                        <ScoreBadge score={route.score} size="sm" />
+                      </div>
+
+                      {/* Destination info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline justify-between gap-1">
+                          <h3 className="text-sm font-semibold truncate">
+                            {route.dest.name}
+                          </h3>
+                          <span className="text-[10px] text-[var(--muted)] shrink-0">
+                            {getScoreLabel(route.score)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-[var(--muted)]">
+                          <span>{route.distance} mi</span>
+                          <span>·</span>
+                          <span>{route.transitMinutes} min</span>
+                          {conditions.windLabel && (
+                            <>
+                              <span>·</span>
+                              <span className="text-warning-amber">{conditions.windLabel}</span>
+                            </>
+                          )}
+                          {conditions.waveLabel && (
+                            <>
+                              <span>·</span>
+                              <span className="text-warning-amber">{conditions.waveLabel}</span>
+                            </>
+                          )}
+                        </div>
+                        {/* Risk warnings (compact) */}
+                        {route.riskFactors.length > 0 && (
+                          <p className={`text-[10px] mt-0.5 truncate ${
+                            route.riskFactors[0].severity === 'high' ? 'text-danger-red' : 'text-warning-amber'
+                          }`}>
+                            {route.riskFactors[0].description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Out of range indicator */}
+                    {!route.inRange && (
+                      <div className="mt-1 ml-7 text-[10px] text-danger-red">Out of range</div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {scoredRoutes.length === 0 && (
+                <div className="text-center py-8 text-sm text-[var(--muted)]">
+                  No destinations match this activity from {origin.name}
+                </div>
+              )}
             </div>
 
-            {/* Month selector */}
-            {timeMode === 'month' && (
-              <div className="flex flex-wrap gap-1.5 justify-center">
-                {MONTHS.map((m, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setMonth(i)}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      month === i
-                        ? 'bg-compass-gold text-ocean-950'
-                        : 'bg-[var(--card)] text-[var(--secondary)] border border-[var(--border)] hover:border-compass-gold'
-                    }`}
-                  >
-                    {m}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Before You Go (collapsible) */}
+            <div className="border-t border-[var(--border)]">
+              <button
+                onClick={() => setBeforeYouGoOpen(!beforeYouGoOpen)}
+                className="w-full px-4 py-3 text-left flex items-center justify-between text-sm font-medium text-[var(--secondary)] hover:text-[var(--foreground)] transition-colors"
+              >
+                <span>Before You Go - {currentActivity.name}</span>
+                <span className="text-xs text-[var(--muted)]">{beforeYouGoOpen ? '−' : '+'}</span>
+              </button>
+              {beforeYouGoOpen && (
+                <div className="px-4 pb-4 space-y-0">
+                  {currentActivity.beforeYouGo.map((item, i) => (
+                    <label
+                      key={i}
+                      className="flex items-center gap-2 py-2 cursor-pointer border-b border-[var(--border)] last:border-b-0 group"
+                    >
+                      <input
+                        type="checkbox"
+                        className="w-3.5 h-3.5 rounded accent-reef-teal shrink-0"
+                      />
+                      <span className="text-xs text-[var(--secondary)] group-hover:text-[var(--foreground)] transition-colors flex-1">
+                        {item.text}
+                      </span>
+                      {item.url && (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-safety-blue text-[10px] hover:underline shrink-0"
+                        >
+                          Link
+                        </a>
+                      )}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
 
-            {/* Time of day */}
-            <div className="space-y-2">
-              <label className="text-sm text-[var(--muted)]">
-                Time of day: <span className="text-[var(--foreground)] font-medium">{timeLabel}</span>
-              </label>
+            {/* Verify Conditions (collapsible) */}
+            <div className="border-t border-[var(--border)]">
+              <button
+                onClick={() => setVerifyLinksOpen(!verifyLinksOpen)}
+                className="w-full px-4 py-3 text-left flex items-center justify-between text-sm font-medium text-[var(--secondary)] hover:text-[var(--foreground)] transition-colors"
+              >
+                <span>Verify Conditions</span>
+                <span className="text-xs text-[var(--muted)]">{verifyLinksOpen ? '−' : '+'}</span>
+              </button>
+              {verifyLinksOpen && (
+                <div className="px-4 pb-4 space-y-2">
+                  <p className="text-[10px] text-warning-amber">
+                    Planning tool only — always verify with authoritative sources.
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {sfBay.verifyLinks.map((link, i) => (
+                      <a
+                        key={i}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[var(--card-elevated)] text-[10px] text-safety-blue hover:underline border border-[var(--border)]"
+                      >
+                        {link.label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Links to other pages */}
+            <div className="border-t border-[var(--border)] p-3">
+              <div className="flex gap-2">
+                <Link
+                  href="/explore"
+                  className="flex-1 text-center py-2 rounded-lg border border-compass-gold/50 text-compass-gold text-xs font-medium hover:bg-compass-gold/10 transition-colors"
+                >
+                  Full-screen map
+                </Link>
+                <Link
+                  href="/schedule"
+                  className="flex-1 text-center py-2 rounded-lg border border-reef-teal/50 text-reef-teal text-xs font-medium hover:bg-reef-teal/10 transition-colors"
+                >
+                  Departure board
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Map area */}
+        <div className="flex-1 relative">
+          {hasMapToken ? (
+            <>
+              <link
+                rel="stylesheet"
+                href="https://api.mapbox.com/mapbox-gl-js/v3.1.2/mapbox-gl.css"
+              />
+              <MapGL
+                ref={mapRef}
+                mapboxAccessToken={MAPBOX_TOKEN}
+                initialViewState={{
+                  longitude: sfBay.center[1],
+                  latitude: sfBay.center[0],
+                  zoom: sfBay.defaultZoom,
+                }}
+                style={{ width: '100%', height: '100%' }}
+                mapStyle="mapbox://styles/mapbox/dark-v11"
+                interactiveLayerIds={['destination-circles', 'destination-labels', 'route-lines-hit']}
+                onClick={onMapClick}
+                onMouseEnter={onMouseEnter}
+                onMouseLeave={onMouseLeave}
+                onMouseMove={onMouseMove}
+                onLoad={onMapLoad}
+                cursor={cursor}
+              >
+                <NavigationControl position="bottom-right" />
+
+                {/* Route lines */}
+                <Source id="routes" type="geojson" data={routesGeoJSON}>
+                  <Layer {...routeLineLayer} />
+                  <Layer {...routeHitLayer} />
+                </Source>
+
+                {/* Destination markers */}
+                <Source id="destinations" type="geojson" data={destinationsGeoJSON}>
+                  <Layer {...destinationCircleLayer} />
+                  <Layer {...destinationLabelLayer} />
+                </Source>
+
+                {/* Popup on hover */}
+                {popup && (
+                  <Popup
+                    longitude={popup.lng}
+                    latitude={popup.lat}
+                    anchor="bottom"
+                    closeButton={false}
+                    closeOnClick={false}
+                    offset={12}
+                    maxWidth="260px"
+                    className="[&_.mapboxgl-popup-content]:!bg-ocean-900 [&_.mapboxgl-popup-content]:!text-ocean-50 [&_.mapboxgl-popup-content]:!rounded-lg [&_.mapboxgl-popup-content]:!p-3 [&_.mapboxgl-popup-content]:!shadow-xl [&_.mapboxgl-popup-tip]:!border-t-ocean-900"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <ScoreBadge score={popup.score} size="sm" />
+                        <span className="font-medium text-sm">{popup.name}</span>
+                      </div>
+                      <p className="text-xs text-ocean-300">{popup.detail}</p>
+                    </div>
+                  </Popup>
+                )}
+              </MapGL>
+            </>
+          ) : (
+            /* Fallback when no Mapbox token */
+            <div className="w-full h-full flex items-center justify-center bg-[var(--card)]">
+              <div className="text-center space-y-3 p-8 max-w-sm">
+                <div className="text-4xl">🗺</div>
+                <h2 className="text-lg font-bold">Map Available Soon</h2>
+                <p className="text-sm text-[var(--muted)]">
+                  Add a Mapbox token to <code className="text-compass-gold">.env.local</code> to enable the interactive map.
+                </p>
+                <pre className="bg-[var(--card-elevated)] border border-[var(--border)] rounded-lg p-3 text-xs text-left">
+                  NEXT_PUBLIC_MAPBOX_TOKEN=pk.your_token
+                </pre>
+                <p className="text-xs text-[var(--muted)]">
+                  Scores and rankings in the sidebar work without a map.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Time slider at bottom of map */}
+          <div className="absolute bottom-4 left-4 right-4 pointer-events-auto z-10">
+            <div className="bg-ocean-900/90 backdrop-blur-md rounded-xl px-4 py-3 border border-ocean-700/50 shadow-xl">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-ocean-300">Time of Day</span>
+                <span className="text-sm font-medium text-compass-gold">{timeLabel}</span>
+              </div>
               <input
                 type="range"
                 min={5}
-                max={20}
+                max={22}
+                step={0.25}
                 value={hour}
-                onChange={(e) => setHour(parseInt(e.target.value))}
+                onChange={(e) => setHour(parseFloat(e.target.value))}
                 className="w-full accent-compass-gold"
               />
-              <div className="flex justify-between text-xs text-[var(--muted)]">
+              <div className="flex justify-between text-xs text-ocean-400 mt-0.5">
                 <span>5 AM</span>
                 <span>Noon</span>
-                <span>8 PM</span>
+                <span>10 PM</span>
               </div>
             </div>
-
-            <button
-              onClick={() => setStep('results')}
-              className="w-full py-4 rounded-xl bg-reef-teal text-white font-semibold text-lg hover:bg-reef-teal/90 hover:shadow-lg hover:shadow-reef-teal/20 hover:-translate-y-0.5 active:translate-y-0 transition-all"
-            >
-              Show me where to go
-            </button>
           </div>
-        )}
+        </div>
+      </div>
 
-        {/* Step 3: Results */}
-        {step === 'results' && (
-          <div className="max-w-2xl w-full space-y-8 animate-in fade-in">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => setStep('when')}
-                className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-              >
-                ← Change time
-              </button>
-              <div className="text-sm text-[var(--muted)]">
-                {currentActivity.icon} {currentActivity.name} · {MONTH_FULL[month]} · {timeLabel}
-              </div>
-            </div>
-
-            <div className="text-center space-y-2">
-              <h1 className="text-2xl font-bold tracking-tight">
-                {top3.length > 0 && top3[0].score >= 7
-                  ? 'Great conditions expected'
-                  : top3.length > 0 && top3[0].score >= 4
-                    ? 'Fair conditions — check alternatives'
-                    : 'Tough conditions — consider waiting'}
-              </h1>
-              <p className="text-[var(--muted)]">
-                From {origin.name} · {scoredRoutes.filter(r => r.score >= 7).length} of {scoredRoutes.length} destinations scoring 7+
-              </p>
-              <p className="text-xs text-warning-amber">
-                Based on historical patterns for {MONTH_FULL[month]}. Check the live forecast below for this week.
-              </p>
-            </div>
-
-            {/* Saved spots */}
-            <SavedSpots />
-
-            {/* Top recommendations */}
-            <div className="space-y-4">
-              {top3.map((route, i) => (
-                <div
-                  key={route.destinationId}
-                  className={`bg-[var(--card)] border rounded-xl p-6 transition-all ${
-                    i === 0 && route.score >= 7
-                      ? 'border-reef-teal shadow-lg shadow-reef-teal/10'
-                      : 'border-[var(--border)]'
-                  }`}
-                >
-                  {i === 0 && route.score >= 7 && (
-                    <div className="text-xs font-medium text-reef-teal mb-3 uppercase tracking-wider">
-                      Top Pick
-                    </div>
-                  )}
-
-                  <div className="flex items-start gap-5">
-                    {/* Score badge — dominant element */}
-                    <div className="shrink-0">
-                      <ScoreBadge
-                        score={route.score}
-                        size={i === 0 ? 'lg' : 'lg'}
-                        showRange={{ p10: route.scoreRange.p10, p90: route.scoreRange.p90 }}
-                      />
-                    </div>
-
-                    <div className="flex-1 space-y-2 min-w-0">
-                      <div>
-                        <h3 className="font-semibold text-lg">{route.dest.name}</h3>
-                        <p className="text-sm text-[var(--muted)]">
-                          {route.distance} mi · {route.transitMinutes} min ·{' '}
-                          {route.fuelGallons !== null
-                            ? `${route.fuelGallons} gal RT`
-                            : 'paddle power'}
-                        </p>
-                      </div>
-
-                      <p className="text-sm text-[var(--secondary)]">
-                        {route.dest.dockInfo}
-                      </p>
-
-                      {/* Risk factors */}
-                      {route.riskFactors.slice(0, 2).map((r, j) => (
-                        <p
-                          key={j}
-                          className={`text-xs ${
-                            r.severity === 'high' ? 'text-danger-red' : 'text-warning-amber'
-                          }`}
-                        >
-                          ⚠ {r.description}
-                        </p>
-                      ))}
-
-                      {route.variabilityWarning && (
-                        <p className="text-xs text-warning-amber">
-                          📊 {route.variabilityWarning}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="text-right text-xs text-[var(--muted)] space-y-1 shrink-0">
-                      <div className="font-semibold text-[var(--foreground)]">
-                        {getScoreLabel(route.score)}
-                      </div>
-                      <div>Wind: {route.riskFactors.length > 0 ? '⚠' : '✓'}</div>
-                    </div>
-                  </div>
-
-                  {/* Where else? */}
-                  {route.score < 7 && route.alternatives.length > 0 && (
-                    <div className="mt-5 pt-4 border-t border-[var(--border)] space-y-2">
-                      <p className="text-xs font-medium text-reef-teal">
-                        Better alternatives nearby:
-                      </p>
-                      {route.alternatives.map((alt) => (
-                        <div
-                          key={alt.destinationId}
-                          className="flex items-center gap-2 bg-[var(--card-elevated)] rounded-lg p-3"
-                        >
-                          <ScoreBadge score={alt.score} size="sm" />
-                          <div className="flex-1">
-                            <span className="text-sm font-medium">{alt.destinationName}</span>
-                            <span className="text-xs text-[var(--muted)] ml-2">
-                              {alt.distance} mi · {alt.transitMinutes} min
-                            </span>
-                          </div>
-                          <span className="text-xs text-reef-teal">{alt.reason}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Before You Go */}
-            <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden">
-              <div className="px-6 py-4 border-b border-[var(--border)] bg-[var(--card-elevated)]">
-                <h2 className="text-sm font-semibold text-reef-teal uppercase tracking-wider">
-                  Before You Go — {currentActivity.name}
-                </h2>
-              </div>
-              <div className="px-6 py-4 space-y-0">
-                {currentActivity.beforeYouGo.map((item, i) => (
-                  <label
-                    key={i}
-                    className="flex items-center gap-3 py-3 cursor-pointer border-b border-[var(--border)] last:border-b-0 group"
-                  >
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 rounded accent-reef-teal shrink-0"
-                    />
-                    <span className="text-sm text-[var(--secondary)] group-hover:text-[var(--foreground)] transition-colors flex-1">
-                      {item.text}
-                    </span>
-                    {item.url && (
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-safety-blue text-xs hover:underline shrink-0"
-                      >
-                        Link →
-                      </a>
-                    )}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Verify links */}
-            <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 space-y-3">
-              <h2 className="text-sm font-semibold text-reef-teal uppercase tracking-wider">
-                Verify Conditions
-              </h2>
-              <p className="text-xs text-warning-amber">
-                This is a planning tool based on historical patterns. Always check real-time conditions before departure.
-              </p>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {sfBay.verifyLinks.map((link, i) => (
-                  <a
-                    key={i}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[var(--card-elevated)] text-xs text-safety-blue hover:underline border border-[var(--border)]"
-                  >
-                    {link.label} →
-                  </a>
-                ))}
-              </div>
-            </div>
-
-            {/* 7-Day Forecast */}
-            <WeekendForecast />
-
-            {/* Explore map CTA */}
-            <div className="flex gap-3">
-              <Link
-                href="/explore"
-                className="flex-1 block text-center py-4 rounded-xl border border-compass-gold text-compass-gold font-semibold hover:bg-compass-gold/10 hover:shadow-lg hover:shadow-compass-gold/10 transition-all"
-              >
-                Explore map →
-              </Link>
-              <Link
-                href="/schedule"
-                className="flex-1 block text-center py-4 rounded-xl border border-reef-teal text-reef-teal font-semibold hover:bg-reef-teal/10 hover:shadow-lg hover:shadow-reef-teal/10 transition-all"
-              >
-                Departure board →
-              </Link>
-            </div>
-
-            {/* All destinations */}
-            <details className="bg-[var(--card)] border border-[var(--border)] rounded-xl">
-              <summary className="p-5 cursor-pointer text-sm font-medium text-[var(--secondary)] hover:text-[var(--foreground)] transition-colors">
-                All {scoredRoutes.length} destinations →
-              </summary>
-              <div className="px-5 pb-5 space-y-2">
-                {scoredRoutes.slice(3).map((route) => (
-                  <div
-                    key={route.destinationId}
-                    className={`flex items-center gap-3 py-2.5 ${
-                      !route.inRange ? 'opacity-40' : ''
-                    }`}
-                  >
-                    <ScoreBadge score={route.score} size="sm" />
-                    <div className="flex-1">
-                      <span className="text-sm">{route.dest.name}</span>
-                      <span className="text-xs text-[var(--muted)] ml-2">
-                        {route.distance} mi · {route.transitMinutes} min
-                      </span>
-                    </div>
-                    {!route.inRange && (
-                      <span className="text-xs text-danger-red">Out of range</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </details>
-          </div>
-        )}
-      </main>
+      {/* Trajectory panel (slides in from right) */}
+      {trajectoryRoute && (
+        <TrajectoryPanel
+          originId={trajectoryRoute.originId}
+          destinationId={trajectoryRoute.destId}
+          onClose={() => {
+            setTrajectoryRoute(null);
+            setSelectedDestId(null);
+          }}
+        />
+      )}
     </div>
   );
 }

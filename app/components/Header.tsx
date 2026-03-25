@@ -23,8 +23,8 @@ export function Header() {
       </Link>
 
       <nav className="flex items-center gap-0.5">
-        <NavLink href="/" label="Plan" active={pathname === '/'} />
-        <NavLink href="/explore" label="Map" active={pathname === '/explore'} />
+        <NavLink href="/" label="Home" active={pathname === '/'} />
+        <NavLink href="/explore" label="Full Map" active={pathname === '/explore'} />
         <NavLink href="/schedule" label="Schedule" active={pathname === '/schedule'} />
         <button
           onClick={toggleDarkMode}

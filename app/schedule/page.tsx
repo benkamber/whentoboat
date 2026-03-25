@@ -124,6 +124,7 @@ export default function SchedulePage() {
       if (dest.id === origin.id) continue;
       if (!dest.activityTags.includes(activity)) continue;
 
+      try {
       const scored = routeComfort(origin, dest, month, scoreHour, currentActivity, vessel, sfBay);
       const transitHours = scored.transitMinutes / 60;
 
@@ -163,6 +164,9 @@ export default function SchedulePage() {
         zonesTraversed: zoneNames,
         fuelPercent,
       });
+      } catch (e) {
+        console.error(`Schedule scoring error for ${dest.id}:`, e);
+      }
     }
 
     return results;
