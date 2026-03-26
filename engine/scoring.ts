@@ -13,6 +13,7 @@ import type {
 } from './types';
 import { getTimeConditions } from './interpolation';
 import { getRouteZones, transitTime, fuelRoundTrip, isInRange, draftClearance } from './routing';
+import { routeDepthCheck } from './depth';
 import { getSeasonalConditions } from '@/data/cities/sf-bay/seasonal-conditions';
 
 // ============================================
@@ -410,6 +411,20 @@ export function routeComfort(
     return true;
   });
   const variabilityWarning = getVariabilityWarning(zones, month);
+
+  // Depth/draft check — add warnings for shallow zones
+  const depthCheck = routeDepthCheck(zones.map(z => z.id), vessel);
+  if (!depthCheck.navigable) {
+    // Depth failure is a hard penalty
+    worstScore = Math.min(worstScore, 2);
+  }
+  for (const warning of depthCheck.warnings) {
+    riskFactors.push({
+      factor: warning.startsWith('UNSAFE') ? 'Insufficient depth' : 'Shallow water',
+      severity: warning.startsWith('UNSAFE') ? 'high' : 'medium',
+      description: warning,
+    });
+  }
 
   // Collect verify links from all traversed zones
   const verifyLinks = zones.flatMap(z => {

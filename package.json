@@ -6,7 +6,10 @@
     "dev": "next dev -H 0.0.0.0 -p 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "fetch-land": "npx tsx scripts/fetch-land-polygons.ts",
+    "validate-routes": "npx tsx scripts/validate-routes.ts",
+    "fix-routes": "npx tsx scripts/fix-routes.ts"
   },
   "dependencies": {
     "@turf/turf": "^7.3.4",
