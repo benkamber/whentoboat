@@ -182,18 +182,19 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'brk',
     vesselType: 'default',
     waypoints: [
-      [-122.4853, 37.8594], // Sausalito waterfront
-      [-122.4780, 37.8620], // Northeast into Richardson Bay
-      [-122.4680, 37.8650], // Mid-Richardson Bay
-      [-122.4560, 37.8680], // East side of Richardson Bay
-      [-122.4440, 37.8700], // Raccoon Strait (between Angel Island & Tiburon)
-      [-122.4250, 37.8720], // Through Raccoon Strait
-      [-122.4150, 37.8700], // East of Angel Island
-      [-122.3950, 37.8690], // Open water heading east
-      [-122.3700, 37.8680], // Approaching east bay
-      [-122.3450, 37.8670], // Nearing Berkeley
-      [-122.3150, 37.8650], // Berkeley Marina
-    ],
+        [-122.4853, 37.8594],
+        [-122.478, 37.862],
+        [-122.468, 37.865],
+        [-122.456, 37.868],
+        [-122.444, 37.87],
+        [-122.4347, 37.8723],
+        [-122.425, 37.872],
+        [-122.415, 37.87],
+        [-122.395, 37.869],
+        [-122.37, 37.868],
+        [-122.345, 37.867],
+        [-122.315, 37.865],
+      ],
     distance: 8.5,
     zones: ['richardson', 'central_bay', 'east_bay'],
     notes: 'Route goes through Raccoon Strait (between Angel Island and Tiburon) then east across the bay. Strong currents in Raccoon Strait — time with tide.',
@@ -261,18 +262,19 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'clp',
     vesselType: 'default',
     waypoints: [
-      [-122.4330, 37.8636], // Ayala Cove, Angel Island
-      [-122.4450, 37.8590], // South out of Ayala Cove
-      [-122.4280, 37.8540], // Southeast shore of Angel Island
-      [-122.4220, 37.8440], // Pt Blunt (south of Angel Island, clear of shore)
-      [-122.4150, 37.8400], // South of Angel Island, open water
-      [-122.4050, 37.8370], // Central bay heading east
-      [-122.3920, 37.8310], // Continuing east
-      [-122.3800, 37.8350], // North of YBI, clear of island
-      [-122.3740, 37.8350], // Rounding north side of YBI
-      [-122.3800, 37.8200], // West of YBI (avoiding south approach crossing)
-      [-122.3695, 37.8185], // Clipper Cove
-    ],
+        [-122.433, 37.8636],
+        [-122.445, 37.859],
+        [-122.4389, 37.8514],
+        [-122.428, 37.854],
+        [-122.422, 37.844],
+        [-122.415, 37.84],
+        [-122.405, 37.837],
+        [-122.392, 37.831],
+        [-122.38, 37.835],
+        [-122.374, 37.835],
+        [-122.38, 37.82],
+        [-122.3695, 37.8185],
+      ],
     distance: 4.0,
     zones: ['richardson', 'central_bay'],
     notes: 'Route rounds south tip of Angel Island (Pt Blunt) then crosses east to Clipper Cove. Exposed to wind and chop in central bay.',
@@ -377,15 +379,16 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'jls',
     vesselType: 'default',
     waypoints: [
-      [-122.3695, 37.8185], // Clipper Cove
-      [-122.3750, 37.8020], // East out of Clipper Cove
-      [-122.3600, 37.8100], // South side of YBI
-      [-122.3520, 37.8050], // East of Bay Bridge east span
-      [-122.3400, 37.8010], // Heading south toward Oakland
-      [-122.3200, 37.7980], // Approaching Oakland outer harbor
-      [-122.2950, 37.7960], // Oakland Estuary entrance
-      [-122.2795, 37.7955], // Jack London Square
-    ],
+        [-122.3695, 37.8185],
+        [-122.375, 37.802],
+        [-122.365, 37.803],
+        [-122.36, 37.81],
+        [-122.352, 37.805],
+        [-122.34, 37.801],
+        [-122.32, 37.798],
+        [-122.295, 37.796],
+        [-122.2795, 37.7955],
+      ],
     distance: 5.0,
     zones: ['central_bay', 'east_bay'],
     notes: 'Route passes south of Yerba Buena Island and east of the Bay Bridge, then enters the Oakland Estuary from the west end.',
@@ -553,16 +556,17 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'ptr',
     vesselType: 'default',
     waypoints: [
-      [-122.4853, 37.8594], // Sausalito waterfront
-      [-122.4780, 37.8620], // Northeast into Richardson Bay
-      [-122.4680, 37.8650], // Mid-Richardson Bay
-      [-122.4560, 37.8680], // East side of Richardson Bay
-      [-122.4440, 37.8700], // Raccoon Strait entrance
-      [-122.4250, 37.8720], // Through Raccoon Strait
-      [-122.4150, 37.8700], // East of Angel Island
-      [-122.3950, 37.8750], // Open water heading NE
-      [-122.3815, 37.9085], // Pt Richmond
-    ],
+        [-122.4853, 37.8594],
+        [-122.478, 37.862],
+        [-122.468, 37.865],
+        [-122.456, 37.868],
+        [-122.444, 37.87],
+        [-122.4347, 37.8723],
+        [-122.425, 37.872],
+        [-122.415, 37.87],
+        [-122.395, 37.875],
+        [-122.3815, 37.9085],
+      ],
     distance: 9.0,
     zones: ['richardson', 'central_bay', 'north_bay'],
     notes: 'Route goes through Raccoon Strait then northeast across to Pt Richmond. Strong currents in Raccoon Strait.',
@@ -578,16 +582,17 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'aqp',
     vesselType: 'default',
     waypoints: [
-      [-122.4330, 37.8636], // Ayala Cove, Angel Island
-      [-122.4450, 37.8590], // South out of Ayala Cove
-      [-122.4280, 37.8540], // Southeast shore of Angel Island
-      [-122.4240, 37.8470], // Pt Blunt area
-      [-122.4260, 37.8380], // South of Angel Island, open water
-      [-122.4280, 37.8280], // Central bay heading south
-      [-122.4270, 37.8200], // Continuing south
-      [-122.4250, 37.8130], // Approaching SF waterfront
-      [-122.4202, 37.8065], // Aquatic Park
-    ],
+        [-122.433, 37.8636],
+        [-122.445, 37.859],
+        [-122.4389, 37.8514],
+        [-122.428, 37.854],
+        [-122.424, 37.847],
+        [-122.426, 37.838],
+        [-122.428, 37.828],
+        [-122.427, 37.82],
+        [-122.425, 37.813],
+        [-122.4202, 37.8065],
+      ],
     distance: 4.5,
     zones: ['richardson', 'central_bay', 'sf_shore'],
     notes: 'Crosses the central bay south from Angel Island to SF waterfront. Can be windy in the afternoon.',
@@ -603,16 +608,17 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'p39',
     vesselType: 'default',
     waypoints: [
-      [-122.4330, 37.8636], // Ayala Cove, Angel Island
-      [-122.4450, 37.8590], // South out of Ayala Cove
-      [-122.4280, 37.8530], // Southeast shore
-      [-122.4240, 37.8460], // South of Angel Island
-      [-122.4230, 37.8370], // Central bay heading south
-      [-122.4210, 37.8280], // Continuing south
-      [-122.4180, 37.8200], // Approaching Fisherman's Wharf
-      [-122.4140, 37.8130], // Near Hyde St Pier
-      [-122.4098, 37.8087], // Pier 39
-    ],
+        [-122.433, 37.8636],
+        [-122.445, 37.859],
+        [-122.4384, 37.8527],
+        [-122.428, 37.853],
+        [-122.424, 37.846],
+        [-122.423, 37.837],
+        [-122.421, 37.828],
+        [-122.418, 37.82],
+        [-122.414, 37.813],
+        [-122.4098, 37.8087],
+      ],
     distance: 4.7,
     zones: ['richardson', 'central_bay', 'sf_shore'],
     notes: 'South from Angel Island to Pier 39. Passes near Alcatraz — watch for tour boat traffic.',
@@ -628,17 +634,18 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'fbg',
     vesselType: 'default',
     waypoints: [
-      [-122.4330, 37.8636], // Ayala Cove, Angel Island
-      [-122.4450, 37.8590], // South out of Ayala Cove
-      [-122.4270, 37.8530], // Southeast shore
-      [-122.4220, 37.8460], // Pt Blunt
-      [-122.4180, 37.8380], // South of Angel Island
-      [-122.4120, 37.8280], // Central bay, passing east of Alcatraz
-      [-122.4060, 37.8180], // Continuing southeast
-      [-122.4000, 37.8060], // Approaching Embarcadero
-      [-122.3970, 37.8000], // Near pier area
-      [-122.3935, 37.7955], // Ferry Building
-    ],
+        [-122.433, 37.8636],
+        [-122.445, 37.859],
+        [-122.4387, 37.851],
+        [-122.427, 37.853],
+        [-122.422, 37.846],
+        [-122.418, 37.838],
+        [-122.412, 37.828],
+        [-122.406, 37.818],
+        [-122.4, 37.806],
+        [-122.397, 37.8],
+        [-122.3935, 37.7955],
+      ],
     distance: 5.8,
     zones: ['richardson', 'central_bay', 'sf_shore'],
     notes: 'Crosses the central bay from Angel Island to the Ferry Building. Passes east of Alcatraz.',
@@ -654,19 +661,20 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'mcc',
     vesselType: 'default',
     waypoints: [
-      [-122.4330, 37.8636], // Ayala Cove
-      [-122.4450, 37.8590], // South out of Ayala Cove
-      [-122.4270, 37.8530], // Southeast shore
-      [-122.4220, 37.8460], // Pt Blunt
-      [-122.4170, 37.8370], // South of Angel Island
-      [-122.4100, 37.8260], // Central bay
-      [-122.4040, 37.8150], // Continuing south
-      [-122.3990, 37.8050], // Approaching SF waterfront
-      [-122.3950, 37.7960], // Near Ferry Building
-      [-122.3930, 37.7890], // South along Embarcadero
-      [-122.3910, 37.7830], // South Beach Harbor
-      [-122.3893, 37.7786], // McCovey Cove
-    ],
+        [-122.433, 37.8636],
+        [-122.445, 37.859],
+        [-122.4387, 37.851],
+        [-122.427, 37.853],
+        [-122.422, 37.846],
+        [-122.417, 37.837],
+        [-122.41, 37.826],
+        [-122.404, 37.815],
+        [-122.399, 37.805],
+        [-122.395, 37.796],
+        [-122.393, 37.789],
+        [-122.391, 37.783],
+        [-122.3893, 37.7786],
+      ],
     distance: 7.0,
     zones: ['richardson', 'central_bay', 'sf_shore'],
     notes: 'South from Angel Island across the central bay, then south along the SF waterfront to McCovey Cove.',
@@ -682,20 +690,21 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'jls',
     vesselType: 'default',
     waypoints: [
-      [-122.4330, 37.8636], // Ayala Cove
-      [-122.4450, 37.8590], // South out of Ayala Cove
-      [-122.4270, 37.8530], // SE shore of Angel Island
-      [-122.4220, 37.8440], // Pt Blunt (staying south of island)
-      [-122.4120, 37.8380], // South of Angel Island
-      [-122.3980, 37.8300], // Central bay heading east
-      [-122.3820, 37.8230], // Approaching YBI area
-      [-122.3700, 37.8350], // North of YBI, clear of island
-      [-122.3550, 37.8350], // East of YBI, open water
-      [-122.3400, 37.8100], // South toward Oakland
-      [-122.3200, 37.7980], // Approaching Oakland outer harbor
-      [-122.2950, 37.7960], // Estuary entrance
-      [-122.2795, 37.7955], // Jack London Square
-    ],
+        [-122.433, 37.8636],
+        [-122.445, 37.859],
+        [-122.4387, 37.851],
+        [-122.427, 37.853],
+        [-122.422, 37.844],
+        [-122.412, 37.838],
+        [-122.398, 37.83],
+        [-122.382, 37.823],
+        [-122.37, 37.835],
+        [-122.355, 37.835],
+        [-122.34, 37.81],
+        [-122.32, 37.798],
+        [-122.295, 37.796],
+        [-122.2795, 37.7955],
+      ],
     distance: 9.5,
     zones: ['richardson', 'central_bay', 'east_bay'],
     notes: 'South of Angel Island, east across central bay past YBI, into Oakland Estuary.',
@@ -711,22 +720,23 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'alm',
     vesselType: 'default',
     waypoints: [
-      [-122.4330, 37.8636], // Ayala Cove
-      [-122.4450, 37.8590], // South out of Ayala Cove
-      [-122.4270, 37.8530], // SE shore
-      [-122.4220, 37.8440], // Pt Blunt (staying south of island)
-      [-122.4120, 37.8380], // South of Angel Island
-      [-122.3980, 37.8300], // Central bay
-      [-122.3820, 37.8230], // Approaching YBI area
-      [-122.3700, 37.8350], // North of YBI, clear of island
-      [-122.3550, 37.8350], // East of YBI, open water
-      [-122.3400, 37.8100], // South toward Oakland
-      [-122.3200, 37.7980], // Approaching Oakland outer harbor
-      [-122.2950, 37.7960], // Estuary entrance
-      [-122.2850, 37.7940], // Mid-estuary (in channel)
-      [-122.2650, 37.7870], // Estuary channel east of Alameda north tip
-      [-122.2600, 37.7850], // Alameda
-    ],
+        [-122.433, 37.8636],
+        [-122.445, 37.859],
+        [-122.4387, 37.851],
+        [-122.427, 37.853],
+        [-122.422, 37.844],
+        [-122.412, 37.838],
+        [-122.398, 37.83],
+        [-122.382, 37.823],
+        [-122.37, 37.835],
+        [-122.355, 37.835],
+        [-122.34, 37.81],
+        [-122.32, 37.798],
+        [-122.295, 37.796],
+        [-122.285, 37.794],
+        [-122.265, 37.787],
+        [-122.26, 37.785],
+      ],
     distance: 11.0,
     zones: ['richardson', 'central_bay', 'east_bay'],
     notes: 'South of Angel Island, across the central bay, through Oakland Estuary to Alameda.',
@@ -902,20 +912,22 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'clp',
     vesselType: 'default',
     waypoints: [
-      [-122.4562, 37.8735], // Tiburon
-      [-122.4490, 37.8720], // East along Tiburon waterfront
-      [-122.4400, 37.8700], // Raccoon Strait
-      [-122.4200, 37.8700], // Through Raccoon Strait
-      [-122.4450, 37.8560], // West of Angel Island (around Pt Stuart)
-      [-122.4150, 37.8500], // East of Angel Island, north side
-      [-122.4100, 37.8560], // SE of Angel Island
-      [-122.4000, 37.8440], // Central bay heading SE
-      [-122.3900, 37.8370], // Continuing SE
-      [-122.3800, 37.8350], // North of YBI, clear of island
-      [-122.3740, 37.8350], // Rounding north side of YBI
-      [-122.3800, 37.8200], // West of YBI (avoiding south approach crossing)
-      [-122.3695, 37.8185], // Clipper Cove
-    ],
+        [-122.4562, 37.8735],
+        [-122.449, 37.872],
+        [-122.44, 37.87],
+        [-122.43, 37.8722],
+        [-122.42, 37.87],
+        [-122.445, 37.856],
+        [-122.4304, 37.8517],
+        [-122.415, 37.85],
+        [-122.41, 37.856],
+        [-122.4, 37.844],
+        [-122.39, 37.837],
+        [-122.38, 37.835],
+        [-122.374, 37.835],
+        [-122.38, 37.82],
+        [-122.3695, 37.8185],
+      ],
     distance: 6.2,
     zones: ['richardson', 'central_bay'],
     notes: 'East through Raccoon Strait, past Angel Island, across central bay to Clipper Cove.',
@@ -931,21 +943,22 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'jls',
     vesselType: 'default',
     waypoints: [
-      [-122.4562, 37.8735], // Tiburon
-      [-122.4490, 37.8720], // East along Tiburon
-      [-122.4400, 37.8700], // Raccoon Strait
-      [-122.4200, 37.8700], // Through Raccoon Strait
-      [-122.4450, 37.8560], // West of Angel Island (around Pt Stuart)
-      [-122.4150, 37.8620], // East of Angel Island
-      [-122.4050, 37.8500], // South of Angel Island
-      [-122.3900, 37.8380], // Central bay
-      [-122.3750, 37.8350], // North of YBI, clear of island
-      [-122.3550, 37.8350], // East of YBI, open water
-      [-122.3400, 37.8100], // South toward Oakland
-      [-122.3200, 37.7980], // Approaching Oakland outer harbor
-      [-122.2950, 37.7960], // Estuary entrance
-      [-122.2795, 37.7955], // Jack London Square
-    ],
+        [-122.4562, 37.8735],
+        [-122.449, 37.872],
+        [-122.44, 37.87],
+        [-122.43, 37.8722],
+        [-122.42, 37.87],
+        [-122.445, 37.856],
+        [-122.415, 37.862],
+        [-122.405, 37.85],
+        [-122.39, 37.838],
+        [-122.375, 37.835],
+        [-122.355, 37.835],
+        [-122.34, 37.81],
+        [-122.32, 37.798],
+        [-122.295, 37.796],
+        [-122.2795, 37.7955],
+      ],
     distance: 11.5,
     zones: ['richardson', 'central_bay', 'east_bay'],
     notes: 'Through Raccoon Strait, south of Angel Island, across the bay to Oakland Estuary.',
@@ -961,23 +974,24 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'alm',
     vesselType: 'default',
     waypoints: [
-      [-122.4562, 37.8735], // Tiburon
-      [-122.4490, 37.8720], // East along Tiburon
-      [-122.4400, 37.8700], // Raccoon Strait
-      [-122.4200, 37.8700], // Through Raccoon Strait
-      [-122.4450, 37.8560], // West of Angel Island (around Pt Stuart)
-      [-122.4150, 37.8620], // East of Angel Island
-      [-122.4050, 37.8500], // South of Angel Island
-      [-122.3900, 37.8380], // Central bay
-      [-122.3750, 37.8350], // North of YBI, clear of island
-      [-122.3550, 37.8350], // East of YBI, open water
-      [-122.3400, 37.8100], // South toward Oakland
-      [-122.3200, 37.7980], // Approaching Oakland outer harbor
-      [-122.2950, 37.7960], // Estuary entrance
-      [-122.2850, 37.7940], // Mid-estuary (in channel)
-      [-122.2650, 37.7870], // Estuary channel east of Alameda north tip
-      [-122.2600, 37.7850], // Alameda
-    ],
+        [-122.4562, 37.8735],
+        [-122.449, 37.872],
+        [-122.44, 37.87],
+        [-122.43, 37.8722],
+        [-122.42, 37.87],
+        [-122.445, 37.856],
+        [-122.415, 37.862],
+        [-122.405, 37.85],
+        [-122.39, 37.838],
+        [-122.375, 37.835],
+        [-122.355, 37.835],
+        [-122.34, 37.81],
+        [-122.32, 37.798],
+        [-122.295, 37.796],
+        [-122.285, 37.794],
+        [-122.265, 37.787],
+        [-122.26, 37.785],
+      ],
     distance: 13.0,
     zones: ['richardson', 'central_bay', 'east_bay'],
     notes: 'Through Raccoon Strait, south of Angel Island, across the bay to Alameda via Oakland Estuary.',
@@ -993,16 +1007,17 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'brk',
     vesselType: 'default',
     waypoints: [
-      [-122.4562, 37.8735], // Tiburon
-      [-122.4490, 37.8720], // East along Tiburon
-      [-122.4400, 37.8700], // Raccoon Strait entrance
-      [-122.4250, 37.8720], // Through Raccoon Strait
-      [-122.4150, 37.8700], // East of Angel Island
-      [-122.3950, 37.8690], // Open water heading east
-      [-122.3700, 37.8680], // Mid-bay
-      [-122.3450, 37.8670], // Approaching east bay
-      [-122.3150, 37.8650], // Berkeley Marina
-    ],
+        [-122.4562, 37.8735],
+        [-122.449, 37.872],
+        [-122.44, 37.87],
+        [-122.4328, 37.8723],
+        [-122.425, 37.872],
+        [-122.415, 37.87],
+        [-122.395, 37.869],
+        [-122.37, 37.868],
+        [-122.345, 37.867],
+        [-122.315, 37.865],
+      ],
     distance: 7.5,
     zones: ['richardson', 'central_bay', 'east_bay'],
     notes: 'Through Raccoon Strait then east across the bay to Berkeley Marina.',
@@ -1018,16 +1033,17 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'ptr',
     vesselType: 'default',
     waypoints: [
-      [-122.4562, 37.8735], // Tiburon
-      [-122.4490, 37.8720], // East along Tiburon
-      [-122.4400, 37.8700], // Raccoon Strait
-      [-122.4250, 37.8720], // Through Raccoon Strait
-      [-122.4150, 37.8720], // East of Angel Island
-      [-122.4000, 37.8780], // Open water heading NE
-      [-122.3900, 37.8860], // Continuing NE
-      [-122.3850, 37.8960], // Approaching Pt Richmond
-      [-122.3815, 37.9085], // Pt Richmond
-    ],
+        [-122.4562, 37.8735],
+        [-122.449, 37.872],
+        [-122.44, 37.87],
+        [-122.4328, 37.8723],
+        [-122.425, 37.872],
+        [-122.415, 37.872],
+        [-122.4, 37.878],
+        [-122.39, 37.886],
+        [-122.385, 37.896],
+        [-122.3815, 37.9085],
+      ],
     distance: 7.8,
     zones: ['richardson', 'central_bay', 'north_bay'],
     notes: 'Through Raccoon Strait, then northeast across the bay to Pt Richmond.',
@@ -1549,18 +1565,19 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'alm',
     vesselType: 'default',
     waypoints: [
-      [-122.3893, 37.7786], // McCovey Cove
-      [-122.3840, 37.7790], // East into the bay
-      [-122.3730, 37.7800], // Open water heading east
-      [-122.3600, 37.7800], // South bay, below Bay Bridge
-      [-122.3450, 37.7800], // Continuing east
-      [-122.3400, 37.7900], // Mid south bay
-      [-122.3100, 37.7940], // Approaching Alameda area
-      [-122.2950, 37.7960], // Estuary entrance
-      [-122.2850, 37.7940], // Mid-estuary (in channel)
-      [-122.2650, 37.7870], // Estuary channel east of Alameda north tip
-      [-122.2600, 37.7850], // Alameda
-    ],
+        [-122.3893, 37.7786],
+        [-122.384, 37.779],
+        [-122.373, 37.78],
+        [-122.36, 37.78],
+        [-122.345, 37.78],
+        [-122.34, 37.79],
+        [-122.3269, 37.8009],
+        [-122.31, 37.794],
+        [-122.295, 37.796],
+        [-122.285, 37.794],
+        [-122.265, 37.787],
+        [-122.26, 37.785],
+      ],
     distance: 6.0,
     zones: ['sf_shore', 'central_bay', 'east_bay'],
     notes: 'East across the south bay from McCovey Cove, entering Oakland Estuary to reach Alameda.',
@@ -1633,17 +1650,18 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'alm',
     vesselType: 'default',
     waypoints: [
-      [-122.3695, 37.8185], // Clipper Cove
-      [-122.3750, 37.8020], // East out of Clipper Cove
-      [-122.3600, 37.8100], // South of YBI
-      [-122.3520, 37.8050], // East of Bay Bridge
-      [-122.3400, 37.8010], // Heading south
-      [-122.3200, 37.7980], // Approaching Oakland outer harbor
-      [-122.2950, 37.7960], // Estuary entrance
-      [-122.2850, 37.7940], // Mid-estuary (in channel)
-      [-122.2650, 37.7870], // Estuary channel east of Alameda north tip
-      [-122.2600, 37.7850], // Alameda
-    ],
+        [-122.3695, 37.8185],
+        [-122.375, 37.802],
+        [-122.365, 37.803],
+        [-122.36, 37.81],
+        [-122.352, 37.805],
+        [-122.34, 37.801],
+        [-122.32, 37.798],
+        [-122.295, 37.796],
+        [-122.285, 37.794],
+        [-122.265, 37.787],
+        [-122.26, 37.785],
+      ],
     distance: 6.5,
     zones: ['central_bay', 'east_bay'],
     notes: 'South from Clipper Cove, past east span of Bay Bridge, into Oakland Estuary to Alameda.',
