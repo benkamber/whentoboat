@@ -136,8 +136,8 @@ export const waterRoutes: WaterRoute[] = [
       [-122.4480, 37.8300], // Mid-Slot crossing
       [-122.4350, 37.8200], // Continuing southeast
       [-122.4200, 37.8100], // South of Alcatraz (passing east side)
-      [-122.4080, 37.8020], // Approaching SF Embarcadero
-      [-122.3990, 37.7980], // Along the waterfront
+      [-122.4050, 37.8050], // Approaching SF Embarcadero
+      [-122.3930, 37.8000], // Along the waterfront
       [-122.3935, 37.7955], // Ferry Building
     ],
     distance: 5.8,
@@ -163,7 +163,7 @@ export const waterRoutes: WaterRoute[] = [
       [-122.4280, 37.8340], // Open water east of Angel Island
       [-122.4100, 37.8290], // Central bay, heading east
       [-122.3920, 37.8250], // Approaching Yerba Buena Island from west
-      [-122.3790, 37.8220], // Rounding north side of YBI
+      [-122.3790, 37.8350], // North of YBI, clear of island
       [-122.3695, 37.8185], // Clipper Cove (between TI and YBI)
     ],
     distance: 6.5,
@@ -217,10 +217,10 @@ export const waterRoutes: WaterRoute[] = [
       [-122.4250, 37.8240], // East of Alcatraz
       [-122.4050, 37.8150], // Continuing east across the bay
       [-122.3850, 37.8080], // Approaching Yerba Buena Island
-      [-122.3700, 37.8100], // North side of YBI / Bay Bridge
-      [-122.3500, 37.8050], // East of Bay Bridge
-      [-122.3300, 37.7990], // Approaching Oakland inner harbor
-      [-122.3100, 37.7970], // Near Oakland outer harbor
+      [-122.3700, 37.8350], // North of YBI, clear of island
+      [-122.3550, 37.8350], // East of YBI, open water
+      [-122.3400, 37.8100], // South toward Oakland
+      [-122.3200, 37.7980], // Approaching Oakland outer harbor
       [-122.2950, 37.7960], // Oakland Estuary entrance
       [-122.2795, 37.7955], // Jack London Square
     ],
@@ -263,12 +263,12 @@ export const waterRoutes: WaterRoute[] = [
       [-122.4330, 37.8636], // Ayala Cove, Angel Island
       [-122.4310, 37.8590], // South out of Ayala Cove
       [-122.4280, 37.8540], // Southeast shore of Angel Island
-      [-122.4220, 37.8470], // Pt Blunt (south tip of Angel Island)
-      [-122.4150, 37.8420], // South of Angel Island, open water
+      [-122.4220, 37.8440], // Pt Blunt (south of Angel Island, clear of shore)
+      [-122.4150, 37.8400], // South of Angel Island, open water
       [-122.4050, 37.8370], // Central bay heading east
       [-122.3920, 37.8310], // Continuing east
-      [-122.3800, 37.8250], // Approaching Yerba Buena Island from north
-      [-122.3740, 37.8210], // North side of YBI
+      [-122.3800, 37.8350], // North of YBI, clear of island
+      [-122.3740, 37.8350], // Rounding north side of YBI
       [-122.3695, 37.8185], // Clipper Cove
     ],
     distance: 4.0,
@@ -376,12 +376,11 @@ export const waterRoutes: WaterRoute[] = [
     vesselType: 'default',
     waypoints: [
       [-122.3695, 37.8185], // Clipper Cove
-      [-122.3660, 37.8150], // East out of Clipper Cove
+      [-122.3660, 37.8050], // East out of Clipper Cove
       [-122.3600, 37.8100], // South side of YBI
       [-122.3520, 37.8050], // East of Bay Bridge east span
       [-122.3400, 37.8010], // Heading south toward Oakland
-      [-122.3250, 37.7990], // Approaching Oakland outer harbor
-      [-122.3100, 37.7970], // Near Oakland inner harbor
+      [-122.3200, 37.7980], // Approaching Oakland outer harbor
       [-122.2950, 37.7960], // Oakland Estuary entrance
       [-122.2795, 37.7955], // Jack London Square
     ],
@@ -401,11 +400,11 @@ export const waterRoutes: WaterRoute[] = [
     vesselType: 'default',
     waypoints: [
       [-122.2795, 37.7955], // Jack London Square
-      [-122.2800, 37.7920], // South into the estuary
-      [-122.2805, 37.7880], // Mid-estuary
-      [-122.2810, 37.7840], // Approaching Alameda side
-      [-122.2815, 37.7790], // Near Fortman Marina area
-      [-122.2820, 37.7735], // Alameda (Encinal YC / Fortman)
+      [-122.2800, 37.7930], // South into the estuary
+      [-122.2810, 37.7900], // Mid-estuary (in channel, lat 37.79+)
+      [-122.2700, 37.7870], // Continuing south in channel
+      [-122.2700, 37.7850], // Near Fortman Marina area
+      [-122.2700, 37.7800], // Alameda (Encinal YC / Fortman)
     ],
     distance: 1.5,
     zones: ['east_bay'],
@@ -451,8 +450,8 @@ export const waterRoutes: WaterRoute[] = [
       [-122.4853, 37.8594], // Sausalito waterfront
       [-122.4820, 37.8530], // South out of Sausalito
       [-122.4790, 37.8470], // Heading toward the Golden Gate
-      [-122.4810, 37.8380], // Approaching the Gate from the north (Horseshoe Bay area)
-      [-122.4850, 37.8300], // Under the Golden Gate Bridge, center span
+      [-122.4780, 37.8350], // Approaching the Gate from the north (Horseshoe Bay area)
+      [-122.4780, 37.8320], // Under the Golden Gate Bridge, center span
       [-122.4900, 37.8200], // Exiting the Gate, entering the Pacific
       [-122.4950, 37.8080], // Past Mile Rock, turning south along the coast
       [-122.5020, 37.7900], // Offshore of Lands End
@@ -496,8 +495,8 @@ export const waterRoutes: WaterRoute[] = [
       [-122.4480, 37.8300], // Mid-Slot crossing
       [-122.4350, 37.8200], // Continuing southeast
       [-122.4200, 37.8100], // South of Alcatraz
-      [-122.4080, 37.8020], // Approaching Embarcadero
-      [-122.3990, 37.7970], // Along waterfront
+      [-122.4050, 37.8050], // Approaching Embarcadero
+      [-122.3930, 37.7990], // Along waterfront
       [-122.3940, 37.7920], // South of Ferry Building
       [-122.3920, 37.7870], // Past Pier 30/32
       [-122.3905, 37.7830], // South Beach Harbor
@@ -526,13 +525,13 @@ export const waterRoutes: WaterRoute[] = [
       [-122.4250, 37.8240], // East of Alcatraz
       [-122.4050, 37.8150], // Continuing east
       [-122.3850, 37.8080], // Approaching YBI
-      [-122.3700, 37.8100], // North side of YBI
-      [-122.3500, 37.8050], // East of Bay Bridge
-      [-122.3300, 37.7990], // Approaching Oakland
-      [-122.3100, 37.7970], // Oakland outer harbor
+      [-122.3700, 37.8350], // North of YBI, clear of island
+      [-122.3550, 37.8350], // East of YBI, open water
+      [-122.3400, 37.8100], // South toward Oakland
+      [-122.3200, 37.7980], // Approaching Oakland outer harbor
       [-122.2950, 37.7960], // Estuary entrance
-      [-122.2850, 37.7900], // Mid-estuary
-      [-122.2820, 37.7735], // Alameda
+      [-122.2850, 37.7940], // Mid-estuary (in channel)
+      [-122.2700, 37.7800], // Alameda
     ],
     distance: 12.5,
     zones: ['richardson', 'central_bay', 'east_bay'],
@@ -681,14 +680,14 @@ export const waterRoutes: WaterRoute[] = [
       [-122.4330, 37.8636], // Ayala Cove
       [-122.4310, 37.8590], // South out of Ayala Cove
       [-122.4270, 37.8530], // SE shore of Angel Island
-      [-122.4220, 37.8460], // Pt Blunt
+      [-122.4220, 37.8440], // Pt Blunt (staying south of island)
       [-122.4120, 37.8380], // South of Angel Island
       [-122.3980, 37.8300], // Central bay heading east
-      [-122.3820, 37.8230], // Approaching YBI
-      [-122.3700, 37.8130], // North of YBI, under Bay Bridge area
-      [-122.3500, 37.8050], // East of Bay Bridge
-      [-122.3300, 37.7990], // Approaching Oakland
-      [-122.3100, 37.7970], // Oakland outer harbor
+      [-122.3820, 37.8230], // Approaching YBI area
+      [-122.3700, 37.8350], // North of YBI, clear of island
+      [-122.3550, 37.8350], // East of YBI, open water
+      [-122.3400, 37.8100], // South toward Oakland
+      [-122.3200, 37.7980], // Approaching Oakland outer harbor
       [-122.2950, 37.7960], // Estuary entrance
       [-122.2795, 37.7955], // Jack London Square
     ],
@@ -710,17 +709,17 @@ export const waterRoutes: WaterRoute[] = [
       [-122.4330, 37.8636], // Ayala Cove
       [-122.4310, 37.8590], // South out of Ayala Cove
       [-122.4270, 37.8530], // SE shore
-      [-122.4220, 37.8460], // Pt Blunt
+      [-122.4220, 37.8440], // Pt Blunt (staying south of island)
       [-122.4120, 37.8380], // South of Angel Island
       [-122.3980, 37.8300], // Central bay
-      [-122.3820, 37.8230], // Near YBI
-      [-122.3700, 37.8130], // North of YBI
-      [-122.3500, 37.8050], // East of Bay Bridge
-      [-122.3300, 37.7990], // Approaching Oakland
-      [-122.3100, 37.7970], // Oakland outer harbor
+      [-122.3820, 37.8230], // Approaching YBI area
+      [-122.3700, 37.8350], // North of YBI, clear of island
+      [-122.3550, 37.8350], // East of YBI, open water
+      [-122.3400, 37.8100], // South toward Oakland
+      [-122.3200, 37.7980], // Approaching Oakland outer harbor
       [-122.2950, 37.7960], // Estuary entrance
-      [-122.2850, 37.7900], // Mid-estuary
-      [-122.2820, 37.7735], // Alameda
+      [-122.2850, 37.7940], // Mid-estuary (in channel)
+      [-122.2700, 37.7800], // Alameda
     ],
     distance: 11.0,
     zones: ['richardson', 'central_bay', 'east_bay'],
@@ -848,7 +847,7 @@ export const waterRoutes: WaterRoute[] = [
       [-122.4280, 37.8200], // Continuing SE
       [-122.4120, 37.8100], // Passing east of Alcatraz
       [-122.4020, 37.8020], // Approaching SF Embarcadero
-      [-122.3970, 37.7980], // Near waterfront
+      [-122.3930, 37.8000], // Near waterfront
       [-122.3935, 37.7955], // Ferry Building
     ],
     distance: 6.8,
@@ -878,7 +877,7 @@ export const waterRoutes: WaterRoute[] = [
       [-122.4000, 37.8010], // Near Embarcadero
       [-122.3950, 37.7950], // Ferry Building area
       [-122.3920, 37.7880], // South along waterfront
-      [-122.3905, 37.7830], // South Beach
+      [-122.3900, 37.7830], // South Beach
       [-122.3893, 37.7786], // McCovey Cove
     ],
     distance: 7.8,
@@ -900,12 +899,12 @@ export const waterRoutes: WaterRoute[] = [
       [-122.4490, 37.8720], // East along Tiburon waterfront
       [-122.4400, 37.8700], // Raccoon Strait
       [-122.4300, 37.8690], // Through Raccoon Strait
-      [-122.4200, 37.8650], // East of Angel Island, north side
+      [-122.4150, 37.8500], // East of Angel Island, north side
       [-122.4100, 37.8560], // SE of Angel Island
       [-122.4000, 37.8440], // Central bay heading SE
-      [-122.3900, 37.8340], // Continuing SE
-      [-122.3800, 37.8260], // Approaching YBI from north
-      [-122.3740, 37.8220], // North side of YBI
+      [-122.3900, 37.8370], // Continuing SE
+      [-122.3800, 37.8350], // North of YBI, clear of island
+      [-122.3740, 37.8350], // Rounding north side of YBI
       [-122.3695, 37.8185], // Clipper Cove
     ],
     distance: 6.2,
@@ -930,12 +929,11 @@ export const waterRoutes: WaterRoute[] = [
       [-122.4150, 37.8620], // East of Angel Island
       [-122.4050, 37.8500], // South of Angel Island
       [-122.3900, 37.8380], // Central bay
-      [-122.3750, 37.8250], // Approaching YBI
-      [-122.3600, 37.8120], // South of YBI
-      [-122.3450, 37.8050], // East of Bay Bridge
-      [-122.3250, 37.7990], // Approaching Oakland
-      [-122.3050, 37.7970], // Oakland harbor area
-      [-122.2900, 37.7960], // Estuary entrance
+      [-122.3750, 37.8350], // North of YBI, clear of island
+      [-122.3550, 37.8350], // East of YBI, open water
+      [-122.3400, 37.8100], // South toward Oakland
+      [-122.3200, 37.7980], // Approaching Oakland outer harbor
+      [-122.2950, 37.7960], // Estuary entrance
       [-122.2795, 37.7955], // Jack London Square
     ],
     distance: 11.5,
@@ -960,14 +958,13 @@ export const waterRoutes: WaterRoute[] = [
       [-122.4150, 37.8620], // East of Angel Island
       [-122.4050, 37.8500], // South of Angel Island
       [-122.3900, 37.8380], // Central bay
-      [-122.3750, 37.8250], // Approaching YBI
-      [-122.3600, 37.8120], // South of YBI
-      [-122.3450, 37.8050], // East of Bay Bridge
-      [-122.3250, 37.7990], // Approaching Oakland
-      [-122.3050, 37.7970], // Oakland harbor
-      [-122.2900, 37.7960], // Estuary entrance
-      [-122.2850, 37.7880], // Mid-estuary
-      [-122.2820, 37.7735], // Alameda
+      [-122.3750, 37.8350], // North of YBI, clear of island
+      [-122.3550, 37.8350], // East of YBI, open water
+      [-122.3400, 37.8100], // South toward Oakland
+      [-122.3200, 37.7980], // Approaching Oakland outer harbor
+      [-122.2950, 37.7960], // Estuary entrance
+      [-122.2850, 37.7940], // Mid-estuary (in channel)
+      [-122.2700, 37.7800], // Alameda
     ],
     distance: 13.0,
     zones: ['richardson', 'central_bay', 'east_bay'],
@@ -1118,11 +1115,11 @@ export const waterRoutes: WaterRoute[] = [
       [-122.4050, 37.8090], // Past Pier 39
       [-122.3950, 37.8100], // Open water heading east
       [-122.3850, 37.8110], // Mid-bay
-      [-122.3750, 37.8130], // Approaching YBI
-      [-122.3650, 37.8110], // North of YBI
-      [-122.3500, 37.8060], // East of Bay Bridge
-      [-122.3300, 37.8000], // Approaching Oakland
-      [-122.3100, 37.7970], // Oakland outer harbor
+      [-122.3750, 37.8200], // Approaching YBI
+      [-122.3650, 37.8350], // North of YBI, clear of island
+      [-122.3500, 37.8350], // East of YBI, open water
+      [-122.3400, 37.8100], // South toward Oakland
+      [-122.3200, 37.7980], // Approaching Oakland outer harbor
       [-122.2950, 37.7960], // Estuary entrance
       [-122.2795, 37.7955], // Jack London Square
     ],
@@ -1146,14 +1143,14 @@ export const waterRoutes: WaterRoute[] = [
       [-122.4050, 37.8090], // Past Pier 39
       [-122.3950, 37.8100], // Open water heading east
       [-122.3850, 37.8110], // Mid-bay
-      [-122.3750, 37.8130], // Approaching YBI
-      [-122.3650, 37.8110], // North of YBI
-      [-122.3500, 37.8060], // East of Bay Bridge
-      [-122.3300, 37.8000], // Approaching Oakland
-      [-122.3100, 37.7970], // Oakland harbor
+      [-122.3750, 37.8200], // Approaching YBI
+      [-122.3650, 37.8350], // North of YBI, clear of island
+      [-122.3500, 37.8350], // East of YBI, open water
+      [-122.3400, 37.8100], // South toward Oakland
+      [-122.3200, 37.7980], // Approaching Oakland outer harbor
       [-122.2950, 37.7960], // Estuary entrance
-      [-122.2850, 37.7880], // Mid-estuary
-      [-122.2820, 37.7735], // Alameda
+      [-122.2850, 37.7940], // Mid-estuary (in channel)
+      [-122.2700, 37.7800], // Alameda
     ],
     distance: 10.0,
     zones: ['sf_shore', 'central_bay', 'east_bay'],
@@ -1274,11 +1271,11 @@ export const waterRoutes: WaterRoute[] = [
       [-122.4020, 37.8100], // East from Pier 39
       [-122.3920, 37.8120], // Open water
       [-122.3830, 37.8140], // Mid-bay
-      [-122.3740, 37.8160], // Near YBI
-      [-122.3640, 37.8120], // North of YBI
-      [-122.3500, 37.8060], // East of Bay Bridge
-      [-122.3300, 37.7990], // Approaching Oakland
-      [-122.3100, 37.7970], // Oakland outer harbor
+      [-122.3740, 37.8200], // Approaching YBI
+      [-122.3650, 37.8350], // North of YBI, clear of island
+      [-122.3500, 37.8350], // East of YBI, open water
+      [-122.3400, 37.8100], // South toward Oakland
+      [-122.3200, 37.7980], // Approaching Oakland outer harbor
       [-122.2950, 37.7960], // Estuary entrance
       [-122.2795, 37.7955], // Jack London Square
     ],
@@ -1301,14 +1298,14 @@ export const waterRoutes: WaterRoute[] = [
       [-122.4020, 37.8100], // East from Pier 39
       [-122.3920, 37.8120], // Open water
       [-122.3830, 37.8140], // Mid-bay
-      [-122.3740, 37.8160], // Near YBI
-      [-122.3640, 37.8120], // North of YBI
-      [-122.3500, 37.8060], // East of Bay Bridge
-      [-122.3300, 37.7990], // Approaching Oakland
-      [-122.3100, 37.7970], // Oakland harbor
+      [-122.3740, 37.8200], // Approaching YBI
+      [-122.3650, 37.8350], // North of YBI, clear of island
+      [-122.3500, 37.8350], // East of YBI, open water
+      [-122.3400, 37.8100], // South toward Oakland
+      [-122.3200, 37.7980], // Approaching Oakland outer harbor
       [-122.2950, 37.7960], // Estuary entrance
-      [-122.2850, 37.7880], // Mid-estuary
-      [-122.2820, 37.7735], // Alameda
+      [-122.2850, 37.7940], // Mid-estuary (in channel)
+      [-122.2700, 37.7800], // Alameda
     ],
     distance: 9.5,
     zones: ['sf_shore', 'central_bay', 'east_bay'],
@@ -1410,8 +1407,8 @@ export const waterRoutes: WaterRoute[] = [
       [-122.3250, 37.7990], // Approaching Oakland
       [-122.3100, 37.7970], // Oakland harbor
       [-122.2950, 37.7960], // Estuary entrance
-      [-122.2850, 37.7880], // Mid-estuary
-      [-122.2820, 37.7735], // Alameda
+      [-122.2850, 37.7940], // Mid-estuary (in channel)
+      [-122.2700, 37.7800], // Alameda
     ],
     distance: 8.0,
     zones: ['sf_shore', 'central_bay', 'east_bay'],
@@ -1433,9 +1430,9 @@ export const waterRoutes: WaterRoute[] = [
       [-122.3830, 37.8040], // Open water heading NE
       [-122.3770, 37.8100], // Mid-bay
       [-122.3710, 37.8170], // Near YBI west side
-      [-122.3680, 37.8230], // North of YBI
-      [-122.3600, 37.8340], // Open water heading NE
-      [-122.3450, 37.8470], // Continuing NE
+      [-122.3680, 37.8350], // North of YBI, clear of island
+      [-122.3600, 37.8400], // Open water heading NE
+      [-122.3450, 37.8500], // Continuing NE
       [-122.3300, 37.8570], // Approaching Berkeley
       [-122.3150, 37.8650], // Berkeley Marina
     ],
@@ -1533,17 +1530,18 @@ export const waterRoutes: WaterRoute[] = [
     waypoints: [
       [-122.3893, 37.7786], // McCovey Cove
       [-122.3840, 37.7790], // East into the bay
-      [-122.3730, 37.7790], // Open water heading east
-      [-122.3600, 37.7790], // South bay, below Bay Bridge
-      [-122.3450, 37.7780], // Continuing east
-      [-122.3300, 37.7770], // Mid south bay
-      [-122.3150, 37.7760], // Approaching Alameda NW shore
-      [-122.3000, 37.7750], // Near Alameda
-      [-122.2820, 37.7735], // Alameda
+      [-122.3730, 37.7800], // Open water heading east
+      [-122.3600, 37.7800], // South bay, below Bay Bridge
+      [-122.3450, 37.7800], // Continuing east
+      [-122.3300, 37.7800], // Mid south bay
+      [-122.3100, 37.7900], // Approaching Alameda area
+      [-122.2950, 37.7960], // Estuary entrance
+      [-122.2850, 37.7940], // Mid-estuary (in channel)
+      [-122.2700, 37.7800], // Alameda
     ],
     distance: 6.0,
     zones: ['sf_shore', 'central_bay', 'east_bay'],
-    notes: 'East across the south bay from McCovey Cove directly to Alameda. Passes south of Bay Bridge.',
+    notes: 'East across the south bay from McCovey Cove, entering Oakland Estuary to reach Alameda.',
   },
 
   // ──────────────────────────────────────────
@@ -1562,8 +1560,8 @@ export const waterRoutes: WaterRoute[] = [
       [-122.3830, 37.7990], // Near Bay Bridge
       [-122.3780, 37.8070], // Under Bay Bridge area
       [-122.3720, 37.8160], // North of Bay Bridge
-      [-122.3650, 37.8260], // North of YBI
-      [-122.3550, 37.8380], // Open water heading NE
+      [-122.3650, 37.8350], // North of YBI, clear of island
+      [-122.3550, 37.8420], // Open water heading NE
       [-122.3400, 37.8500], // Continuing NE
       [-122.3280, 37.8580], // Approaching Berkeley
       [-122.3150, 37.8650], // Berkeley Marina
@@ -1612,15 +1610,14 @@ export const waterRoutes: WaterRoute[] = [
     vesselType: 'default',
     waypoints: [
       [-122.3695, 37.8185], // Clipper Cove
-      [-122.3660, 37.8150], // East out of Clipper Cove
+      [-122.3660, 37.8050], // East out of Clipper Cove
       [-122.3600, 37.8100], // South of YBI
       [-122.3520, 37.8050], // East of Bay Bridge
       [-122.3400, 37.8010], // Heading south
-      [-122.3250, 37.7990], // Oakland outer harbor
-      [-122.3100, 37.7970], // Near estuary entrance
+      [-122.3200, 37.7980], // Approaching Oakland outer harbor
       [-122.2950, 37.7960], // Estuary entrance
-      [-122.2850, 37.7880], // Mid-estuary
-      [-122.2820, 37.7735], // Alameda
+      [-122.2850, 37.7940], // Mid-estuary (in channel)
+      [-122.2700, 37.7800], // Alameda
     ],
     distance: 6.5,
     zones: ['central_bay', 'east_bay'],
@@ -1638,12 +1635,12 @@ export const waterRoutes: WaterRoute[] = [
     vesselType: 'default',
     waypoints: [
       [-122.3695, 37.8185], // Clipper Cove
-      [-122.3680, 37.8230], // North out of Clipper Cove
-      [-122.3650, 37.8300], // North of YBI
-      [-122.3580, 37.8380], // Open water heading NE
-      [-122.3470, 37.8460], // Continuing NE
-      [-122.3350, 37.8540], // Approaching Berkeley
-      [-122.3250, 37.8600], // Near Berkeley
+      [-122.3680, 37.8350], // North out of Clipper Cove, clear of YBI
+      [-122.3650, 37.8400], // North of YBI
+      [-122.3580, 37.8450], // Open water heading NE
+      [-122.3470, 37.8500], // Continuing NE
+      [-122.3350, 37.8560], // Approaching Berkeley
+      [-122.3250, 37.8610], // Near Berkeley
       [-122.3150, 37.8650], // Berkeley Marina
     ],
     distance: 4.5,
@@ -1662,11 +1659,11 @@ export const waterRoutes: WaterRoute[] = [
     vesselType: 'default',
     waypoints: [
       [-122.3695, 37.8185], // Clipper Cove
-      [-122.3680, 37.8240], // North out of Clipper Cove
-      [-122.3660, 37.8320], // North of YBI
-      [-122.3680, 37.8430], // Open water heading north
-      [-122.3720, 37.8560], // Continuing north
-      [-122.3760, 37.8700], // North central bay
+      [-122.3680, 37.8350], // North out of Clipper Cove, clear of YBI
+      [-122.3660, 37.8420], // North of YBI
+      [-122.3680, 37.8500], // Open water heading north
+      [-122.3720, 37.8600], // Continuing north
+      [-122.3760, 37.8720], // North central bay
       [-122.3790, 37.8850], // Approaching Pt Richmond
       [-122.3815, 37.9085], // Pt Richmond
     ],
@@ -1686,13 +1683,13 @@ export const waterRoutes: WaterRoute[] = [
     vesselType: 'default',
     waypoints: [
       [-122.2795, 37.7955], // Jack London Square
-      [-122.2850, 37.7980], // West out of estuary
-      [-122.2950, 37.8010], // Oakland outer harbor
-      [-122.3000, 37.8080], // North along east bay shore
-      [-122.3050, 37.8180], // Continuing north
-      [-122.3080, 37.8300], // Emeryville area
-      [-122.3100, 37.8420], // North of Emeryville
-      [-122.3120, 37.8540], // Approaching Berkeley
+      [-122.3200, 37.8100], // West out of estuary
+      [-122.3200, 37.8080], // Oakland outer harbor
+      [-122.3050, 37.8100], // North along east bay shore
+      [-122.3100, 37.8220], // Continuing north
+      [-122.3120, 37.8350], // Emeryville area
+      [-122.3130, 37.8450], // North of Emeryville
+      [-122.3140, 37.8550], // Approaching Berkeley
       [-122.3150, 37.8650], // Berkeley Marina
     ],
     distance: 6.0,
@@ -1711,13 +1708,13 @@ export const waterRoutes: WaterRoute[] = [
     vesselType: 'default',
     waypoints: [
       [-122.2795, 37.7955], // Jack London Square
-      [-122.2850, 37.7980], // West out of estuary
-      [-122.2950, 37.8010], // Oakland outer harbor
-      [-122.3000, 37.8080], // North along east bay
-      [-122.3050, 37.8180], // Continuing north
-      [-122.3080, 37.8300], // Emeryville area
-      [-122.3100, 37.8420], // North of Emeryville
-      [-122.3130, 37.8540], // Approaching Berkeley
+      [-122.3200, 37.8100], // West out of estuary
+      [-122.3200, 37.8080], // Oakland outer harbor
+      [-122.3050, 37.8100], // North along east bay
+      [-122.3100, 37.8220], // Continuing north
+      [-122.3120, 37.8350], // Emeryville area
+      [-122.3130, 37.8450], // North of Emeryville
+      [-122.3140, 37.8550], // Approaching Berkeley
       [-122.3150, 37.8650], // Berkeley Marina area
       [-122.3200, 37.8700], // North of Berkeley
       [-122.3300, 37.8780], // Albany shoreline
@@ -1741,16 +1738,16 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'brk',
     vesselType: 'default',
     waypoints: [
-      [-122.2820, 37.7735], // Alameda
-      [-122.2830, 37.7830], // North through estuary
-      [-122.2850, 37.7920], // Mid-estuary
+      [-122.2700, 37.7800], // Alameda
+      [-122.2700, 37.7850], // North through estuary
+      [-122.2840, 37.7900], // Mid-estuary (in channel)
       [-122.2880, 37.7960], // Near JLS / estuary exit
-      [-122.2950, 37.8010], // Oakland outer harbor
-      [-122.3000, 37.8100], // North along east bay
-      [-122.3050, 37.8220], // Emeryville area
-      [-122.3080, 37.8350], // North of Emeryville
-      [-122.3110, 37.8480], // South of Berkeley
-      [-122.3130, 37.8570], // Approaching Berkeley
+      [-122.3200, 37.8080], // Oakland outer harbor
+      [-122.3050, 37.8100], // North along east bay
+      [-122.3100, 37.8220], // Emeryville area
+      [-122.3120, 37.8350], // North of Emeryville
+      [-122.3130, 37.8480], // South of Berkeley
+      [-122.3140, 37.8570], // Approaching Berkeley
       [-122.3150, 37.8650], // Berkeley Marina
     ],
     distance: 7.5,
@@ -1768,15 +1765,15 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'ptr',
     vesselType: 'default',
     waypoints: [
-      [-122.2820, 37.7735], // Alameda
-      [-122.2830, 37.7830], // North through estuary
-      [-122.2850, 37.7920], // Mid-estuary
+      [-122.2700, 37.7800], // Alameda
+      [-122.2700, 37.7850], // North through estuary
+      [-122.2840, 37.7900], // Mid-estuary (in channel)
       [-122.2880, 37.7960], // Estuary exit
-      [-122.2950, 37.8010], // Oakland outer harbor
-      [-122.3000, 37.8100], // North along east bay
-      [-122.3050, 37.8220], // Emeryville
-      [-122.3080, 37.8350], // North of Emeryville
-      [-122.3110, 37.8480], // South of Berkeley
+      [-122.3200, 37.8080], // Oakland outer harbor
+      [-122.3050, 37.8100], // North along east bay
+      [-122.3100, 37.8220], // Emeryville
+      [-122.3120, 37.8350], // North of Emeryville
+      [-122.3130, 37.8480], // South of Berkeley
       [-122.3150, 37.8650], // Berkeley Marina area
       [-122.3250, 37.8730], // Albany
       [-122.3400, 37.8830], // Point Isabel area
@@ -1840,7 +1837,7 @@ export const waterRoutes: WaterRoute[] = [
     vesselType: 'default',
     waypoints: [
       [-122.3935, 37.7955], // Ferry Building
-      [-122.3970, 37.7980], // North along Embarcadero
+      [-122.3920, 37.8000], // North along Embarcadero
       [-122.4020, 37.8020], // Pier 15 area
       [-122.4060, 37.8050], // Pier 27
       [-122.4100, 37.8080], // Pier 39 area
@@ -1848,8 +1845,8 @@ export const waterRoutes: WaterRoute[] = [
       [-122.4250, 37.8090], // Near Aquatic Park
       [-122.4400, 37.8120], // Crissy Field
       [-122.4600, 37.8190], // Approaching Golden Gate
-      [-122.4780, 37.8260], // Near Fort Point
-      [-122.4850, 37.8300], // Under Golden Gate Bridge
+      [-122.4750, 37.8260], // Near Fort Point
+      [-122.4780, 37.8320], // Under Golden Gate Bridge (center channel)
       [-122.4900, 37.8200], // Exiting the Gate
       [-122.4950, 37.8080], // Past Mile Rock
       [-122.5020, 37.7900], // Offshore of Lands End
@@ -1916,8 +1913,8 @@ export const waterRoutes: WaterRoute[] = [
     waypoints: [
       [-122.4562, 37.8735], // Tiburon
       [-122.4650, 37.8650], // Across Richardson Bay
-      [-122.4790, 37.8470], // Toward Golden Gate
-      [-122.4850, 37.8300], // Under the Golden Gate Bridge
+      [-122.4750, 37.8470], // Toward Golden Gate
+      [-122.4780, 37.8320], // Under the Golden Gate Bridge (center channel)
       [-122.4900, 37.8200], // Exiting the Gate
       [-122.4950, 37.8080], // Past Mile Rock
       [-122.5050, 37.7700], // Offshore Ocean Beach
@@ -1943,9 +1940,9 @@ export const waterRoutes: WaterRoute[] = [
     vesselType: 'default',
     waypoints: [
       [-122.4330, 37.8636], // Angel Island (Ayala Cove)
-      [-122.4500, 37.8550], // South of Angel Island
-      [-122.4700, 37.8450], // Toward Golden Gate
-      [-122.4850, 37.8300], // Under the Golden Gate Bridge
+      [-122.4450, 37.8440], // South of Angel Island (clear of Pt Blunt)
+      [-122.4650, 37.8380], // Toward Golden Gate
+      [-122.4780, 37.8320], // Under the Golden Gate Bridge (center channel)
       [-122.4900, 37.8200], // Exiting the Gate
       [-122.4950, 37.8080], // Past Mile Rock
       [-122.5050, 37.7700], // Offshore Ocean Beach
@@ -2002,8 +1999,8 @@ export const waterRoutes: WaterRoute[] = [
       [-122.3935, 37.7955], // North along SF waterfront
       [-122.4098, 37.8087], // Past Pier 39
       [-122.4400, 37.8100], // Past Aquatic Park
-      [-122.4700, 37.8250], // Approaching Golden Gate
-      [-122.4850, 37.8300], // Under the Golden Gate Bridge
+      [-122.4650, 37.8250], // Approaching Golden Gate
+      [-122.4780, 37.8320], // Under the Golden Gate Bridge (center channel)
       [-122.4900, 37.8200], // Exiting the Gate
       [-122.4950, 37.8080], // Past Mile Rock
       [-122.5050, 37.7700], // Offshore Ocean Beach
@@ -2055,12 +2052,12 @@ export const waterRoutes: WaterRoute[] = [
     vesselType: 'default',
     waypoints: [
       [-122.2795, 37.7955], // Jack London Square
-      [-122.3000, 37.8000], // Out of Oakland Estuary
+      [-122.2950, 37.7960], // Out of Oakland Estuary
       [-122.3500, 37.8100], // West across central bay
       [-122.4098, 37.8087], // Past Pier 39
       [-122.4400, 37.8100], // Past Aquatic Park
-      [-122.4700, 37.8250], // Approaching Golden Gate
-      [-122.4850, 37.8300], // Under the Golden Gate Bridge
+      [-122.4650, 37.8250], // Approaching Golden Gate
+      [-122.4780, 37.8320], // Under the Golden Gate Bridge (center channel)
       [-122.4900, 37.8200], // Exiting the Gate
       [-122.4950, 37.8080], // Past Mile Rock
       [-122.5050, 37.7700], // Offshore Ocean Beach
@@ -2083,13 +2080,14 @@ export const waterRoutes: WaterRoute[] = [
     toId: 'hmb',
     vesselType: 'default',
     waypoints: [
-      [-122.2820, 37.7735], // Alameda
-      [-122.3000, 37.7900], // Out of estuary
+      [-122.2700, 37.7800], // Alameda
+      [-122.2850, 37.7940], // Out of estuary (in channel)
+      [-122.2950, 37.7960], // Estuary entrance
       [-122.3500, 37.8100], // West across central bay
       [-122.4098, 37.8087], // Past Pier 39
       [-122.4400, 37.8100], // Past Aquatic Park
-      [-122.4700, 37.8250], // Approaching Golden Gate
-      [-122.4850, 37.8300], // Under the Golden Gate Bridge
+      [-122.4650, 37.8250], // Approaching Golden Gate
+      [-122.4780, 37.8320], // Under the Golden Gate Bridge (center channel)
       [-122.4900, 37.8200], // Exiting the Gate
       [-122.4950, 37.8080], // Past Mile Rock
       [-122.5050, 37.7700], // Offshore Ocean Beach
