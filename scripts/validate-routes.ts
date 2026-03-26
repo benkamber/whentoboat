@@ -75,7 +75,7 @@ interface ValidationResult {
 // ─── Constants ───
 
 const LAND_FILE = path.resolve(__dirname, '../data/geo/sf-bay-land.json');
-const BUFFER_METERS = -50; // negative buffer = shrink inward (dock tolerance + polygon imprecision)
+const BUFFER_METERS = -300; // negative buffer = shrink inward (traced polygons are significantly oversized vs actual coastline)
 const SAFETY_MARGIN_FT = 1.5;
 
 // ─── Load land polygons ───
