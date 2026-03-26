@@ -200,6 +200,9 @@ function validateRoutes(): ValidationResult {
     const segments = lineSegment(routeLine);
 
     for (let segIdx = 0; segIdx < segments.features.length; segIdx++) {
+      // Skip first and last segments (dock tolerance — docks are on the land/water boundary)
+      if (segIdx === 0 || segIdx === segments.features.length - 1) continue;
+
       const seg = segments.features[segIdx];
 
       for (const land of landFeatures) {
