@@ -15,7 +15,7 @@ import { ScoreBadge, getScoreLabel } from './ScoreBadge';
  * the conditions tell you what to do.
  */
 export function ActivityAdvisor() {
-  const { month, hour, homeBaseId, setActivity } = useAppStore();
+  const { activity, month, hour, homeBaseId, setActivity } = useAppStore();
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const origin = sfBay.destinations.find(d => d.id === homeBaseId) ?? sfBay.destinations[0];
@@ -30,7 +30,10 @@ export function ActivityAdvisor() {
 
   if (recommendations.length === 0) return null;
 
-  const best = recommendations[0];
+  // Move the currently-selected activity to the top of the list
+  const selectedRec = recommendations.find(r => r.activity.id === activity);
+  const otherRecs = recommendations.filter(r => r.activity.id !== activity);
+  const sortedRecs = selectedRec ? [selectedRec, ...otherRecs] : recommendations;
 
   const formatTime = (h: number) => {
     const hrs = Math.floor(h);
@@ -44,27 +47,28 @@ export function ActivityAdvisor() {
 
   return (
     <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden">
-      {/* Header — best recommendation */}
+      {/* Header — selected activity */}
       <div className="px-4 py-3 bg-[var(--card-elevated)] border-b border-[var(--border)]">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-xs font-medium text-compass-gold uppercase tracking-wider">
-              Best for {MONTHS[month]} · {formatTime(hour)}
+            <h3 className="text-xs font-medium text-reef-teal uppercase tracking-wider">
+              Your Activity · {MONTHS[month]} · {formatTime(hour)}
             </h3>
             <p className="text-sm font-semibold mt-0.5">
-              {best.activity.icon} {best.activity.name} at {best.bestDestination.destination.name}
+              {sortedRecs[0].activity.icon} {sortedRecs[0].activity.name} at {sortedRecs[0].bestDestination.destination.name}
             </p>
           </div>
-          <ScoreBadge score={best.overallScore} size="md" />
+          <ScoreBadge score={sortedRecs[0].overallScore} size="md" />
         </div>
-        <p className="text-xs text-[var(--muted)] mt-1">{best.whyThisActivity}</p>
+        <p className="text-xs text-[var(--muted)] mt-1">{sortedRecs[0].whyThisActivity}</p>
       </div>
 
       {/* All activities ranked */}
       <div className="divide-y divide-[var(--border)]">
         {recommendations.map((rec) => {
           const isExpanded = expanded === rec.activity.id;
-          const isBest = rec === best;
+          const isSelected = rec.activity.id === activity;
+          const isBest = rec === sortedRecs[0];
 
           return (
             <div key={rec.activity.id}>
@@ -77,9 +81,14 @@ export function ActivityAdvisor() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">{rec.activity.name}</span>
-                      {isBest && (
+                      {isSelected && (
+                        <span className="text-[9px] bg-reef-teal/20 text-reef-teal px-1.5 py-0.5 rounded font-medium uppercase">
+                          Selected
+                        </span>
+                      )}
+                      {!isSelected && isBest && (
                         <span className="text-[9px] bg-compass-gold/20 text-compass-gold px-1.5 py-0.5 rounded font-medium uppercase">
-                          Best choice
+                          Best conditions
                         </span>
                       )}
                     </div>

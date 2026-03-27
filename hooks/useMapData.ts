@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { sfBay } from '@/data/cities/sf-bay';
 import { getActivity } from '@/data/activities';
 import { routeComfort } from '@/engine/scoring';
-import { getWaterRoute } from '@/data/cities/sf-bay/water-routes';
 import { scoreToColor, scoreToOpacity } from '@/lib/colors';
 import type { ActivityType, VesselProfile } from '@/engine/types';
 
@@ -110,11 +109,8 @@ export function useRouteGeoJSON(
 
       const scored = routeComfort(fromDest, toDest, month, hour, act, vessel, sfBay);
 
-      // Use water route waypoints if available, otherwise straight line
-      const waterRoute = getWaterRoute(fromId, toId, vessel.type);
-      const coordinates = waterRoute
-        ? waterRoute.waypoints
-        : [[fromDest.lng, fromDest.lat], [toDest.lng, toDest.lat]];
+      // Straight lines — honest abstract transit-map style
+      const coordinates = [[fromDest.lng, fromDest.lat], [toDest.lng, toDest.lat]];
 
       features.push({
         type: 'Feature',
