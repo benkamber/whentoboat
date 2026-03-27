@@ -22,6 +22,7 @@ export const destinations: Destination[] = [
     },
     minDepth: null,
     notes: 'Home port for many. Calm mornings.',
+    rentalLinks: [{ name: 'Sea Trek Kayak & SUP', url: 'https://www.seatrek.com/', type: 'kayak/sup' }],
   },
   {
     id: 'ang',
@@ -36,6 +37,7 @@ export const destinations: Destination[] = [
     launchRamp: null,
     minDepth: null,
     notes: 'Must cross central bay from most origins.',
+    rentalLinks: [{ name: 'Angel Island Ferry', url: 'https://angelislandferry.com/', type: 'ferry' }],
   },
   {
     id: 'tib',
@@ -64,6 +66,7 @@ export const destinations: Destination[] = [
     launchRamp: null,
     minDepth: null,
     notes: 'Protected cove. Swimming clubs.',
+    rentalLinks: [{ name: 'City Kayak', url: 'https://citykayak.com/', type: 'kayak/sup' }],
   },
   {
     id: 'p39',
@@ -78,6 +81,7 @@ export const destinations: Destination[] = [
     launchRamp: null,
     minDepth: null,
     notes: 'Tourist destination. Sea lions.',
+    rentalLinks: [{ name: 'Blue & Gold Fleet', url: 'https://www.blueandgoldfleet.com/', type: 'cruise' }],
   },
   {
     id: 'fbg',
@@ -120,6 +124,7 @@ export const destinations: Destination[] = [
     launchRamp: null,
     minDepth: null,
     notes: 'Sheltered despite central location.',
+    rentalLinks: [{ name: 'Treasure Island Sailing Center', url: 'https://www.tisailing.org/', type: 'sail' }],
   },
   {
     id: 'jls',
@@ -170,6 +175,7 @@ export const destinations: Destination[] = [
     },
     minDepth: null,
     notes: 'Great sailing. Exposed in PM.',
+    rentalLinks: [{ name: 'Cal Adventures', url: 'https://recsports.berkeley.edu/cal-adventures/', type: 'kayak/sail' }],
   },
   {
     id: 'ptr',
@@ -395,6 +401,28 @@ export const destinations: Destination[] = [
     launchRamp: null,
     minDepth: null,
     notes: 'Remote anchorage north of Bolinas Point. Exposed to Pacific swell. Calm weather only. Must transit the Golden Gate.',
+  },
+  {
+    id: 'mry',
+    name: 'Monterey',
+    code: 'MRY',
+    lat: 36.6002,
+    lng: -121.8947,
+    zone: 'ocean_south',
+    area: 'ocean_far',
+    dockInfo: 'Monterey Harbor / Municipal Wharf',
+    activityTags: ['powerboat_cruise'],
+    launchRamp: {
+      name: 'Monterey Harbor launch ramp',
+      type: 'public',
+      hours: 'Dawn to dusk',
+      fee: '$15',
+      parking: 'Trailer parking available',
+      maxBoatLength: null,
+      source: 'City of Monterey Harbor Department',
+    },
+    minDepth: 15,
+    notes: 'LONG OCEAN PASSAGE from SF Bay (~75nm). Full day trip minimum. Protected harbor. Whale watching, diving, fishing. Experienced ocean boaters only. Must transit Golden Gate + open coast.',
   },
   {
     id: 'pry',

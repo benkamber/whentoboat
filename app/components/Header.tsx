@@ -26,6 +26,7 @@ export function Header() {
         <NavLink href="/" label="Home" active={pathname === '/'} />
         <NavLink href="/explore" label="Full Map" active={pathname === '/explore'} />
         <NavLink href="/schedule" label="Schedule" active={pathname === '/schedule'} />
+        <NavLink href="/planner" label="Planner" active={pathname === '/planner'} />
         <button
           onClick={toggleDarkMode}
           className="ml-3 p-2 rounded-lg text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card-elevated)] transition-colors"

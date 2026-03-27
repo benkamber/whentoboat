@@ -266,6 +266,25 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
               <span className="font-medium">Launch ramp:</span> {destination.launchRamp.name} · {destination.launchRamp.hours} · {destination.launchRamp.fee}
             </div>
           )}
+          {destination.rentalLinks && destination.rentalLinks.length > 0 && (
+            <div className="pt-2 border-t border-[var(--border)] mt-2">
+              <span className="text-xs font-medium text-reef-teal">Rent Gear</span>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {destination.rentalLinks.map((link, i) => (
+                  <a
+                    key={i}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-reef-teal/10 text-xs text-reef-teal hover:bg-reef-teal/20 transition-colors border border-reef-teal/20"
+                  >
+                    {link.name}
+                    <span className="text-[var(--muted)]">({link.type})</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Data source footer */}
