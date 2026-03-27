@@ -6,16 +6,20 @@ import dynamic from 'next/dynamic';
 import { sfBay } from '@/data/cities/sf-bay';
 import { activities, getActivity } from '@/data/activities';
 import { useAppStore } from '@/store';
-import { routeComfort, findAlternatives } from '@/engine/scoring';
+import { routeComfort, findAlternatives, activityScore, fullConditionsScore } from '@/engine/scoring';
 import { getTimeConditions } from '@/engine/interpolation';
+import { scoreToColor } from '@/lib/colors';
 import { useDestinationGeoJSON, useRouteGeoJSON } from '@/hooks/useMapData';
 import { useZoneOverlay } from '@/hooks/useZoneOverlay';
+import { useBathymetryOverlay } from '@/hooks/useBathymetryOverlay';
 import { useLiveForecast } from '@/hooks/useLiveForecast';
-import { fullConditionsScore } from '@/engine/scoring';
+import { vesselPresets } from '@/data/vessels';
 import { Header } from './components/Header';
 import { ScoreBadge, getScoreLabel } from './components/ScoreBadge';
 import { TrajectoryPanel } from './components/TrajectoryPanel';
 import { ActivityAdvisor } from './components/ActivityAdvisor';
+import { ConditionsBar } from './components/ConditionsBar';
+import { describeWind, describeWaves } from '@/lib/conditions-text';
 import type { ActivityType, Destination, ScoredRoute } from '@/engine/types';
 
 // Dynamically import react-map-gl to avoid SSR issues with mapbox-gl
@@ -172,6 +176,16 @@ const zoneBorderLayer = {
   },
 };
 
+// Bathymetry depth overlay — sits behind zone comfort overlay
+const bathymetryFillLayer = {
+  id: 'bathymetry-fill',
+  type: 'fill' as const,
+  paint: {
+    'fill-color': ['get', 'color'] as any,
+    'fill-opacity': ['get', 'opacity'] as any,
+  },
+};
+
 interface PopupInfo {
   lng: number;
   lat: number;
@@ -259,6 +273,133 @@ export default function Home() {
       .sort((a, b) => b.score - a.score);
   }, [activity, month, hour, vessel, origin, currentActivity, useLiveData, getConditionsForHour]);
 
+  // --- Feature 1: Hourly comfort scores for the color-gradient slider ---
+  const hourlyComfort = useMemo(() => {
+    const scores: number[] = [];
+    for (let h = 5; h <= 22; h++) {
+      let totalScore = 0;
+      let count = 0;
+      for (const zone of sfBay.zones) {
+        const cond = getTimeConditions(zone, h, month);
+        const score = activityScore(currentActivity, cond.windKts, cond.waveHtFt, cond.wavePeriodS);
+        totalScore += score;
+        count++;
+      }
+      scores.push(count > 0 ? Math.round(totalScore / count) : 5);
+    }
+    return scores;
+  }, [month, currentActivity]);
+
+  const sliderGradient = useMemo(() => {
+    const colors = hourlyComfort.map(score => scoreToColor(score));
+    const stops = colors.map((color, i) => `${color} ${(i / (colors.length - 1)) * 100}%`);
+    return `linear-gradient(to right, ${stops.join(', ')})`;
+  }, [hourlyComfort]);
+
+  // Key hours for mini comfort chart below the slider
+  const comfortKeyHours = useMemo(() => {
+    const keyHourValues = [5, 8, 11, 14, 17, 20];
+    return keyHourValues.map(h => ({
+      hour: h,
+      label: h === 5 ? '5AM' : h === 8 ? '8AM' : h === 11 ? '11AM' : h === 14 ? '2PM' : h === 17 ? '5PM' : '8PM',
+      score: hourlyComfort[h - 5],
+    }));
+  }, [hourlyComfort]);
+
+  // --- Feature 2: Best forecast day/time banner ---
+  const bestForecastDay = useMemo(() => {
+    if (!useLiveData || !forecast?.hours.length) return null;
+
+    const vesselMap: Record<string, string> = { kayak: 'kayak', sup: 'sup', powerboat_cruise: 'powerboat', casual_sail: 'sailboat' };
+    const forecastVessel = vesselPresets.find(v => v.type === (vesselMap[currentActivity.id] ?? 'kayak')) ?? vesselPresets[0];
+
+    // Group forecast hours by date
+    const byDate = new Map<string, typeof forecast.hours>();
+    for (const h of forecast.hours) {
+      const dateKey = h.time.slice(0, 10);
+      if (!byDate.has(dateKey)) byDate.set(dateKey, []);
+      byDate.get(dateKey)!.push(h);
+    }
+
+    let bestScore = -1;
+    let bestDayLabel = '';
+    let bestTimeLabel = '';
+    let bestDestName = '';
+    let bestDescription = '';
+    let overallBestScore = 0;
+
+    for (const [dateKey, dayHours] of byDate) {
+      // Filter to daytime hours (6 AM - 8 PM)
+      const daytimeHours = dayHours.filter(h => {
+        const hr = new Date(h.time).getHours();
+        return hr >= 6 && hr < 20;
+      });
+      if (daytimeHours.length === 0) continue;
+
+      const date = new Date(dateKey + 'T12:00:00');
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+
+      // For each daytime hour, compute score for each destination
+      for (const fh of daytimeHours) {
+        const hr = new Date(fh.time).getHours();
+        const conditions = {
+          windKts: fh.windSpeedKts,
+          windDirDeg: fh.windDirDeg,
+          waveHtFt: fh.waveHeightFt >= 0 ? fh.waveHeightFt : 1.5,
+          wavePeriodS: fh.wavePeriodS > 0 ? fh.wavePeriodS : 3,
+          waterTempF: fh.waterTempF,
+          airTempF: fh.airTempF,
+          currentKts: fh.currentKts,
+          currentDirDeg: fh.currentDirDeg,
+          visibilityMi: fh.visibilityMi,
+          tideFt: fh.tideFt >= 0 ? fh.tideFt : 3,
+          tidePhase: (fh.tidePhase === 'unknown' ? 'flood' : fh.tidePhase) as any,
+          isLiveForecast: true,
+          isMissingWaveData: !fh.waveDataAvailable,
+        };
+        const { score } = fullConditionsScore(currentActivity, conditions, forecastVessel);
+
+        if (score > bestScore) {
+          bestScore = score;
+          overallBestScore = score;
+          const period = hr < 12 ? 'AM' : 'PM';
+          const displayHr = hr === 0 ? 12 : hr > 12 ? hr - 12 : hr;
+          bestDayLabel = dayName;
+          bestTimeLabel = `${displayHr} ${period}`;
+
+          // Find the best scoring destination at this time
+          let topDestName = '';
+          let topDestScore = -1;
+          for (const dest of sfBay.destinations.filter(d => d.id !== origin.id && d.activityTags.includes(activity))) {
+            const zone = sfBay.zones.find(z => z.id === dest.zone);
+            if (!zone) continue;
+            const destScore = activityScore(currentActivity, conditions.windKts, conditions.waveHtFt, conditions.wavePeriodS);
+            if (destScore > topDestScore) {
+              topDestScore = destScore;
+              topDestName = dest.name;
+            }
+          }
+          bestDestName = topDestName || 'the bay';
+
+          // Build description
+          const windDesc = conditions.windKts < 8 ? 'Light winds' : conditions.windKts < 15 ? 'Moderate winds' : 'Strong winds';
+          const waveDesc = conditions.waveHtFt < 1 ? 'calm water' : conditions.waveHtFt < 2 ? 'light chop' : 'choppy water';
+          bestDescription = `${windDesc}, ${waveDesc}. Best time for ${currentActivity.name.toLowerCase()}.`;
+        }
+      }
+    }
+
+    if (bestScore < 1) return null;
+
+    return {
+      dayLabel: bestDayLabel,
+      timeLabel: bestTimeLabel,
+      score: overallBestScore,
+      destName: bestDestName,
+      description: bestDescription,
+    };
+  }, [useLiveData, forecast, currentActivity, origin, activity, vessel]);
+
   // Format time with minutes (hour can be decimal, e.g., 9.5 = 9:30 AM)
   const formatTime = (h: number) => {
     const hrs = Math.floor(h);
@@ -273,6 +414,7 @@ export default function Home() {
   // Map data hooks
   const destinationsGeoJSON = useDestinationGeoJSON(activity, month, hour, vessel, homeBaseId);
   const routesGeoJSON = useRouteGeoJSON(activity, month, hour, vessel, homeBaseId);
+  const bathymetryGeoJSON = useBathymetryOverlay();
   const zoneOverlayGeoJSON = useZoneOverlay(activity, month, hour, vessel);
 
   // --- Map callbacks ---
@@ -508,6 +650,9 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Current conditions bar */}
+          <ConditionsBar />
+
           {/* Score summary bar */}
           <div className="px-3 py-2 border-b border-[var(--border)] bg-[var(--card-elevated)] shrink-0">
             <div className="flex items-center justify-between text-xs">
@@ -527,6 +672,19 @@ export default function Home() {
 
           {/* Scrollable destination list */}
           <div className="flex-1 overflow-y-auto">
+            {/* Best This Week banner — shown when live forecast is active */}
+            {useLiveData && bestForecastDay && (
+              <div className="p-3 bg-reef-teal/10 border border-reef-teal/30 rounded-lg mx-2 mt-2">
+                <h3 className="text-xs font-medium text-reef-teal uppercase tracking-wider">Best This Week</h3>
+                <p className="text-sm font-semibold mt-1">
+                  {bestForecastDay.dayLabel} {bestForecastDay.timeLabel} — {bestForecastDay.score}/10 at {bestForecastDay.destName}
+                </p>
+                <p className="text-xs text-[var(--muted)] mt-0.5">
+                  {bestForecastDay.description}
+                </p>
+              </div>
+            )}
+
             {/* Activity Advisor — "What should I do?" at the TOP */}
             <div className="p-2 pb-0">
               <ActivityAdvisor />
@@ -584,16 +742,28 @@ export default function Home() {
                           <span>·</span>
                           <span>{route.transitMinutes} min</span>
                         </div>
-                        <div className="flex items-center gap-2 text-[10px] text-[var(--secondary)]">
+                        <div className="flex items-center gap-2 text-[10px] text-[var(--secondary)] flex-wrap">
                           {(() => {
                             const zone = sfBay.zones.find(z => z.id === route.dest.zone);
                             if (!zone) return null;
                             const cond = getTimeConditions(zone, Math.floor(hour), month);
+                            const windDesc = describeWind(cond.windKts);
+                            const waveDesc = describeWaves(cond.waveHtFt, cond.wavePeriodS);
                             return (
                               <>
-                                <span>💨 {cond.windKts}kt</span>
-                                <span>🌊 {cond.waveHtFt}ft</span>
-                                {cond.waterTempF && <span>🌡 {cond.waterTempF}°F</span>}
+                                <span
+                                  className={windDesc.severity === 'dangerous' ? 'text-danger-red' : windDesc.severity === 'strong' ? 'text-compass-gold' : ''}
+                                  title={windDesc.text}
+                                >
+                                  {windDesc.emoji} {cond.windKts}kt
+                                </span>
+                                <span
+                                  className={waveDesc.severity === 'dangerous' ? 'text-danger-red' : waveDesc.severity === 'rough' ? 'text-compass-gold' : ''}
+                                  title={waveDesc.text}
+                                >
+                                  {waveDesc.emoji} {cond.waveHtFt}ft
+                                </span>
+                                {cond.waterTempF && <span title={`Water: ${cond.waterTempF}\u00B0F`}>{'\u{1F321}\uFE0F'} {cond.waterTempF}&deg;F</span>}
                               </>
                             );
                           })()}
@@ -708,7 +878,12 @@ export default function Home() {
               >
                 <NavigationControl position="bottom-right" />
 
-                {/* Zone heat overlay (behind everything) */}
+                {/* Bathymetry depth overlay (behind zone overlay) */}
+                <Source id="bathymetry" type="geojson" data={bathymetryGeoJSON}>
+                  <Layer {...bathymetryFillLayer} />
+                </Source>
+
+                {/* Zone heat overlay (behind routes/markers, above bathymetry) */}
                 <Source id="zones" type="geojson" data={zoneOverlayGeoJSON}>
                   <Layer {...zoneFillLayer} />
                   <Layer {...zoneBorderLayer} />
@@ -771,26 +946,50 @@ export default function Home() {
             </div>
           )}
 
-          {/* Time slider at bottom of map */}
+          {/* Time slider at bottom of map — color-gradient background */}
           <div className="absolute bottom-4 left-4 right-4 pointer-events-auto z-10">
             <div className="bg-ocean-900/90 backdrop-blur-md rounded-xl px-4 py-3 border border-ocean-700/50 shadow-xl">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs text-ocean-300">Time of Day</span>
                 <span className="text-sm font-medium text-compass-gold">{timeLabel}</span>
               </div>
-              <input
-                type="range"
-                min={5}
-                max={22}
-                step={0.25}
-                value={hour}
-                onChange={(e) => setHour(parseFloat(e.target.value))}
-                className="w-full accent-compass-gold"
-              />
-              <div className="flex justify-between text-xs text-ocean-400 mt-0.5">
-                <span>5 AM</span>
-                <span>Noon</span>
-                <span>10 PM</span>
+              <div className="relative">
+                {/* Gradient track background */}
+                <div
+                  className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-2 rounded-full"
+                  style={{ background: sliderGradient }}
+                />
+                {/* Range input on top */}
+                <input
+                  type="range"
+                  min={5}
+                  max={22}
+                  step={0.25}
+                  value={hour}
+                  onChange={(e) => setHour(parseFloat(e.target.value))}
+                  className="relative w-full appearance-none bg-transparent cursor-pointer z-10
+                    [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                    [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2
+                    [&::-webkit-slider-thumb]:border-compass-gold [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer
+                    [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full
+                    [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-compass-gold
+                    [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:bg-transparent
+                    [&::-moz-range-track]:h-2 [&::-moz-range-track]:bg-transparent"
+                />
+              </div>
+              {/* Mini comfort chart with scores at key hours */}
+              <div className="flex justify-between mt-1.5 px-0.5">
+                {comfortKeyHours.map(({ hour: h, label, score }) => (
+                  <div key={h} className="flex flex-col items-center">
+                    <span className="text-[10px] text-ocean-400">{label}</span>
+                    <span
+                      className="text-[10px] font-bold"
+                      style={{ color: scoreToColor(score) }}
+                    >
+                      {score}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
