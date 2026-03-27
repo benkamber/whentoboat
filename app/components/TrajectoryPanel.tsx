@@ -88,12 +88,25 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
                 <div className="text-sm font-medium">
                   {leg.zone.name}
                   {leg.isBottleneck && (
-                    <span className="ml-2 text-xs text-danger-red font-normal">← bottleneck</span>
+                    <span className="ml-2 text-xs text-danger-red font-normal">← roughest zone</span>
                   )}
                 </div>
                 <div className="text-xs text-[var(--muted)]">
                   Wind {leg.wind} kts · Waves {leg.waveHeight} ft · Period {leg.wavePeriod}s
                 </div>
+                {leg.isBottleneck && (
+                  <div className="text-xs mt-1 text-warning-amber">
+                    {leg.wind > 15 ? '💨 Strong wind — uncomfortable for passengers, challenging for small craft'
+                      : leg.wind > 10 ? '💨 Moderate wind — some spray, hold on to hats'
+                      : '✓ Wind is manageable'}
+                    {' · '}
+                    {leg.waveHeight > 3 ? '🌊 Rough seas — consider postponing'
+                      : leg.waveHeight > 1.5 ? '🌊 Choppy — expect bumpy ride'
+                      : leg.waveHeight > 0.5 ? '🌊 Light chop — comfortable for most'
+                      : '🌊 Calm water'}
+                    {leg.wavePeriod > 0 && leg.wavePeriod < 4 && leg.waveHeight > 1 ? ' · ⚠ Short wave period = steep, uncomfortable chop' : ''}
+                  </div>
+                )}
               </div>
             </div>
           ))}

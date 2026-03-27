@@ -7,6 +7,7 @@ import { sfBay } from '@/data/cities/sf-bay';
 import { activities, getActivity } from '@/data/activities';
 import { useAppStore } from '@/store';
 import { routeComfort, findAlternatives } from '@/engine/scoring';
+import { getTimeConditions } from '@/engine/interpolation';
 import { useDestinationGeoJSON, useRouteGeoJSON } from '@/hooks/useMapData';
 import { useZoneOverlay } from '@/hooks/useZoneOverlay';
 import { useLiveForecast } from '@/hooks/useLiveForecast';
@@ -43,18 +44,19 @@ const NavigationControl = dynamic(
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
-// Mapbox layer styles (same as explore page)
+// Mapbox layer styles
 const routeLineLayer = {
   id: 'route-lines',
   type: 'line' as const,
   layout: {
     'line-join': 'round' as const,
-    'line-cap': 'round' as const,
+    'line-cap': 'butt' as const,
   },
   paint: {
     'line-color': ['get', 'color'] as any,
     'line-width': 2.5,
     'line-opacity': ['get', 'opacity'] as any,
+    'line-dasharray': [2, 2] as any,
   },
 };
 
@@ -68,11 +70,13 @@ const routeHitLayer = {
   },
 };
 
+// Non-origin destination circles
 const destinationCircleLayer = {
   id: 'destination-circles',
   type: 'circle' as const,
+  filter: ['!', ['get', 'isOrigin']] as any,
   paint: {
-    'circle-radius': ['case', ['get', 'isOrigin'], 10, 7] as any,
+    'circle-radius': 7,
     'circle-color': ['get', 'color'] as any,
     'circle-stroke-width': 2,
     'circle-stroke-color': '#0a1628',
@@ -80,9 +84,39 @@ const destinationCircleLayer = {
   },
 };
 
+// Origin (home base) — larger with distinct white border
+const originCircleLayer = {
+  id: 'origin-circle',
+  type: 'circle' as const,
+  filter: ['get', 'isOrigin'] as any,
+  paint: {
+    'circle-radius': 12,
+    'circle-color': ['get', 'color'] as any,
+    'circle-stroke-width': 3,
+    'circle-stroke-color': '#ffffff',
+    'circle-opacity': 1,
+  },
+};
+
+// Origin pulsing ring (outer glow)
+const originRingLayer = {
+  id: 'origin-ring',
+  type: 'circle' as const,
+  filter: ['get', 'isOrigin'] as any,
+  paint: {
+    'circle-radius': 18,
+    'circle-color': 'transparent',
+    'circle-stroke-width': 2,
+    'circle-stroke-color': '#ffffff',
+    'circle-opacity': 0.3,
+  },
+};
+
+// Score labels inside destination circles (non-origin)
 const destinationLabelLayer = {
   id: 'destination-labels',
   type: 'symbol' as const,
+  filter: ['!', ['get', 'isOrigin']] as any,
   layout: {
     'text-field': ['get', 'score'] as any,
     'text-size': 11,
@@ -93,6 +127,27 @@ const destinationLabelLayer = {
   },
   paint: {
     'text-color': '#ffffff',
+  },
+};
+
+// Origin name label below the circle
+const originNameLayer = {
+  id: 'origin-name',
+  type: 'symbol' as const,
+  filter: ['get', 'isOrigin'] as any,
+  layout: {
+    'text-field': ['get', 'name'] as any,
+    'text-size': 12,
+    'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+    'text-anchor': 'top' as const,
+    'text-offset': [0, 1.8] as any,
+    'text-allow-overlap': true,
+    'text-ignore-placement': true,
+  },
+  paint: {
+    'text-color': '#ffffff',
+    'text-halo-color': '#0a1628',
+    'text-halo-width': 1.5,
   },
 };
 
@@ -239,16 +294,13 @@ export default function Home() {
       const feature = e.features[0];
       const layerId = feature.layer.id;
 
-      if (layerId === 'destination-circles' || layerId === 'destination-labels') {
+      if (layerId === 'destination-circles' || layerId === 'destination-labels' || layerId === 'origin-circle') {
         const id = feature.properties?.id;
         if (id && id !== homeBaseId) {
-          setSelectedDestId(id);
-          setTrajectoryRoute({ originId: homeBaseId, destId: id });
-          // Scroll sidebar to this card
-          const card = cardRefs.current.get(id);
-          if (card && sidebarRef.current) {
-            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }
+          // Clicking any non-home destination sets it as the new home base
+          setHomeBase(id);
+          setSelectedDestId(null);
+          setTrajectoryRoute(null);
         }
         setPopup(null);
       } else if (layerId === 'route-lines-hit') {
@@ -265,7 +317,7 @@ export default function Home() {
       setPopup(null);
       setTrajectoryRoute(null);
     }
-  }, [homeBaseId]);
+  }, [homeBaseId, setHomeBase]);
 
   const onMouseEnter = useCallback(() => setCursor('pointer'), []);
   const onMouseLeave = useCallback(() => {
@@ -278,17 +330,20 @@ export default function Home() {
       const feature = e.features[0];
       const layerId = feature.layer.id;
 
-      if (layerId === 'destination-circles' || layerId === 'destination-labels') {
+      if (layerId === 'destination-circles' || layerId === 'destination-labels' || layerId === 'origin-circle') {
         const dest = sfBay.destinations.find(d => d.id === feature.properties?.id);
         const score = feature.properties?.score ?? 5;
         if (dest) {
+          const isOrigin = dest.id === homeBaseId;
           setPopup({
             lng: dest.lng,
             lat: dest.lat,
             type: 'destination',
             name: dest.name,
             score,
-            detail: `${getScoreLabel(score)} for ${currentActivity.name} · ${dest.dockInfo}`,
+            detail: isOrigin
+              ? `Home base · ${dest.dockInfo}`
+              : `Click to set as home base · ${dest.dockInfo}`,
           });
         }
       } else if (layerId === 'route-lines-hit') {
@@ -303,7 +358,7 @@ export default function Home() {
       // Zone hover removed — zones are visual-only, not interactive
       }
     }
-  }, [currentActivity]);
+  }, [currentActivity, homeBaseId]);
 
   // --- Sidebar card interactions ---
 
@@ -528,18 +583,20 @@ export default function Home() {
                           <span>{route.distance} mi</span>
                           <span>·</span>
                           <span>{route.transitMinutes} min</span>
-                          {conditions.windLabel && (
-                            <>
-                              <span>·</span>
-                              <span className="text-warning-amber">{conditions.windLabel}</span>
-                            </>
-                          )}
-                          {conditions.waveLabel && (
-                            <>
-                              <span>·</span>
-                              <span className="text-warning-amber">{conditions.waveLabel}</span>
-                            </>
-                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-[var(--secondary)]">
+                          {(() => {
+                            const zone = sfBay.zones.find(z => z.id === route.dest.zone);
+                            if (!zone) return null;
+                            const cond = getTimeConditions(zone, Math.floor(hour), month);
+                            return (
+                              <>
+                                <span>💨 {cond.windKts}kt</span>
+                                <span>🌊 {cond.waveHtFt}ft</span>
+                                {cond.waterTempF && <span>🌡 {cond.waterTempF}°F</span>}
+                              </>
+                            );
+                          })()}
                         </div>
                         {/* High-severity warning icon only — details in trajectory panel */}
                         {route.riskFactors.some(r => r.severity === 'high') && (
@@ -641,7 +698,7 @@ export default function Home() {
                 }}
                 style={{ width: '100%', height: '100%' }}
                 mapStyle="mapbox://styles/mapbox/dark-v11"
-                interactiveLayerIds={['destination-circles', 'destination-labels', 'route-lines-hit']}
+                interactiveLayerIds={['destination-circles', 'destination-labels', 'origin-circle', 'route-lines-hit']}
                 onClick={onMapClick}
                 onMouseEnter={onMouseEnter}
                 onMouseLeave={onMouseLeave}
@@ -665,6 +722,9 @@ export default function Home() {
 
                 {/* Destination markers */}
                 <Source id="destinations" type="geojson" data={destinationsGeoJSON}>
+                  <Layer {...originRingLayer} />
+                  <Layer {...originCircleLayer} />
+                  <Layer {...originNameLayer} />
                   <Layer {...destinationCircleLayer} />
                   <Layer {...destinationLabelLayer} />
                 </Source>
