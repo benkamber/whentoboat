@@ -6,7 +6,7 @@ import type { DistanceMatrix } from '@/engine/types';
 
 const ids = [
   'sau', 'ang', 'tib', 'aqp', 'p39', 'fbg', 'mcc', 'clp', 'jls', 'alm', 'brk', 'ptr', 'hmb',
-  'rwc', 'oyp', 'cop', 'srf', 'val', 'ben', 'ggb', 'stn', 'bol', 'pry',
+  'rwc', 'oyp', 'cop', 'srf', 'val', 'ben', 'ggb', 'stn', 'bol', 'pry', 'mry',
 ] as const;
 
 // Raw distance pairs (symmetric — both directions included via matrix builder)
@@ -378,6 +378,36 @@ const raw: [string, string, number][] = [
 
   // bol ↔ other new
   ['bol', 'pry', 17],
+
+  // ══════════════════════════════════════════
+  // Monterey (mry) distances
+  // ══════════════════════════════════════════
+
+  ['sau', 'mry', 75],
+  ['aqp', 'mry', 73],
+  ['fbg', 'mry', 74],
+  ['hmb', 'mry', 50],
+
+  // Estimated distances from other points to Monterey
+  ['ang', 'mry', 76],
+  ['tib', 'mry', 77],
+  ['p39', 'mry', 73],
+  ['mcc', 'mry', 72],
+  ['clp', 'mry', 75],
+  ['jls', 'mry', 78],
+  ['alm', 'mry', 80],
+  ['brk', 'mry', 80],
+  ['ptr', 'mry', 82],
+  ['rwc', 'mry', 80],
+  ['oyp', 'mry', 72],
+  ['cop', 'mry', 70],
+  ['srf', 'mry', 82],
+  ['val', 'mry', 90],
+  ['ben', 'mry', 95],
+  ['ggb', 'mry', 70],
+  ['stn', 'mry', 65],
+  ['bol', 'mry', 62],
+  ['pry', 'mry', 55],
 ];
 
 // Build symmetric distance matrix

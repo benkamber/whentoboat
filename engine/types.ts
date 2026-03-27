@@ -56,6 +56,7 @@ export interface Destination {
   launchRamp: LaunchRamp | null;
   minDepth: number | null; // minimum depth at MLLW in feet, null if unknown
   notes: string;
+  rentalLinks?: { name: string; url: string; type: string }[];
 }
 
 export interface LaunchRamp {
