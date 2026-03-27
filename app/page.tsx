@@ -14,6 +14,7 @@ import { fullConditionsScore } from '@/engine/scoring';
 import { Header } from './components/Header';
 import { ScoreBadge, getScoreLabel } from './components/ScoreBadge';
 import { TrajectoryPanel } from './components/TrajectoryPanel';
+import { ActivityAdvisor } from './components/ActivityAdvisor';
 import type { ActivityType, Destination, ScoredRoute } from '@/engine/types';
 
 // Dynamically import react-map-gl to avoid SSR issues with mapbox-gl
@@ -555,6 +556,11 @@ export default function Home() {
                   No destinations match this activity from {origin.name}
                 </div>
               )}
+            </div>
+
+            {/* Activity Advisor — "What should I do?" */}
+            <div className="border-t border-[var(--border)] p-2">
+              <ActivityAdvisor />
             </div>
 
             {/* Before You Go (collapsible) */}
