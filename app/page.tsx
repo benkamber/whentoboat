@@ -472,6 +472,11 @@ export default function Home() {
 
           {/* Scrollable destination list */}
           <div className="flex-1 overflow-y-auto">
+            {/* Activity Advisor — "What should I do?" at the TOP */}
+            <div className="p-2 pb-0">
+              <ActivityAdvisor />
+            </div>
+
             <div className="p-2 space-y-1.5">
               {scoredRoutes.map((route, i) => {
                 const isSelected = selectedDestId === route.destinationId;
@@ -556,11 +561,6 @@ export default function Home() {
                   No destinations match this activity from {origin.name}
                 </div>
               )}
-            </div>
-
-            {/* Activity Advisor — "What should I do?" */}
-            <div className="border-t border-[var(--border)] p-2">
-              <ActivityAdvisor />
             </div>
 
             {/* Before You Go (collapsible) */}
