@@ -67,6 +67,21 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
               ⚠ Out of range for {vessel.name}
             </div>
           )}
+
+          {/* Vessel specs used for this analysis */}
+          <div className="bg-[var(--card-elevated)] rounded-lg p-2.5 mt-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-[var(--muted)] uppercase tracking-wider">Vessel</span>
+              <span className="text-xs font-medium">{vessel.name}</span>
+            </div>
+            <div className="flex gap-3 mt-1 text-[10px] text-[var(--muted)]">
+              <span>{vessel.loa}ft</span>
+              <span>{vessel.cruiseSpeed}mph</span>
+              {vessel.fuelCapacity && <span>{vessel.fuelCapacity}gal tank</span>}
+              {vessel.gph && <span>{vessel.gph}GPH</span>}
+              <span>{vessel.draft}ft draft</span>
+            </div>
+          </div>
         </div>
 
         {/* Leg-by-leg breakdown */}

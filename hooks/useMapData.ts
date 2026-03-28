@@ -71,36 +71,23 @@ export function useRouteGeoJSON(
       ? sfBay.destinations.find((d) => d.id === selectedOriginId)
       : null;
 
-    // Get all destination pairs to draw routes for
+    // Only show route lines from the selected origin — no spider web of all routes
+    // This avoids the visual problem of lines crossing land
+    // The map focuses on destination markers (colored dots) which are always accurate
     const pairs: [string, string][] = [];
 
     if (origin) {
-      // Show routes FROM selected origin only
       for (const dest of sfBay.destinations) {
         if (dest.id === origin.id) continue;
         if (!dest.activityTags.includes(activity)) continue;
         const key = `${origin.id}-${dest.id}`;
-        if (sfBay.distances[key] !== undefined) {
+        const revKey = `${dest.id}-${origin.id}`;
+        if (sfBay.distances[key] !== undefined || sfBay.distances[revKey] !== undefined) {
           pairs.push([origin.id, dest.id]);
         }
       }
-    } else {
-      // Show all viable routes (no origin selected)
-      const seen = new Set<string>();
-      for (const dest1 of sfBay.destinations) {
-        for (const dest2 of sfBay.destinations) {
-          if (dest1.id >= dest2.id) continue;
-          const key = `${dest1.id}-${dest2.id}`;
-          const revKey = `${dest2.id}-${dest1.id}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          if (sfBay.distances[key] === undefined && sfBay.distances[revKey] === undefined) continue;
-          // Only show routes where at least one destination supports the activity
-          if (!dest1.activityTags.includes(activity) && !dest2.activityTags.includes(activity)) continue;
-          pairs.push([dest1.id, dest2.id]);
-        }
-      }
     }
+    // When no origin selected, show NO route lines — just destination markers
 
     for (const [fromId, toId] of pairs) {
       const fromDest = sfBay.destinations.find((d) => d.id === fromId);
