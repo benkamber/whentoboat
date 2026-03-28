@@ -5,7 +5,7 @@ import { sfBay } from '@/data/cities/sf-bay';
 import { getActivity } from '@/data/activities';
 import { analyzeTrajectory } from '@/engine/trajectory';
 import { useAppStore } from '@/store';
-import { ScoreBadge, getScoreLabel, getScoreColor } from './ScoreBadge';
+import { ScoreBadge, getScoreLabel, getScoreColor, getDangerLevel } from './ScoreBadge';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -29,7 +29,7 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
 
   if (!analysis) return null;
 
-  const { origin, destination, overallScore, scoreRange, distance, transitMinutes, fuelGallons, inRange, legs, hourlyProfile, monthlyProfile, departureWindow, warnings, alternatives, beforeYouGo, verifyLinks } = analysis;
+  const { origin, destination, overallScore, scoreRange, distance, transitMinutes, fuelGallons, inRange, legs, hourlyProfile, monthlyProfile, departureWindow, warnings, riskFactors, alternatives, beforeYouGo, verifyLinks } = analysis;
 
   return (
     <div className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-[var(--background)] border-l border-[var(--border)] overflow-y-auto z-50 shadow-2xl">
@@ -61,6 +61,18 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
               </p>
             </div>
           </div>
+
+          {/* DANGER banner — prominent, un-missable warning for lethal conditions */}
+          {getDangerLevel(overallScore) === 'dangerous' && (
+            <div className="bg-danger-red/15 border-2 border-danger-red rounded-lg p-3">
+              <p className="text-sm font-bold text-danger-red">
+                DO NOT LAUNCH — Conditions are life-threatening
+              </p>
+              {riskFactors.filter(r => r.severity === 'high').map((r, i) => (
+                <p key={i} className="text-xs text-danger-red/90 mt-1">{r.description}</p>
+              ))}
+            </div>
+          )}
 
           {!inRange && (
             <div className="bg-danger-red/10 border border-danger-red/30 rounded-lg p-3 text-sm text-danger-red">

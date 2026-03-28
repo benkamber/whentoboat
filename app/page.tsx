@@ -217,7 +217,7 @@ export default function Home() {
   const [useLiveData, setUseLiveData] = useState(false);
 
   // Live forecast data
-  const { forecast, loading: forecastLoading, getConditionsForHour, hasLiveDataForDate, sources: forecastSources } = useLiveForecast();
+  const { forecast, loading: forecastLoading, error: forecastError, getConditionsForHour, hasLiveDataForDate, sources: forecastSources } = useLiveForecast();
 
   const mapRef = useRef<any>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -368,13 +368,15 @@ export default function Home() {
           bestDayLabel = dayName;
           bestTimeLabel = `${displayHr} ${period}`;
 
-          // Find the best scoring destination at this time
+          // Find the best scoring destination at this time using full conditions
+          // (not activityScore, which ignores zone blocks, current, visibility, etc.)
           let topDestName = '';
           let topDestScore = -1;
           for (const dest of sfBay.destinations.filter(d => d.id !== origin.id && d.activityTags.includes(activity))) {
             const zone = sfBay.zones.find(z => z.id === dest.zone);
             if (!zone) continue;
-            const destScore = activityScore(currentActivity, conditions.windKts, conditions.waveHtFt, conditions.wavePeriodS);
+            const destConditions = { ...conditions, zoneId: dest.zone };
+            const { score: destScore } = fullConditionsScore(currentActivity, destConditions, forecastVessel);
             if (destScore > topDestScore) {
               topDestScore = destScore;
               topDestName = dest.name;
@@ -390,7 +392,9 @@ export default function Home() {
       }
     }
 
-    if (bestScore < 1) return null;
+    // Don't highlight "Best This Week" if even the best score is dangerous/poor.
+    // Showing a gold-framed "BEST" banner for a score of 2/10 creates false confidence.
+    if (bestScore < 5) return null;
 
     return {
       dayLabel: bestDayLabel,
@@ -681,6 +685,11 @@ export default function Home() {
                 Sources: {forecastSources.join(' · ')}
               </div>
             )}
+            {useLiveData && forecastError && (
+              <div className="text-[9px] text-warning-amber mt-0.5">
+                ⚠ Forecast unavailable — showing historical data. Conditions may differ from current reality.
+              </div>
+            )}
           </div>
 
           {/* Scrollable destination list */}
@@ -780,15 +789,27 @@ export default function Home() {
                           <h3 className="text-sm font-semibold truncate">
                             {route.dest.name}
                           </h3>
-                          <span className="text-[10px] text-[var(--muted)] shrink-0">
-                            {getScoreLabel(route.score)}
-                          </span>
+                          {/* Hide redundant "DANGEROUS" label when danger banner is below — the banner carries the message */}
+                          {route.score > 2 && (
+                            <span className="text-[10px] text-[var(--muted)] shrink-0">
+                              {getScoreLabel(route.score)}
+                            </span>
+                          )}
                         </div>
-                        <div className="flex items-center gap-2 text-[11px] text-[var(--muted)]">
-                          <span>{route.distance} mi</span>
-                          <span>·</span>
-                          <span>{route.transitMinutes} min</span>
-                        </div>
+                        {/* Danger banner for life-threatening scores — text-xs (12px) minimum for safety-critical info */}
+                        {route.score <= 2 && route.riskFactors.length > 0 && (
+                          <div className="text-xs text-danger-red font-medium bg-danger-red/10 rounded px-1.5 py-0.5 mt-0.5">
+                            {route.riskFactors.find(r => r.severity === 'high')?.factor ?? 'Do not launch in these conditions'}
+                          </div>
+                        )}
+                        {route.score > 2 && (
+                          <div className="flex items-center gap-2 text-[11px] text-[var(--muted)]">
+                            <span>{route.distance} mi</span>
+                            <span>·</span>
+                            <span>{route.transitMinutes} min</span>
+                          </div>
+                        )}
+                        {route.score > 2 && (
                         <div className="flex items-center gap-2 text-[10px] text-[var(--secondary)] flex-wrap">
                           {(() => {
                             const zone = sfBay.zones.find(z => z.id === route.dest.zone);
@@ -810,13 +831,25 @@ export default function Home() {
                                 >
                                   {waveDesc.emoji} {cond.waveHtFt}ft
                                 </span>
-                                {cond.waterTempF && <span title={`Water: ${cond.waterTempF}\u00B0F`}>{'\u{1F321}\uFE0F'} {cond.waterTempF}&deg;F</span>}
+                                {cond.waterTempF && (
+                                  <span
+                                    title={`Water: ${cond.waterTempF}\u00B0F${cond.waterTempF < 55 ? ' — drysuit strongly recommended' : cond.waterTempF < 60 ? ' — wetsuit recommended' : ''}`}
+                                    className={
+                                      cond.waterTempF < 50 ? 'text-danger-red font-medium' :
+                                      cond.waterTempF < 55 ? 'text-safety-blue font-medium' :
+                                      cond.waterTempF < 60 ? 'text-safety-blue' : ''
+                                    }
+                                  >
+                                    {cond.waterTempF < 55 ? '\u2744\uFE0F' : '\u{1F321}\uFE0F'} {cond.waterTempF}&deg;F
+                                  </span>
+                                )}
                               </>
                             );
                           })()}
                         </div>
-                        {/* High-severity warning icon only — details in trajectory panel */}
-                        {route.riskFactors.some(r => r.severity === 'high') && (
+                        )}
+                        {/* High-severity warning for scores above danger threshold */}
+                        {route.score > 2 && route.riskFactors.some(r => r.severity === 'high') && (
                           <span className="text-[10px] text-danger-red mt-0.5">⚠ Conditions warning</span>
                         )}
                       </div>
@@ -829,6 +862,18 @@ export default function Home() {
                   </div>
                 );
               })}
+
+              {/* Contextual guidance when ALL routes are dangerous */}
+              {scoredRoutes.length > 0 && scoredRoutes.every(r => r.score <= 2) && (
+                <div className="mx-2 mt-2 p-3 rounded-lg bg-danger-red/10 border border-danger-red/30">
+                  <p className="text-xs font-medium text-danger-red">
+                    Conditions across the Bay are dangerous for {currentActivity.name.toLowerCase()} right now.
+                  </p>
+                  <p className="text-[11px] text-[var(--muted)] mt-1">
+                    Try adjusting the time of day, check the weekend forecast for better windows, or switch to a different activity.
+                  </p>
+                </div>
+              )}
 
               {scoredRoutes.length === 0 && (
                 <div className="text-center py-8 px-4 space-y-3">
