@@ -20,6 +20,7 @@ import { ScoreBadge, getScoreLabel } from './components/ScoreBadge';
 import { TrajectoryPanel } from './components/TrajectoryPanel';
 import { ActivityAdvisor } from './components/ActivityAdvisor';
 import { BoatSelector } from './components/BoatSelector';
+import { MapErrorBoundary } from './components/MapErrorBoundary';
 import { useMarineAlerts } from '@/hooks/useMarineAlerts';
 import { describeWind, describeWaves } from '@/lib/conditions-text';
 import type { ActivityType, Destination, ScoredRoute } from '@/engine/types';
@@ -952,7 +953,8 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Map area */}
+        {/* Map area — wrapped in error boundary for safety */}
+        <MapErrorBoundary>
         <div className="flex-1 relative">
           {hasMapToken ? (
             <>
@@ -1137,6 +1139,7 @@ export default function Home() {
             </div>
           </div>
         </div>
+        </MapErrorBoundary>
       </div>
 
       {/* Trajectory panel (slides in from right) */}
