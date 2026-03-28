@@ -18,8 +18,8 @@ import { Header } from './components/Header';
 import { ScoreBadge, getScoreLabel } from './components/ScoreBadge';
 import { TrajectoryPanel } from './components/TrajectoryPanel';
 import { ActivityAdvisor } from './components/ActivityAdvisor';
-import { ConditionsBar } from './components/ConditionsBar';
 import { BoatSelector } from './components/BoatSelector';
+import { useMarineAlerts } from '@/hooks/useMarineAlerts';
 import { describeWind, describeWaves } from '@/lib/conditions-text';
 import type { ActivityType, Destination, ScoredRoute } from '@/engine/types';
 
@@ -220,6 +220,9 @@ export default function Home() {
   // Live forecast data
   const { forecast, loading: forecastLoading, error: forecastError, getConditionsForHour, hasLiveDataForDate, sources: forecastSources } = useLiveForecast();
 
+  // NWS marine weather alerts
+  const { alerts: marineAlerts, hasActiveAlerts, hasGaleWarning, hasSmallCraftAdvisory, hasFogAdvisory } = useMarineAlerts();
+
   const mapRef = useRef<any>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -359,6 +362,11 @@ export default function Home() {
           windGustKts: fh.windGustKts,
           precipitationIn: fh.precipitationIn,
           precipProbPct: fh.precipProbPct,
+          pressureHpa: fh.pressureHpa,
+          dewpointF: fh.dewpointF,
+          uvIndex: fh.uvIndex,
+          weatherCode: fh.weatherCode,
+          waveDirDeg: fh.waveDirDeg,
           isLiveForecast: true,
           isMissingWaveData: !fh.waveDataAvailable,
         };
@@ -647,6 +655,24 @@ export default function Home() {
 
           {/* Scrollable destination list */}
           <div className="flex-1 overflow-y-auto">
+            {/* NWS Marine Weather Alerts — these are authoritative safety warnings */}
+            {hasActiveAlerts && (
+              <div className={`mx-2 mt-2 px-3 py-2 rounded-lg border text-xs ${
+                hasGaleWarning
+                  ? 'bg-danger-red/15 border-danger-red/40 text-danger-red'
+                  : hasSmallCraftAdvisory
+                    ? 'bg-warning-amber/15 border-warning-amber/40 text-warning-amber'
+                    : 'bg-safety-blue/15 border-safety-blue/40 text-safety-blue'
+              }`}>
+                <div className="font-bold mb-1">
+                  {hasGaleWarning ? '⚠ GALE WARNING' : hasSmallCraftAdvisory ? '⚠ SMALL CRAFT ADVISORY' : '⚠ MARINE WEATHER ALERT'}
+                </div>
+                {marineAlerts.slice(0, 2).map((alert, i) => (
+                  <p key={i} className="text-[11px] opacity-90">{alert.headline}</p>
+                ))}
+              </div>
+            )}
+
             {/* Hero recommendation — THE answer to "where should I go?" */}
             {scoredRoutes.length > 0 && scoredRoutes[0].score >= 5 && (
               <div className="p-3 mx-2 mt-2 bg-reef-teal/10 border border-reef-teal/30 rounded-lg">

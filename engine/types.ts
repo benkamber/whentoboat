@@ -119,6 +119,7 @@ export interface FullConditions {
   windGustKts?: number;       // peak gust speed — gustRatio > 1.5 is a comfort killer
   waveHtFt: number;
   wavePeriodS: number;
+  waveDirDeg?: number;        // overall wave direction (for beam-sea scoring)
   waterTempF: number;
   airTempF: number;
   // SAFETY-CRITICAL: currentKts === -1 is a SENTINEL meaning "current data
@@ -133,11 +134,18 @@ export interface FullConditions {
   // Precipitation
   precipitationIn?: number;   // hourly precipitation in inches
   precipProbPct?: number;     // probability of precipitation %
+  // Atmospheric
+  pressureHpa?: number;       // barometric pressure (for frontal passage detection)
+  dewpointF?: number;         // dewpoint (fog when spread < 3F from air temp)
+  uvIndex?: number;           // UV index for sun exposure warning
+  weatherCode?: number;       // WMO weather code (45/48 = fog)
   // Source flags
   isLiveForecast: boolean; // true = from Open-Meteo, false = historical average
   isMissingWaveData: boolean;
   // Zone context — used by scoring engine for zone-specific current warnings
   zoneId?: string;
+  // Route context — for directional scoring
+  routeHeadingDeg?: number;   // bearing from origin to destination
 }
 
 // --- Scoring ---
