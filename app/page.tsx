@@ -690,6 +690,40 @@ export default function Home() {
               <ActivityAdvisor />
             </div>
 
+            {/* Bad conditions guidance */}
+            {scoredRoutes.length > 0 && scoredRoutes.every(r => r.score < 5) && (
+              <div className="mx-2 mt-2 p-3 bg-danger-red/10 border border-danger-red/30 rounded-lg space-y-2">
+                <p className="text-xs font-medium text-danger-red">
+                  Tough conditions for {currentActivity.name.toLowerCase()} right now
+                </p>
+                <p className="text-[11px] text-[var(--secondary)]">
+                  {MONTHS[month]} isn't ideal for this activity. Try:
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[8, 9, 3, 4].filter(m => m !== month).slice(0, 3).map(m => (
+                    <button
+                      key={m}
+                      onClick={() => setMonth(m)}
+                      className="px-2 py-1 rounded text-[10px] font-medium bg-[var(--card-elevated)] text-reef-teal border border-reef-teal/30 hover:bg-reef-teal/10 transition-colors"
+                    >
+                      Try {MONTHS[m]}
+                    </button>
+                  ))}
+                  {hour > 12 && (
+                    <button
+                      onClick={() => setHour(9)}
+                      className="px-2 py-1 rounded text-[10px] font-medium bg-[var(--card-elevated)] text-compass-gold border border-compass-gold/30 hover:bg-compass-gold/10 transition-colors"
+                    >
+                      Try morning
+                    </button>
+                  )}
+                </div>
+                <a href="/planner" className="block text-[10px] text-reef-teal hover:underline">
+                  See year planner for best months →
+                </a>
+              </div>
+            )}
+
             <div className="p-2 space-y-1.5">
               {scoredRoutes.map((route, i) => {
                 const isSelected = selectedDestId === route.destinationId;
