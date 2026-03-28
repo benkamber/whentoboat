@@ -22,6 +22,15 @@ import { HIGH_CURRENT_ZONES, CURRENT_WARNING_ZONES } from '@/data/cities/sf-bay/
 // The core algorithm that makes WhenToBoat work
 // ============================================
 
+/** Default water temperature for SF Bay when data is unavailable. */
+export const DEFAULT_WATER_TEMP_F = 58;
+
+/** Zones where SUPs are blocked — open water with strong currents and ferry traffic. */
+const OPEN_WATER_BLOCK_ZONES = ['central_bay', 'ocean_south', 'ocean_north', 'san_pablo'];
+
+/** Ocean zones where scores are capped at 5/10 due to persistent swell and bar hazards. */
+const OCEAN_ZONES = ['ocean_south', 'ocean_north'];
+
 /**
  * Score an activity's comfort for given conditions.
  * Returns 1-10 where 10 is perfect and 1 is dangerous/unusable.
@@ -90,8 +99,11 @@ export function fullConditionsScore(
   const factors: RiskFactor[] = [];
 
   // ABSOLUTE SAFETY BLOCKS — these override all other scoring
+  const zoneId = conditions.zoneId ?? '';
+
   // 1. Fog in ferry/shipping lanes: kayak/SUP in visibility < 1 mile = BLOCK
   if ((activity.vesselType === 'kayak' || activity.vesselType === 'sup') && conditions.visibilityMi < 1) {
+    if (typeof console !== 'undefined') console.warn('[SAFETY_BLOCK]', { block: 'fog_paddlecraft', vesselType: activity.vesselType, visibility: conditions.visibilityMi, zoneId });
     return { score: 1, factors: [{
       factor: 'DANGER: Dense fog near shipping lanes',
       severity: 'high',
@@ -102,6 +114,7 @@ export function fullConditionsScore(
   // 2. Golden Gate max ebb + paddlecraft: current > 4kt + kayak/SUP = BLOCK
   // Only applies when we have REAL current data (not the -1 sentinel)
   if ((activity.vesselType === 'kayak' || activity.vesselType === 'sup') && conditions.currentKts > 4) {
+    if (typeof console !== 'undefined') console.warn('[SAFETY_BLOCK]', { block: 'current_exceeds_paddle', vesselType: activity.vesselType, currentKts: conditions.currentKts, zoneId });
     return { score: 1, factors: [{
       factor: 'DANGER: Current exceeds paddle speed',
       severity: 'high',
@@ -109,12 +122,23 @@ export function fullConditionsScore(
     }]};
   }
 
-  // 3. Moderate current + paddlecraft in high-exposure zones = WARNING
+  // 3. SUP in Central Bay or ocean zones = BLOCK
+  // SUPs cannot safely cross open water — standing profile catches wind like a sail,
+  // and falling off in shipping lanes / strong current is potentially fatal.
+  if (activity.vesselType === 'sup' && OPEN_WATER_BLOCK_ZONES.includes(zoneId)) {
+    if (typeof console !== 'undefined') console.warn('[SAFETY_BLOCK]', { block: 'sup_open_water', zoneId });
+    return { score: 1, factors: [{
+      factor: 'DANGER: Open water crossing on SUP',
+      severity: 'high',
+      description: `SUPs must not cross ${zoneId.replace(/_/g, ' ')}. Strong currents, ferry traffic, and wind exposure make this crossing life-threatening. Stay in sheltered coves within 500m of shore.`
+    }]};
+  }
+
+  // 4. Moderate current + paddlecraft in high-exposure zones = WARNING
   // SAFETY-CRITICAL: Central Bay, Ocean South, and San Pablo Bay have strong
   // tidal currents that create dangerous conditions even at 2-3 knots when
   // combined with wind chop. Expert validation confirmed these thresholds.
   const isPaddleCraft = activity.vesselType === 'kayak' || activity.vesselType === 'sup';
-  const zoneId = conditions.zoneId ?? '';
   const isCurrentWarningZone = (CURRENT_WARNING_ZONES as readonly string[]).includes(zoneId);
 
   if (isPaddleCraft && conditions.currentKts > 2 && conditions.currentKts <= 4 && isCurrentWarningZone) {
@@ -170,6 +194,19 @@ export function fullConditionsScore(
   const adjWave = conditions.waveHtFt / vesselWaveToleranceMultiplier(vessel.loa, vessel.hullType);
   let baseScore = activityScore(activity, conditions.windKts, adjWave, conditions.wavePeriodS);
 
+  // 1b. Missing wave data warning — when wave data is unavailable, the 2.5ft fallback
+  // may significantly affect scores (especially SUP where maxWave = 0.3ft). Surface
+  // this as an explicit factor so users understand why their score is low.
+  if (conditions.isMissingWaveData) {
+    factors.push({
+      factor: 'Wave data unavailable',
+      severity: isPaddleCraft ? 'medium' : 'low',
+      description: isPaddleCraft
+        ? 'Wave data is not available for this forecast. Score assumes moderate chop (2.5ft) as a safety precaution. Actual conditions may be calmer in sheltered areas.'
+        : 'Wave data is not available for this forecast. Score uses a conservative estimate.',
+    });
+  }
+
   // 2. Wind-against-current modifier (can dramatically increase wave height)
   // Only applies when we have real current data (currentKts > 0, not -1 sentinel)
   if (conditions.currentKts > 0) {
@@ -214,8 +251,11 @@ export function fullConditionsScore(
       ? -3 : 0;
 
   // 4. Water temperature factor
+  // Guard: only apply when we have a realistic reading (> -40°F sanity floor).
+  // Uses -40 instead of 0 to support future expansion to freshwater lakes where
+  // water can be near freezing (32°F / 0°C).
   let waterTempPenalty = 0;
-  if (conditions.waterTempF > 0 && (activity.vesselType === 'kayak' || activity.vesselType === 'sup')) {
+  if (conditions.waterTempF > -40 && (activity.vesselType === 'kayak' || activity.vesselType === 'sup')) {
     if (conditions.waterTempF < 60 && conditions.waterTempF >= 55) {
       waterTempPenalty = -2;
       factors.push({
@@ -299,8 +339,26 @@ export function fullConditionsScore(
   // SAFETY: currentUnavailablePenalty ensures we don't silently present
   // scores as if current were 0kt. currentWarningPenalty catches moderate
   // currents (2-4kt) in high-exposure zones.
-  const totalScore = baseScore + tidePenalty + waterTempPenalty + airTempPenalty
+  let totalScore = baseScore + tidePenalty + waterTempPenalty + airTempPenalty
     + visibilityPenalty + currentUnavailablePenalty + currentWarningPenalty;
+
+  // 8. Ocean zone cap — ocean routes never score above 5/10
+  // Ocean swell is persistent (rarely below 4ft), bar crossings are dangerous,
+  // and conditions change rapidly. Capping at 5 ensures the app never shows
+  // "Excellent" or "Good" for ocean routes, which would create false confidence.
+  if (OCEAN_ZONES.includes(zoneId)) {
+    // Always warn for ocean routes, even when score is naturally <= 5 (#10: unconditional ocean warning)
+    factors.push({
+      factor: 'Ocean route — check NWS bar forecast',
+      severity: 'medium',
+      description: 'Conditions outside the Golden Gate change rapidly. ' +
+        'Check the NWS coastal forecast (PZZ545) and NDBC buoy 46026 before transiting the bar.',
+    });
+    if (totalScore > 5) {
+      totalScore = 5;
+    }
+  }
+
   return {
     score: Math.max(1, Math.min(10, Math.round(totalScore))),
     factors,
@@ -341,7 +399,7 @@ export function buildFullConditions(
     windDirDeg: defaults?.windDirDeg ?? 270, // prevailing westerly for SF Bay
     waveHtFt: zoneConditions.waveHtFt,
     wavePeriodS: zoneConditions.wavePeriodS,
-    waterTempF: zoneConditions.waterTempF ?? seasonal?.waterTempF ?? 58,
+    waterTempF: zoneConditions.waterTempF ?? seasonal?.waterTempF ?? DEFAULT_WATER_TEMP_F,
     airTempF: zoneConditions.airTempF ?? (isAM
       ? (seasonal?.airTempLowF ?? 55)
       : (seasonal?.airTempHighF ?? 65)),
@@ -351,6 +409,11 @@ export function buildFullConditions(
       ? (seasonal?.typicalVisibilityAM_Mi ?? 10)
       : (seasonal?.typicalVisibilityPM_Mi ?? 10)),
     tideFt: zoneConditions.tideFt ?? defaults?.tideFt ?? 3,
+    // SAFETY: Default to 'flood' only when we have no data. While 'unknown' would be
+    // more honest, FullConditions requires a valid phase. Since flood and ebb are equally
+    // likely, 'flood' is chosen because ebb penalties require currentKts > 2 (which also
+    // defaults to -1 sentinel when unavailable), so the ebb penalty won't fire anyway
+    // when both tide phase AND current data are missing.
     tidePhase: zoneConditions.tidePhase ?? defaults?.tidePhase ?? 'flood',
     isLiveForecast: defaults?.isLiveForecast ?? false,
     isMissingWaveData: defaults?.isMissingWaveData ?? false,

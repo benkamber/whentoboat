@@ -18,6 +18,7 @@ import { routeComfort, findAlternatives } from './scoring';
 import { getActivity } from '@/data/activities';
 import { activities } from '@/data/activities';
 import { vesselPresets } from '@/data/vessels';
+import { getScoreLabel } from '@/app/components/ScoreBadge';
 
 export interface ActivityRecommendation {
   activity: ActivityProfile;
@@ -233,10 +234,4 @@ function getDestinationReason(
   return `${dest.name} — not recommended right now`;
 }
 
-function getScoreLabel(score: number): string {
-  if (score >= 9) return 'Excellent';
-  if (score >= 7) return 'Good';
-  if (score >= 5) return 'Fair';
-  if (score >= 3) return 'Marginal';
-  return 'Poor';
-}
+// getScoreLabel imported from ScoreBadge — single source of truth for safety-critical labels

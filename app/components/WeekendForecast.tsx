@@ -2,11 +2,15 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useAppStore } from '@/store';
-import { activityScore, fullConditionsScore, buildFullConditions } from '@/engine/scoring';
+import { fullConditionsScore, buildFullConditions } from '@/engine/scoring';
 import { getActivity } from '@/data/activities';
 import { vesselPresets } from '@/data/vessels';
 import { ScoreBadge, getScoreLabel } from './ScoreBadge';
 import type { ForecastHour, ForecastResponse } from '@/app/api/forecast/route';
+import type { FullConditions } from '@/engine/types';
+
+/** Default water temperature for SF Bay when data is unavailable. */
+const DEFAULT_WATER_TEMP_F = 58;
 
 // ============================================
 // 7-Day Live Forecast Strip
@@ -29,6 +33,7 @@ interface DaySummary {
   peakWindKts: number;
   peakWaveHtFt: number;
   avgTempF: number;
+  waterTempF: number;
   maxPrecipProbPct: number;
   totalPrecipIn: number;
   bestWindowStart: number | null;
@@ -80,24 +85,27 @@ function computeDaySummaries(
     const vessel = vesselPresets.find(v => v.type === (vesselMap[activity.id] ?? 'kayak')) ?? vesselPresets[0];
 
     // Compute score using FULL conditions (wind, waves, temp, tide, visibility, current)
+    // NOTE: The forecast is Bay-wide (no specific zone), so we pass zoneId='central_bay'
+    // as a conservative default — this activates SUP open-water blocks and current warnings.
     const hourScores = daytimeHours.map((h) => {
-      const conditions = {
+      const conditions: FullConditions = {
         windKts: h.windSpeedKts,
         windDirDeg: h.windDirDeg,
         waveHtFt: h.waveHeightFt >= 0 ? h.waveHeightFt : 2.5, // conservative fallback — assume moderate chop when data unavailable
         wavePeriodS: h.wavePeriodS > 0 ? h.wavePeriodS : 3,
-        waterTempF: (h as any).waterTempF ?? 58,
-        airTempF: (h as any).airTempF ?? h.airTempF ?? 62,
+        waterTempF: h.waterTempF ?? DEFAULT_WATER_TEMP_F,
+        airTempF: h.airTempF ?? 62,
         // SAFETY-CRITICAL: Use -1 sentinel when current data is missing.
         // Do NOT default to 0 — that falsely implies calm. The scoring engine
         // handles -1 by adding explicit "current data unavailable" warnings.
-        currentKts: (h as any).currentKts ?? -1,
-        currentDirDeg: (h as any).currentDirDeg ?? 0,
+        currentKts: h.currentKts ?? -1,
+        currentDirDeg: h.currentDirDeg ?? 0,
         visibilityMi: h.visibilityMi,
-        tideFt: (h as any).tideFt ?? 3,
-        tidePhase: ((h as any).tidePhase ?? 'flood') as any,
+        tideFt: h.tideFt >= 0 ? h.tideFt : 3,
+        tidePhase: h.tidePhase === 'unknown' ? 'flood' : h.tidePhase,
         isLiveForecast: true,
         isMissingWaveData: !h.waveDataAvailable,
+        zoneId: 'central_bay', // conservative: triggers SUP blocks and current warnings
       };
       const { score, factors } = fullConditionsScore(activity, conditions, vessel);
       return { hour: new Date(h.time).getHours(), score, factors, data: h };
@@ -113,9 +121,10 @@ function computeDaySummaries(
     const peakWave = validWaves.length > 0 ? Math.max(...validWaves) : -1;
 
     // Temperature and precipitation
-    const avgTemp = daytimeHours.reduce((sum, h) => sum + ((h as any).airTempF ?? 0), 0) / daytimeHours.length;
-    const maxPrecipProb = Math.max(...daytimeHours.map(h => (h as any).precipProbPct ?? 0));
-    const totalPrecip = daytimeHours.reduce((sum, h) => sum + ((h as any).precipitationIn ?? 0), 0);
+    const avgTemp = daytimeHours.reduce((sum, h) => sum + (h.airTempF ?? 0), 0) / daytimeHours.length;
+    const avgWaterTemp = daytimeHours.reduce((sum, h) => sum + (h.waterTempF ?? DEFAULT_WATER_TEMP_F), 0) / daytimeHours.length;
+    const maxPrecipProb = Math.max(...daytimeHours.map(h => h.precipProbPct ?? 0));
+    const totalPrecip = daytimeHours.reduce((sum, h) => sum + (h.precipitationIn ?? 0), 0);
 
     // Best window: contiguous hours with score >= 7
     let bestStart: number | null = null;
@@ -152,6 +161,7 @@ function computeDaySummaries(
       peakWindKts: Math.round(peakWind),
       peakWaveHtFt: Math.round(peakWave * 10) / 10,
       avgTempF: Math.round(avgTemp),
+      waterTempF: Math.round(avgWaterTemp),
       maxPrecipProbPct: Math.round(maxPrecipProb),
       totalPrecipIn: Math.round(totalPrecip * 100) / 100,
       bestWindowStart: bestStart,
@@ -206,7 +216,7 @@ export function WeekendForecast() {
 
   const bestDayIdx = useMemo(() => {
     if (days.length === 0) return -1;
-    let bestIdx = 0;
+    let bestIdx = -1;
     let bestScore = -1;
     for (let i = 0; i < days.length; i++) {
       if (days[i].score > bestScore) {
@@ -214,7 +224,8 @@ export function WeekendForecast() {
         bestIdx = i;
       }
     }
-    return bestIdx;
+    // Don't highlight "BEST" when even the best day scores below Fair (5/10)
+    return bestScore >= 5 ? bestIdx : -1;
   }, [days]);
 
   if (loading) {
@@ -272,6 +283,19 @@ export function WeekendForecast() {
           Refresh
         </button>
       </div>
+
+      {/* Staleness warning — if forecast is >3 hours old, warn the user */}
+      {(() => {
+        if (!forecast) return null;
+        const ageHours = (Date.now() - new Date(forecast.fetchedAt).getTime()) / 3_600_000;
+        if (ageHours <= 3) return null;
+        return (
+          <div className="mb-3 px-3 py-2 rounded-lg bg-warning-amber/10 border border-warning-amber/30 text-xs text-warning-amber">
+            Forecast data is {Math.round(ageHours)} hours old. Scores may not reflect current conditions.{' '}
+            <button onClick={() => fetchForecast()} className="underline font-medium">Refresh now</button>
+          </div>
+        );
+      })()}
 
       {/* Day cards strip */}
       <div className="flex gap-2 overflow-x-auto pb-2">
@@ -336,11 +360,27 @@ export function WeekendForecast() {
                 </div>
               )}
               <div className="flex justify-between">
-                <span>Temp</span>
+                <span>Air</span>
                 <span className="font-mono text-[var(--foreground)]">
                   {day.avgTempF}&deg;F
                 </span>
               </div>
+              <div className="flex justify-between">
+                <span>Water</span>
+                <span className={`font-mono ${
+                  day.waterTempF < 50 ? 'text-danger-red font-medium' :
+                  day.waterTempF < 55 ? 'text-safety-blue font-medium' :
+                  day.waterTempF < 60 ? 'text-safety-blue' :
+                  'text-[var(--foreground)]'
+                }`}>
+                  {day.waterTempF}&deg;F
+                </span>
+              </div>
+              {day.waterTempF < 60 && (
+                <div className="text-[9px] text-safety-blue">
+                  {day.waterTempF < 50 ? '\u2744\uFE0F Drysuit essential' : day.waterTempF < 55 ? '\u2744\uFE0F Drysuit strongly recommended' : '\u2744\uFE0F Wetsuit recommended'}
+                </div>
+              )}
               {day.maxPrecipProbPct > 10 && (
                 <div className="flex justify-between">
                   <span>Rain</span>
@@ -381,6 +421,8 @@ function HourlyBreakdown({
   activity: string;
 }) {
   const activity = getActivity(activityId as 'kayak' | 'sup' | 'powerboat_cruise' | 'casual_sail');
+  const vesselMap: Record<string, string> = { kayak: 'kayak', sup: 'sup', powerboat_cruise: 'powerboat', casual_sail: 'sailboat' };
+  const vessel = vesselPresets.find(v => v.type === (vesselMap[activity.id] ?? 'kayak')) ?? vesselPresets[0];
 
   return (
     <div className="mt-3 rounded-lg border border-[var(--border)] bg-[var(--card-elevated)] p-3">
@@ -409,12 +451,28 @@ function HourlyBreakdown({
           <tbody>
             {day.hours.map((h) => {
               const hour = new Date(h.time).getHours();
-              const score = activityScore(
-                activity,
-                h.windSpeedKts,
-                h.waveHeightFt,
-                h.wavePeriodS > 0 ? h.wavePeriodS : 3
-              );
+              // SAFETY-CRITICAL: Use fullConditionsScore (not activityScore) so hourly
+              // scores reflect the same safety blocks as the day-level score. Previously
+              // this used activityScore which ignored fog, current, zone restrictions,
+              // and water temperature — creating dangerous contradictions where the
+              // day showed "DANGEROUS" but individual hours showed green scores.
+              const conditions: FullConditions = {
+                windKts: h.windSpeedKts,
+                windDirDeg: h.windDirDeg,
+                waveHtFt: h.waveHeightFt >= 0 ? h.waveHeightFt : 2.5,
+                wavePeriodS: h.wavePeriodS > 0 ? h.wavePeriodS : 3,
+                waterTempF: h.waterTempF ?? DEFAULT_WATER_TEMP_F,
+                airTempF: h.airTempF ?? 62,
+                currentKts: h.currentKts ?? -1,
+                currentDirDeg: h.currentDirDeg ?? 0,
+                visibilityMi: h.visibilityMi,
+                tideFt: h.tideFt >= 0 ? h.tideFt : 3,
+                tidePhase: h.tidePhase === 'unknown' ? 'flood' : h.tidePhase,
+                isLiveForecast: true,
+                isMissingWaveData: !h.waveDataAvailable,
+                zoneId: 'central_bay',
+              };
+              const { score } = fullConditionsScore(activity, conditions, vessel);
               return (
                 <tr
                   key={h.time}
