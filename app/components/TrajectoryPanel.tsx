@@ -33,18 +33,29 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
 
   return (
     <div className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-[var(--background)] border-l border-[var(--border)] overflow-y-auto z-50 shadow-2xl">
-      {/* Header */}
+      {/* Sticky header — route title persists as user scrolls */}
       <div className="sticky top-0 bg-[var(--background)] border-b border-[var(--border)] p-4 z-10">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-2">
           <button onClick={onClose} className="text-[var(--muted)] hover:text-[var(--foreground)] text-sm">
             ✕ Close
           </button>
           <span className="text-xs text-[var(--muted)]">Trajectory Analysis</span>
         </div>
+        <div className="flex items-center gap-3">
+          <ScoreBadge score={overallScore} size="md" />
+          <div className="min-w-0">
+            <h2 className="text-sm font-bold truncate">
+              {origin.name} → {destination.name}
+            </h2>
+            <p className="text-xs text-[var(--muted)]">
+              {distance} mi · {transitMinutes} min · {getScoreLabel(overallScore)}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="p-4 space-y-6">
-        {/* At a glance */}
+        {/* At a glance — full details */}
         <div className="space-y-3">
           <div className="flex items-start gap-3">
             <ScoreBadge score={overallScore} size="lg" showRange={{ p10: scoreRange.p10, p90: scoreRange.p90 }} />
@@ -115,7 +126,7 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
                 <div className="text-sm font-medium">
                   {leg.zone.name}
                   {leg.isBottleneck && (
-                    <span className="ml-2 text-xs text-danger-red font-normal">← roughest zone</span>
+                    <span className="ml-2 text-xs text-danger-red font-normal">← lowest scoring</span>
                   )}
                 </div>
                 <div className="text-xs text-[var(--muted)]">

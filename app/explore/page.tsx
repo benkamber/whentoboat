@@ -27,7 +27,7 @@ const routeLineLayer = {
   },
   paint: {
     'line-color': ['get', 'color'] as any,
-    'line-width': 2.5,
+    'line-width': ['get', 'lineWidth'] as any,
     'line-opacity': ['get', 'opacity'] as any,
   },
 };

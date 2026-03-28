@@ -19,6 +19,7 @@ import { ScoreBadge, getScoreLabel } from './components/ScoreBadge';
 import { TrajectoryPanel } from './components/TrajectoryPanel';
 import { ActivityAdvisor } from './components/ActivityAdvisor';
 import { ConditionsBar } from './components/ConditionsBar';
+import { BoatSelector } from './components/BoatSelector';
 import { describeWind, describeWaves } from '@/lib/conditions-text';
 import type { ActivityType, Destination, ScoredRoute } from '@/engine/types';
 
@@ -58,7 +59,7 @@ const routeLineLayer = {
   },
   paint: {
     'line-color': ['get', 'color'] as any,
-    'line-width': 2.5,
+    'line-width': ['get', 'lineWidth'] as any,
     'line-opacity': ['get', 'opacity'] as any,
     'line-dasharray': [2, 2] as any,
   },
@@ -418,7 +419,7 @@ export default function Home() {
 
   // Map data hooks
   const destinationsGeoJSON = useDestinationGeoJSON(activity, month, hour, vessel, homeBaseId);
-  const routesGeoJSON = useRouteGeoJSON(activity, month, hour, vessel, homeBaseId);
+  const routesGeoJSON = useRouteGeoJSON(activity, month, hour, vessel, homeBaseId, selectedDestId);
   const bathymetryGeoJSON = useBathymetryOverlay();
   const zoneOverlayGeoJSON = useZoneOverlay(activity, month, hour, vessel);
 
@@ -611,17 +612,8 @@ export default function Home() {
               </select>
             </div>
 
-            {/* Active vessel indicator */}
-            <a
-              href="/vessels"
-              className="flex items-center justify-between bg-[var(--card-elevated)] border border-[var(--border)] rounded-lg px-2 py-1.5 hover:border-compass-gold transition-colors group"
-            >
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-[var(--muted)]">Vessel:</span>
-                <span className="text-xs font-medium">{vessel.name}</span>
-              </div>
-              <span className="text-[10px] text-[var(--muted)] group-hover:text-compass-gold">Edit →</span>
-            </a>
+            {/* Vessel selector — inline preset picker + customize */}
+            <BoatSelector />
 
             {/* Month selector */}
             <div className="flex gap-0.5 overflow-x-auto">

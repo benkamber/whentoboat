@@ -155,7 +155,7 @@ function computeDaySummaries(
     summaries.push({
       date,
       dayName: date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
-      dateLabel: `${date.getMonth() + 1}/${date.getDate()}`,
+      dateLabel: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       isWeekend,
       score: Math.round(avgScore),
       peakWindKts: Math.round(peakWind),
@@ -266,12 +266,12 @@ export function WeekendForecast() {
 
   return (
     <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between mb-2">
+        <div>
           <h2 className="text-base font-bold text-[var(--foreground)]">
             7-Day Forecast
           </h2>
-          <span className="text-xs text-[var(--muted)]">
+          <span className="text-[10px] text-[var(--muted)]">
             SF Bay &middot; Live from Open-Meteo
           </span>
         </div>
@@ -283,6 +283,21 @@ export function WeekendForecast() {
           Refresh
         </button>
       </div>
+
+      {/* Weekend proof point — show explicit "This Weekend" with dates */}
+      {(() => {
+        const weekendDays = days.filter(d => d.isWeekend);
+        if (weekendDays.length === 0) return null;
+        const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+        const label = weekendDays.length >= 2
+          ? `This Weekend: ${fmt(weekendDays[0].date)}–${weekendDays[weekendDays.length - 1].date.getDate()}`
+          : `This ${weekendDays[0].dayName === 'SAT' ? 'Saturday' : 'Sunday'}: ${fmt(weekendDays[0].date)}`;
+        return (
+          <div className="mb-3 text-xs font-medium text-compass-gold">
+            {label}
+          </div>
+        );
+      })()}
 
       {/* Staleness warning — if forecast is >3 hours old, warn the user */}
       {(() => {
@@ -440,12 +455,15 @@ function HourlyBreakdown({
           <thead>
             <tr className="text-[var(--muted)] border-b border-[var(--border)]">
               <th className="text-left py-1 pr-3 font-medium">Hour</th>
-              <th className="text-right py-1 px-2 font-medium">Score</th>
-              <th className="text-right py-1 px-2 font-medium">Wind</th>
-              <th className="text-right py-1 px-2 font-medium">Gust</th>
-              <th className="text-right py-1 px-2 font-medium">Waves</th>
-              <th className="text-right py-1 px-2 font-medium">Temp</th>
-              <th className="text-right py-1 pl-2 font-medium">Cloud</th>
+              <th className="text-right py-1 px-1 font-medium">Score</th>
+              <th className="text-right py-1 px-1 font-medium">Wind</th>
+              <th className="text-right py-1 px-1 font-medium">Gust</th>
+              <th className="text-right py-1 px-1 font-medium">Waves</th>
+              <th className="text-right py-1 px-1 font-medium">Tide</th>
+              <th className="text-right py-1 px-1 font-medium">Air</th>
+              <th className="text-right py-1 px-1 font-medium">Water</th>
+              <th className="text-right py-1 px-1 font-medium">Vis</th>
+              <th className="text-right py-1 px-1 font-medium">Rain</th>
             </tr>
           </thead>
           <tbody>
@@ -481,23 +499,40 @@ function HourlyBreakdown({
                   <td className="py-1 pr-3 font-mono text-[var(--foreground)]">
                     {formatHour(hour)}
                   </td>
-                  <td className="py-1 px-2 text-right">
+                  <td className="py-1 px-1 text-right">
                     <ScoreBadge score={score} size="sm" />
                   </td>
-                  <td className="py-1 px-2 text-right font-mono text-[var(--foreground)]">
+                  <td className="py-1 px-1 text-right font-mono text-[var(--foreground)]">
                     {Math.round(h.windSpeedKts)}kt
                   </td>
-                  <td className="py-1 px-2 text-right font-mono text-[var(--muted)]">
+                  <td className="py-1 px-1 text-right font-mono text-[var(--muted)]">
                     {Math.round(h.windGustKts)}kt
                   </td>
-                  <td className="py-1 px-2 text-right font-mono text-[var(--foreground)]">
+                  <td className="py-1 px-1 text-right font-mono text-[var(--foreground)]">
                     {h.waveHeightFt >= 0 ? `${(Math.round(h.waveHeightFt * 10) / 10).toFixed(1)}ft` : 'N/A'}
                   </td>
-                  <td className="py-1 px-2 text-right font-mono text-[var(--foreground)]">
+                  <td className="py-1 px-1 text-right font-mono text-[var(--foreground)]">
+                    {h.tideFt >= 0 ? `${h.tideFt.toFixed(1)}` : 'N/A'}
+                    <span className="text-[9px] text-[var(--muted)]">
+                      {h.tidePhase === 'flood' ? '\u25B2' : h.tidePhase === 'ebb' ? '\u25BC' : h.tidePhase === 'slack_high' ? '\u25CF' : h.tidePhase === 'slack_low' ? '\u25CB' : ''}
+                    </span>
+                  </td>
+                  <td className="py-1 px-1 text-right font-mono text-[var(--foreground)]">
                     {Math.round(h.airTempF)}&deg;
                   </td>
-                  <td className="py-1 pl-2 text-right font-mono text-[var(--muted)]">
-                    {Math.round(h.cloudCoverPct)}%
+                  <td className={`py-1 px-1 text-right font-mono ${
+                    h.waterTempF < 50 ? 'text-danger-red' :
+                    h.waterTempF < 55 ? 'text-safety-blue font-medium' :
+                    h.waterTempF < 60 ? 'text-safety-blue' :
+                    'text-[var(--foreground)]'
+                  }`}>
+                    {h.waterTempF > 0 ? `${Math.round(h.waterTempF)}\u00B0` : 'N/A'}
+                  </td>
+                  <td className={`py-1 px-1 text-right font-mono ${h.visibilityMi < 3 ? 'text-warning-amber' : 'text-[var(--muted)]'}`}>
+                    {h.visibilityMi > 0 ? `${Math.round(h.visibilityMi)}mi` : 'N/A'}
+                  </td>
+                  <td className={`py-1 px-1 text-right font-mono ${h.precipProbPct > 50 ? 'text-safety-blue' : 'text-[var(--muted)]'}`}>
+                    {h.precipProbPct > 0 ? `${Math.round(h.precipProbPct)}%` : '–'}
                   </td>
                 </tr>
               );
