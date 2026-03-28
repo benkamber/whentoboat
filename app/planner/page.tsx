@@ -63,7 +63,7 @@ function computeMonthData(
 ): MonthCardData {
   const act = getActivity(activityId);
   const origin = sfBay.destinations.find((d) => d.id === originId);
-  const vessel = { loa: act.vesselType === 'powerboat' ? 24 : act.vesselType === 'sailboat' ? 30 : 14 } as { loa: number };
+  const vessel = { loa: act.vesselType === 'powerboat' ? 24 : act.vesselType === 'sailboat' ? 30 : 14 };
   const waveMultiplier = vesselWaveToleranceMultiplier(vessel.loa);
 
   // Compute AM score for every reachable destination from origin
