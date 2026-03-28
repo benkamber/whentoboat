@@ -91,7 +91,10 @@ async function fetchWithTimeout(url: string, timeoutMs: number = 5000): Promise<
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { signal: controller.signal });
+    return await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'WhenToBoat/1.0 (recreational boating planning app)' },
+    });
   } finally {
     clearTimeout(timeoutId);
   }

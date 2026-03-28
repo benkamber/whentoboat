@@ -28,13 +28,17 @@ export interface AstroResponse {
 }
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours (astro data changes daily)
+const MAX_CACHE_SIZE = 30;
 const cache = new Map<string, { data: AstroResponse; ts: number }>();
 
 async function fetchWithTimeout(url: string, timeoutMs: number = 5000): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { signal: controller.signal });
+    return await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'WhenToBoat/1.0 (recreational boating planning app)' },
+    });
   } finally {
     clearTimeout(timeoutId);
   }
@@ -56,8 +60,8 @@ export async function GET(request: NextRequest) {
 
   try {
     // Fetch from US Naval Observatory API
-    // Timezone offset for Pacific time
-    const tzOffset = -8; // PST (simplified; DST not handled for display purposes)
+    // Compute timezone offset dynamically to handle DST
+    const tzOffset = -new Date(dateStr + 'T12:00:00').getTimezoneOffset() / 60;
     const url = `https://aa.usno.navy.mil/api/rstt/oneday?date=${dateStr}&coords=${lat},${lng}&tz=${tzOffset}`;
 
     const res = await fetchWithTimeout(url, 5000);
@@ -114,6 +118,11 @@ export async function GET(request: NextRequest) {
     };
 
     cache.set(cacheKey, { data: result, ts: Date.now() });
+    // Evict oldest entries when cache exceeds limit
+    if (cache.size > MAX_CACHE_SIZE) {
+      const oldest = [...cache.entries()].sort((a, b) => a[1].ts - b[1].ts);
+      for (let i = 0; i < cache.size - MAX_CACHE_SIZE; i++) cache.delete(oldest[i][0]);
+    }
 
     return NextResponse.json(result, {
       headers: { 'Cache-Control': 'public, s-maxage=21600', 'X-Cache': 'MISS' },

@@ -60,7 +60,9 @@ export default function TermsPage() {
 
           <h2 className="text-lg font-semibold text-[var(--foreground)]">7. Privacy</h2>
           <p>
-            WhenToBoat stores your preferences (home base, vessel profile, saved spots) locally in your browser. We do not collect, store, or transmit personal data. We use Vercel Analytics for anonymous page view counts. We do not sell or share any user data.
+            WhenToBoat stores your preferences (home base, vessel profile, saved spots) locally in your browser. We do not collect, store, or transmit personal data. We use Vercel Analytics for anonymous page view counts. We do not sell or share any user data. See our full{' '}
+            <a href="/privacy" className="text-safety-blue hover:underline">Privacy Policy</a>{' '}
+            for details.
           </p>
         </section>
 

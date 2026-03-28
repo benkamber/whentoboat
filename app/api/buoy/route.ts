@@ -46,7 +46,10 @@ async function fetchWithTimeout(url: string, timeoutMs: number = 8000): Promise<
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { signal: controller.signal });
+    return await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'WhenToBoat/1.0 (recreational boating planning app)' },
+    });
   } finally {
     clearTimeout(timeoutId);
   }
@@ -80,7 +83,6 @@ export async function GET(_request: NextRequest) {
     // Get the last 3 hours of data to ensure we have recent readings
     const now = new Date();
     const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
-    const stationList = SF_BAY_STATIONS.map(s => `"${s}"`).join('|');
 
     const url =
       `https://coastwatch.pfeg.noaa.gov/erddap/tabledap/cwwcNDBCMet.json` +

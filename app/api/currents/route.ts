@@ -60,7 +60,7 @@ const KEY_STATIONS: Record<string, string> = {
 // Cache: current predictions are harmonic (computed, not observed) so they
 // don't change. 6-hour TTL is conservative — they'd be valid for days.
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
-const cache = new Map<string, { data: CurrentsResponse; ts: number }>();
+const cache = new Map<string, { data: CurrentsResponse; ts: number; ttl?: number }>();
 
 function cacheKey(stations: string[], days: number): string {
   return `currents:${stations.sort().join(',')}:${days}`;
@@ -258,7 +258,7 @@ export async function GET(request: NextRequest) {
   // Check cache
   const key = cacheKey(stationIds, days);
   const cached = cache.get(key);
-  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+  if (cached && Date.now() - cached.ts < (cached.ttl ?? CACHE_TTL_MS)) {
     return NextResponse.json(cached.data, {
       headers: {
         'Cache-Control': 'public, s-maxage=21600, stale-while-revalidate=3600',
@@ -299,7 +299,7 @@ export async function GET(request: NextRequest) {
   // Cache the response (even empty — avoids hammering NOAA when it's down)
   // Empty responses get a shorter TTL (5 minutes) so we retry sooner
   const ttl = dataAvailable ? CACHE_TTL_MS : 5 * 60 * 1000;
-  cache.set(key, { data: response, ts: Date.now() });
+  cache.set(key, { data: response, ts: Date.now(), ttl });
   // Clean up: if cache gets large, remove entries older than TTL
   if (cache.size > 50) {
     const cutoff = Date.now() - CACHE_TTL_MS;
