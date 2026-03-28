@@ -110,6 +110,11 @@ export function useLiveForecast() {
 
 /**
  * Convert a ForecastHour to FullConditions for the scoring engine.
+ *
+ * SAFETY NOTE: currentKts is passed through as-is. When it's -1 (the sentinel
+ * meaning "unavailable"), the scoring engine will add appropriate warnings.
+ * We do NOT default -1 to 0 — that would falsely imply calm conditions.
+ * Real current data should be fetched from /api/currents and overlaid separately.
  */
 function forecastHourToFullConditions(h: ForecastHour): FullConditions {
   return {
@@ -119,6 +124,7 @@ function forecastHourToFullConditions(h: ForecastHour): FullConditions {
     wavePeriodS: h.wavePeriodS > 0 ? h.wavePeriodS : 3,
     waterTempF: h.waterTempF,
     airTempF: h.airTempF,
+    // SAFETY-CRITICAL: preserve the -1 sentinel. Do NOT default to 0.
     currentKts: h.currentKts,
     currentDirDeg: h.currentDirDeg,
     visibilityMi: h.visibilityMi,

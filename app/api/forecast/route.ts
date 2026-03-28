@@ -29,9 +29,15 @@ export interface ForecastHour {
   // Tides (from NOAA CO-OPS, interpolated to hour)
   tideFt: number;           // height above MLLW
   tidePhase: 'flood' | 'ebb' | 'slack_high' | 'slack_low' | 'unknown';
-  // Current (estimated from tide phase)
-  currentKts: number;
+  // Current data
+  // SAFETY-CRITICAL: currentKts === -1 is a SENTINEL meaning "current data
+  // unavailable — must be fetched from the /api/currents endpoint or left
+  // as unknown." The previous approach of estimating currents from tide height
+  // deltas was scientifically invalid. NEVER default -1 to 0, which would
+  // falsely imply calm/no current.
+  currentKts: number;       // -1 = unavailable (sentinel). Use /api/currents for real data.
   currentDirDeg: number;
+  currentDataSource: 'none' | 'coops';  // 'none' = not included, 'coops' = from NOAA CO-OPS
 }
 
 export interface ForecastResponse {
@@ -112,7 +118,14 @@ async function fetchTidePredictions(days: number): Promise<Map<string, { v: numb
   }
 }
 
-// Estimate tide phase from consecutive tide heights
+// Estimate tide phase from consecutive tide heights.
+// NOTE: This is valid — determining whether the tide is rising or falling
+// from height measurements is straightforward physics. What was INVALID
+// (and has been removed) was estimateCurrentFromTide(), which tried to
+// derive current velocity from tide height deltas. Current velocity depends
+// on channel geometry, basin volume, and harmonic constituents — not on
+// the rate of water level change at a single station.
+// Real current data now comes from NOAA CO-OPS via /api/currents.
 function estimateTidePhase(currentHeight: number, prevHeight: number | null): ForecastHour['tidePhase'] {
   if (prevHeight === null) return 'unknown';
   const diff = currentHeight - prevHeight;
@@ -122,20 +135,16 @@ function estimateTidePhase(currentHeight: number, prevHeight: number | null): Fo
   return diff > 0 ? 'flood' : 'ebb';
 }
 
-// Estimate current speed from tide phase (simplified model)
-// Golden Gate max ebb ~4.5kt, max flood ~3.2kt
-// Scale by distance from Gate — inner bay sees ~40% of Gate current
-function estimateCurrentFromTide(
-  tidePhase: ForecastHour['tidePhase'],
-  tideDelta: number
-): { speed: number; dir: number } {
-  const absRate = Math.abs(tideDelta);
-  // Scale: 0.5ft/hr change ≈ 2kt current at mid-bay
-  const speed = Math.min(4.5, absRate * 3);
-  // Ebb flows outward (toward Gate, ~240°), flood flows inward (~60°)
-  const dir = tidePhase === 'ebb' ? 240 : tidePhase === 'flood' ? 60 : 0;
-  return { speed, dir };
-}
+// REMOVED: estimateCurrentFromTide()
+// This function was scientifically invalid and has been deleted.
+// It estimated tidal current speed from the rate of tide height change,
+// which has no valid physical basis. Tidal current velocity in SF Bay
+// ranges from 0-5.5kt and is governed by channel constrictions (Golden
+// Gate, Raccoon Strait, Carquinez) and basin geometry — NOT by the
+// derivative of water level at a single tide gauge.
+//
+// Real current predictions are now served by /api/currents, which
+// fetches harmonic predictions directly from NOAA CO-OPS.
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -204,8 +213,6 @@ export async function GET(request: NextRequest) {
       const tidePreds = tideData?.get(tideKey);
       const tideFt = tidePreds?.[0]?.v ?? -1;
       const tidePhase = tideFt >= 0 ? estimateTidePhase(tideFt, prevTideHeight) : 'unknown';
-      const tideDelta = prevTideHeight !== null && tideFt >= 0 ? tideFt - prevTideHeight : 0;
-      const currentEst = estimateCurrentFromTide(tidePhase, tideDelta);
       if (tideFt >= 0) prevTideHeight = tideFt;
 
       // Water temp from monthly average (Open-Meteo doesn't provide SST for bays)
@@ -236,9 +243,14 @@ export async function GET(request: NextRequest) {
         // Tides
         tideFt: tideFt >= 0 ? Math.round(tideFt * 10) / 10 : -1,
         tidePhase,
-        // Current (estimated from tide)
-        currentKts: Math.round(currentEst.speed * 10) / 10,
-        currentDirDeg: currentEst.dir,
+        // Current: SENTINEL VALUE — this forecast does NOT include current data.
+        // SAFETY-CRITICAL: -1 means "unknown/unavailable." The scoring engine
+        // MUST treat this as uncertain, NOT as 0kt (which would falsely imply calm).
+        // Real current data must be fetched separately from /api/currents,
+        // which queries NOAA CO-OPS harmonic current predictions.
+        currentKts: -1,
+        currentDirDeg: 0,
+        currentDataSource: 'none' as const,
       };
     });
 

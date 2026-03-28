@@ -120,7 +120,11 @@ export interface FullConditions {
   wavePeriodS: number;
   waterTempF: number;
   airTempF: number;
-  currentKts: number;
+  // SAFETY-CRITICAL: currentKts === -1 is a SENTINEL meaning "current data
+  // unavailable." The scoring engine MUST handle this explicitly — defaulting
+  // to 0 implies calm water, which is dangerously wrong in SF Bay where
+  // currents routinely hit 4-5kt at the Golden Gate.
+  currentKts: number;       // -1 = unavailable (sentinel)
   currentDirDeg: number;
   visibilityMi: number;
   tideFt: number;
@@ -128,6 +132,8 @@ export interface FullConditions {
   // Source flags
   isLiveForecast: boolean; // true = from Open-Meteo, false = historical average
   isMissingWaveData: boolean;
+  // Zone context — used by scoring engine for zone-specific current warnings
+  zoneId?: string;
 }
 
 // --- Scoring ---
