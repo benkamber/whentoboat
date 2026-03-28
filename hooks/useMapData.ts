@@ -3,6 +3,7 @@ import { sfBay } from '@/data/cities/sf-bay';
 import { getActivity } from '@/data/activities';
 import { routeComfort } from '@/engine/scoring';
 import { scoreToColor, scoreToOpacity } from '@/lib/colors';
+import { getWaterRoute } from '@/data/cities/sf-bay/water-routes';
 import type { ActivityType, VesselProfile } from '@/engine/types';
 
 /**
@@ -62,7 +63,8 @@ export function useRouteGeoJSON(
   month: number,
   hour: number,
   vessel: VesselProfile,
-  selectedOriginId: string | null
+  selectedOriginId: string | null,
+  selectedDestinationId?: string | null
 ) {
   return useMemo(() => {
     const act = getActivity(activity);
@@ -96,8 +98,16 @@ export function useRouteGeoJSON(
 
       const scored = routeComfort(fromDest, toDest, month, hour, act, vessel, sfBay);
 
-      // Straight lines — honest abstract transit-map style
-      const coordinates = [[fromDest.lng, fromDest.lat], [toDest.lng, toDest.lat]];
+      // Use validated water route waypoints when available — these follow actual
+      // navigable channels and go around land masses. Fall back to straight line
+      // only when no water route is defined for this pair.
+      const waterRoute = getWaterRoute(fromId, toId, vessel.type);
+      const coordinates = waterRoute
+        ? waterRoute.waypoints.map(wp => [wp[0], wp[1]])
+        : [[fromDest.lng, fromDest.lat], [toDest.lng, toDest.lat]];
+
+      const isSelected = selectedDestinationId === toId;
+      const hasSelection = !!selectedDestinationId;
 
       features.push({
         type: 'Feature',
@@ -111,8 +121,10 @@ export function useRouteGeoJSON(
           fromName: fromDest.name,
           toName: toDest.name,
           score: scored.score,
-          color: scoreToColor(scored.score),
-          opacity: scoreToOpacity(scored.score),
+          color: isSelected ? scoreToColor(scored.score) : scoreToColor(scored.score),
+          // When a route is selected, bold it and dim all others
+          opacity: hasSelection ? (isSelected ? 1.0 : 0.12) : scoreToOpacity(scored.score),
+          lineWidth: isSelected ? 4.0 : 2.5,
           distance: scored.distance,
           transitMinutes: scored.transitMinutes,
           wind: scored.riskFactors.length > 0 ? '⚠' : '✓',
@@ -124,6 +136,5 @@ export function useRouteGeoJSON(
       type: 'FeatureCollection' as const,
       features,
     };
-  }, [activity, month, hour, vessel, selectedOriginId]);
+  }, [activity, month, hour, vessel, selectedOriginId, selectedDestinationId]);
 }
-// Build trigger: 1774471568
