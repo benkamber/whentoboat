@@ -6,8 +6,9 @@
 import type { VesselProfile } from './types';
 import { zoneDepths, type ZoneDepth } from '@/data/geo/sf-bay-depths';
 
-/** Safety margin above the vessel's draft, in feet */
-const SAFETY_MARGIN_FT = 1.5;
+/** Safety margin above the vessel's draft, in feet.
+ * Accounts for spring tides (1-2ft below MLLW), wave troughs, and squat. */
+const SAFETY_MARGIN_FT = 3.0;
 
 export interface ZoneClearance {
   zoneId: string;

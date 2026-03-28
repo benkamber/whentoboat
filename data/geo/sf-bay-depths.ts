@@ -19,8 +19,9 @@ export const zoneDepths: ZoneDepth[] = [
     typicalDepthFt: 12,
     shallowAreas: [
       'Richardson Bay shoals (2-4ft at MLLW)',
-      'Strawberry Point shallows (3-5ft)',
+      'Strawberry Point shallows (2ft)',
       'Near Sausalito waterfront pilings (variable)',
+      'Cone Rock',
     ],
     notes:
       'Mostly navigable for all vessels in the main channel between Sausalito and Tiburon. Extensive mud flats and shoals in the center and north end of Richardson Bay expose at low tide. Stay in marked channels south of the Tiburon Peninsula. Raccoon Strait (between Angel Island and Tiburon) is deep (30-60ft) but has very strong tidal currents up to 3-4 knots.',
@@ -29,7 +30,10 @@ export const zoneDepths: ZoneDepth[] = [
     zoneId: 'central_bay',
     minDepthFt: 30,
     typicalDepthFt: 60,
-    shallowAreas: [],
+    shallowAreas: [
+      'Southampton Shoal',
+      'Yerba Buena Island north shoal (15ft)',
+    ],
     notes:
       'Deep water throughout. Main shipping channel 60-100ft. Alcatraz surrounds are 30-60ft. No draft concerns for any recreational vessel. The "Slot" (central channel between Golden Gate and Bay Bridge) is consistently deep. Harding Rock (charted obstruction NW of Alcatraz) is marked and at 18ft — no concern for recreational vessels.',
   },
@@ -72,13 +76,15 @@ export const zoneDepths: ZoneDepth[] = [
   },
   {
     zoneId: 'san_pablo',
-    minDepthFt: 5,
+    minDepthFt: 3,
     typicalDepthFt: 12,
     shallowAreas: [
       'San Pablo Bay western flats (2-5ft)',
       'Pinole Shoal (3-6ft)',
+      'Pinole Shoal boundaries',
       'Mare Island Strait entrance (6-10ft)',
       'China Camp shallows (2-4ft)',
+      'Northern mudflats (0-2ft)',
     ],
     notes:
       'San Pablo Bay is significantly shallower than the central bay. The main shipping channel (maintained by Army Corps) is 35ft but is narrow. Outside the channel, depths drop to 5-12ft and large areas are 2-5ft at MLLW. Extensive mud flats in western and northern portions. Deeper-draft sailboats should stay in the marked channel. Kayaks and SUPs have no issues.',
@@ -93,6 +99,9 @@ export const zoneDepths: ZoneDepth[] = [
       'Alviso Slough (1-3ft)',
       'Redwood Creek maintained channel (12-15ft) is the exception',
       'San Mateo Bridge area shoals (3-6ft)',
+      'San Bruno Shoal (2ft)',
+      'Dumbarton approach',
+      'Alviso mudflats (0ft)',
     ],
     notes:
       'South Bay (south of Bay Bridge to San Jose) is extremely shallow. At MLLW, vast areas have only 2-6ft of water. The main ship channel (to Redwood City port) is maintained at 30ft but is very narrow. Outside the channel, depths of 1-4ft are common. This zone is essentially impassable for sailboats at low tide and marginal for powerboats. Kayaks and SUPs can navigate but must be aware of tidal flats — getting stranded on mud flats is a real hazard.',
@@ -102,13 +111,15 @@ export const zoneDepths: ZoneDepth[] = [
     minDepthFt: 30,
     typicalDepthFt: 120,
     shallowAreas: [
-      'Potato Patch Shoal at Golden Gate entrance (24-36ft, extremely dangerous seas)',
+      'Potato Patch/Four Fathom Bank (24ft, breaking waves in ebb)',
       'Four Fathom Bank off Pacifica (24ft)',
       'Near-shore rocks along Devil\'s Slide (variable, stay 0.5nm offshore)',
       'Pillar Point reef (6-12ft, marked)',
+      'Southeast Reef at HMB approach (4ft)',
+      'Noonday Rock (19.5ft)',
     ],
     notes:
-      'Open Pacific Ocean south of the Golden Gate. Generally very deep (60-300ft) once past the Gate entrance. The Golden Gate bar (Potato Patch Shoal) is the most dangerous area — large breaking waves form when ebb tide meets ocean swell. Depths along the coast are 30-100ft at 0.25nm offshore. Pillar Point Harbor entrance has 10-15ft in the channel. No draft concerns for recreational vessels in normal conditions, but sea state is the real hazard, not depth.',
+      'Open Pacific Ocean south of the Golden Gate. Generally very deep (60-300ft) once past the Gate entrance. The Golden Gate bar (Potato Patch Shoal, 24-28ft charted) is the most dangerous area — large breaking waves form when ebb tide meets ocean swell, creating standing waves that can exceed 15ft. Depths along the coast are 30-100ft at 0.25nm offshore. Pillar Point Harbor entrance has 10-15ft in the channel. No draft concerns for recreational vessels in normal conditions, but sea state is the real hazard, not depth.',
   },
 ];
 

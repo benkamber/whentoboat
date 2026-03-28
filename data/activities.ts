@@ -7,7 +7,7 @@ export const activities: ActivityProfile[] = [
     description:
       'Sea kayaking in sheltered or moderate waters. Can handle light chop and short open-water crossings.',
     icon: '🛶',
-    idealWindRange: [0, 8],
+    idealWindRange: [0, 6],
     maxWind: 12,
     maxWave: 1.5,
     vesselType: 'kayak',
@@ -56,9 +56,9 @@ export const activities: ActivityProfile[] = [
     description:
       'Near-shore paddling in calm, protected water. Stay within 500m of shore. Very sensitive to wind and chop.',
     icon: '🏄‍♂️',
-    idealWindRange: [0, 5],
-    maxWind: 8,
-    maxWave: 0.5,
+    idealWindRange: [0, 4],
+    maxWind: 6,
+    maxWave: 0.3,
     vesselType: 'sup',
     preferredZoneTypes: ['sheltered', 'protected'],
     maxShoreDistanceM: 500, // must stay near shore
@@ -110,9 +110,9 @@ export const activities: ActivityProfile[] = [
     description:
       'Day cruising with passengers. Optimizing for comfort and flat water.',
     icon: '🚤',
-    idealWindRange: [0, 10],
-    maxWind: 15,
-    maxWave: 2.0,
+    idealWindRange: [0, 12],
+    maxWind: 18,
+    maxWave: 3.0,
     vesselType: 'powerboat',
     preferredZoneTypes: ['calm', 'moderate'],
     maxShoreDistanceM: null,
@@ -153,9 +153,9 @@ export const activities: ActivityProfile[] = [
     description:
       'Relaxed sailing with crew. Enough wind to sail, not enough to intimidate.',
     icon: '⛵',
-    idealWindRange: [8, 15],
-    maxWind: 20,
-    maxWave: 3.0,
+    idealWindRange: [8, 18],
+    maxWind: 25,
+    maxWave: 4.0,
     vesselType: 'sailboat',
     preferredZoneTypes: ['moderate', 'exposed'],
     maxShoreDistanceM: null,

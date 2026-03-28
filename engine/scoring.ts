@@ -63,11 +63,14 @@ export function activityScore(
   if (activity.vesselType === 'sailboat' && periodS > 6) {
     periodAdjust = 1; // long period swell is manageable for sailboats
   }
-  if (activity.vesselType === 'kayak' && periodS < 3 && waveHtFt > 0.5) {
+  if (activity.vesselType === 'kayak' && periodS < 4 && waveHtFt > 0.5) {
     periodAdjust = -2; // short period chop is extremely dangerous for kayaks
   }
 
-  const raw = windScore * 0.5 + waveScore * 0.5 + periodAdjust;
+  // Activity-specific wind/wave weighting
+  const windWeight: Record<string, number> = { kayak: 0.55, sup: 0.65, powerboat: 0.40, sailboat: 0.60 };
+  const ww = windWeight[activity.vesselType] ?? 0.5;
+  const raw = windScore * ww + waveScore * (1 - ww) + periodAdjust;
   return Math.max(1, Math.min(10, Math.round(raw)));
 }
 
@@ -85,8 +88,27 @@ export function fullConditionsScore(
 ): { score: number; factors: RiskFactor[] } {
   const factors: RiskFactor[] = [];
 
+  // ABSOLUTE SAFETY BLOCKS — these override all other scoring
+  // 1. Fog in ferry/shipping lanes: kayak/SUP in visibility < 1 mile = BLOCK
+  if ((activity.vesselType === 'kayak' || activity.vesselType === 'sup') && conditions.visibilityMi < 1) {
+    return { score: 1, factors: [{
+      factor: 'DANGER: Dense fog near shipping lanes',
+      severity: 'high',
+      description: 'Ferries travel at 30kt in zero visibility. Kayaks are invisible to radar. Do NOT launch. Wait for fog to clear.'
+    }]};
+  }
+
+  // 2. Golden Gate max ebb + paddlecraft: current > 4kt + kayak/SUP = BLOCK
+  if ((activity.vesselType === 'kayak' || activity.vesselType === 'sup') && conditions.currentKts > 4) {
+    return { score: 1, factors: [{
+      factor: 'DANGER: Current exceeds paddle speed',
+      severity: 'high',
+      description: `${conditions.currentKts.toFixed(1)}kt current exceeds maximum kayak speed (~4kt). You will be swept to sea. Do NOT attempt.`
+    }]};
+  }
+
   // 1. Base wind/wave/period score (existing algorithm)
-  const adjWave = conditions.waveHtFt / vesselWaveToleranceMultiplier(vessel.loa);
+  const adjWave = conditions.waveHtFt / vesselWaveToleranceMultiplier(vessel.loa, vessel.hullType);
   let baseScore = activityScore(activity, conditions.windKts, adjWave, conditions.wavePeriodS);
 
   // 2. Wind-against-current modifier (can dramatically increase wave height)
@@ -99,7 +121,7 @@ export function fullConditionsScore(
     );
     if (waveMultiplier > 1.3) {
       const effectiveWaves = conditions.waveHtFt * waveMultiplier;
-      const penalizedScore = activityScore(activity, conditions.windKts, effectiveWaves / vesselWaveToleranceMultiplier(vessel.loa), conditions.wavePeriodS);
+      const penalizedScore = activityScore(activity, conditions.windKts, effectiveWaves / vesselWaveToleranceMultiplier(vessel.loa, vessel.hullType), conditions.wavePeriodS);
       if (penalizedScore < baseScore) {
         factors.push({
           factor: 'Wind against current',
@@ -116,7 +138,7 @@ export function fullConditionsScore(
   if (conditions.tidePhase === 'ebb' && conditions.currentKts > 2) {
     // Strong ebb at the Gate is dangerous for all small craft
     if (activity.vesselType === 'kayak' || activity.vesselType === 'sup') {
-      tidePenalty = -2;
+      tidePenalty = -3;
       factors.push({
         factor: 'Strong ebb current',
         severity: 'high',
@@ -127,17 +149,25 @@ export function fullConditionsScore(
 
   // 4. Water temperature factor
   let waterTempPenalty = 0;
-  if (conditions.waterTempF > 0) {
-    if (conditions.waterTempF < 55 && (activity.vesselType === 'kayak' || activity.vesselType === 'sup')) {
-      waterTempPenalty = -1;
+  if (conditions.waterTempF > 0 && (activity.vesselType === 'kayak' || activity.vesselType === 'sup')) {
+    if (conditions.waterTempF < 60 && conditions.waterTempF >= 55) {
+      waterTempPenalty = -2;
       factors.push({
         factor: 'Cold water risk',
         severity: 'medium',
         description: `Water temperature ${conditions.waterTempF}°F — cold water shock risk if capsized. Wear a wetsuit or drysuit.`,
       });
     }
+    if (conditions.waterTempF < 55 && conditions.waterTempF >= 50) {
+      waterTempPenalty = -3;
+      factors.push({
+        factor: 'Cold water — drysuit required',
+        severity: 'high',
+        description: `Water temperature ${conditions.waterTempF}°F — serious cold water shock risk if capsized. Drysuit strongly recommended.`,
+      });
+    }
     if (conditions.waterTempF < 50) {
-      waterTempPenalty = -2;
+      waterTempPenalty = -4;
       factors.push({
         factor: 'Very cold water',
         severity: 'high',
@@ -179,11 +209,15 @@ export function fullConditionsScore(
         description: `Visibility ${conditions.visibilityMi.toFixed(1)} miles — cannot see other vessels. Ferry and shipping traffic risk. Do not depart.`,
       });
     } else if (conditions.visibilityMi < 3) {
-      visibilityPenalty = -1.5;
+      // Kayak/SUP get harsher penalty — invisible to ferries and radar
+      const isPaddleCraft = activity.vesselType === 'kayak' || activity.vesselType === 'sup';
+      visibilityPenalty = isPaddleCraft ? -3 : -1.5;
       factors.push({
         factor: 'Fog',
-        severity: 'medium',
-        description: `Visibility ${conditions.visibilityMi.toFixed(1)} miles — reduced visibility. Use navigation lights, sound signals. Stay clear of shipping lanes.`,
+        severity: isPaddleCraft ? 'high' : 'medium',
+        description: isPaddleCraft
+          ? `Visibility ${conditions.visibilityMi.toFixed(1)} miles — paddlecraft are nearly invisible to ferries and ship radar. Stay out of shipping lanes or do not depart.`
+          : `Visibility ${conditions.visibilityMi.toFixed(1)} miles — reduced visibility. Use navigation lights, sound signals. Stay clear of shipping lanes.`,
       });
     } else if (conditions.visibilityMi < 5) {
       visibilityPenalty = -0.5;
@@ -266,11 +300,30 @@ export function windCurrentInteraction(
 
 /**
  * Vessel wave tolerance multiplier.
- * Bigger boats handle more waves. Smaller craft are more vulnerable.
+ * Combines LOA scaling with hull-type-specific comfort factors.
+ * Bigger boats and better hull designs handle more waves.
  */
-export function vesselWaveToleranceMultiplier(loa: number): number {
-  // Baseline at 20ft. Every foot above adds 2.5% tolerance.
-  return 1.0 + (loa - 20) * 0.025;
+export function vesselWaveToleranceMultiplier(loa: number, hullType?: string): number {
+  const hullMultiplier: Record<string, number> = {
+    'deep-v': 1.0,
+    'modified-v': 0.85,
+    'flat-bottom': 0.5,
+    'pontoon': 0.5,
+    'displacement': 1.2,
+    'monohull': 1.2,
+    'catamaran': 1.3,
+    'trimaran': 1.3,
+    'sit-on-top': 0.6,
+    'sit-inside': 0.7,
+    'inflatable': 0.5,
+    'RIB': 0.9,
+    'center-console': 1.0,
+    'bowrider': 0.85,
+    'cabin-cruiser': 1.1,
+  };
+  const hullFactor = hullMultiplier[hullType ?? ''] ?? 1.0;
+  const loaFactor = 1.0 + (loa - 20) * 0.025;
+  return loaFactor * hullFactor;
 }
 
 /**
@@ -278,7 +331,7 @@ export function vesselWaveToleranceMultiplier(loa: number): number {
  * Returns the "effective" wave height that the vessel experiences.
  */
 function effectiveWaveHeight(waveHtFt: number, vessel: VesselProfile): number {
-  const multiplier = vesselWaveToleranceMultiplier(vessel.loa);
+  const multiplier = vesselWaveToleranceMultiplier(vessel.loa, vessel.hullType);
   // Bigger boat = lower effective wave height (waves feel smaller)
   return waveHtFt / multiplier;
 }

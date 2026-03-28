@@ -24,7 +24,7 @@ function formatHour(h: number): string {
 }
 
 function effectiveWaveHeight(waveHtFt: number, vessel: VesselProfile): number {
-  const multiplier = vesselWaveToleranceMultiplier(vessel.loa);
+  const multiplier = vesselWaveToleranceMultiplier(vessel.loa, vessel.hullType);
   return waveHtFt / multiplier;
 }
 
