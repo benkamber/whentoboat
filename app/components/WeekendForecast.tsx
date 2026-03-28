@@ -106,9 +106,14 @@ function computeDaySummaries(
         windGustKts: h.windGustKts,
         precipitationIn: h.precipitationIn,
         precipProbPct: h.precipProbPct,
+        pressureHpa: h.pressureHpa,
+        dewpointF: h.dewpointF,
+        uvIndex: h.uvIndex,
+        weatherCode: h.weatherCode,
+        waveDirDeg: h.waveDirDeg,
         isLiveForecast: true,
         isMissingWaveData: !h.waveDataAvailable,
-        zoneId: 'central_bay', // conservative: triggers SUP blocks and current warnings
+        zoneId: 'central_bay',
       };
       const { score, factors } = fullConditionsScore(activity, conditions, vessel);
       return { hour: new Date(h.time).getHours(), score, factors, data: h };
@@ -492,6 +497,11 @@ function HourlyBreakdown({
                 windGustKts: h.windGustKts,
                 precipitationIn: h.precipitationIn,
                 precipProbPct: h.precipProbPct,
+                pressureHpa: h.pressureHpa,
+                dewpointF: h.dewpointF,
+                uvIndex: h.uvIndex,
+                weatherCode: h.weatherCode,
+                waveDirDeg: h.waveDirDeg,
                 isLiveForecast: true,
                 isMissingWaveData: !h.waveDataAvailable,
                 zoneId: 'central_bay',

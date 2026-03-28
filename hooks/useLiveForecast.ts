@@ -120,8 +120,10 @@ function forecastHourToFullConditions(h: ForecastHour): FullConditions {
   return {
     windKts: h.windSpeedKts,
     windDirDeg: h.windDirDeg,
+    windGustKts: h.windGustKts,
     waveHtFt: h.waveHeightFt >= 0 ? h.waveHeightFt : 1.5, // conservative fallback
     wavePeriodS: h.wavePeriodS > 0 ? h.wavePeriodS : 3,
+    waveDirDeg: h.waveDirDeg,
     waterTempF: h.waterTempF,
     airTempF: h.airTempF,
     // SAFETY-CRITICAL: preserve the -1 sentinel. Do NOT default to 0.
@@ -130,6 +132,12 @@ function forecastHourToFullConditions(h: ForecastHour): FullConditions {
     visibilityMi: h.visibilityMi,
     tideFt: h.tideFt >= 0 ? h.tideFt : 3,
     tidePhase: h.tidePhase === 'unknown' ? 'flood' : h.tidePhase,
+    precipitationIn: h.precipitationIn,
+    precipProbPct: h.precipProbPct,
+    pressureHpa: h.pressureHpa,
+    dewpointF: h.dewpointF,
+    uvIndex: h.uvIndex,
+    weatherCode: h.weatherCode,
     isLiveForecast: true,
     isMissingWaveData: !h.waveDataAvailable,
   };

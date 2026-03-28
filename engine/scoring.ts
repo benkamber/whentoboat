@@ -262,6 +262,62 @@ export function fullConditionsScore(
     });
   }
 
+  // 1e. Wave direction — beam seas are worst, following seas are best (for powerboats)
+  // Beam seas (90 degrees to route) produce maximum roll motion.
+  let waveAnglePenalty = 0;
+  if (conditions.waveDirDeg !== undefined && conditions.routeHeadingDeg !== undefined && conditions.waveHtFt > 1.0) {
+    const encounterAngle = Math.abs(conditions.waveDirDeg - conditions.routeHeadingDeg);
+    const normalized = encounterAngle > 180 ? 360 - encounterAngle : encounterAngle;
+    // 80-100 degrees = beam seas (worst)
+    if (normalized >= 60 && normalized <= 120 && conditions.waveHtFt > 1.5) {
+      waveAnglePenalty = activity.vesselType === 'powerboat' ? -2 : -1;
+      factors.push({
+        factor: 'Beam seas',
+        severity: conditions.waveHtFt > 3 ? 'high' : 'medium',
+        description: `Waves hitting from the side (${Math.round(normalized)}° off heading). ` +
+          `This causes maximum roll motion and is uncomfortable for passengers.`,
+      });
+    }
+  }
+
+  // 1f. Fog detection from dewpoint spread — more reliable than visibility forecast alone
+  // When dewpoint approaches air temp (spread < 3F), fog is imminent.
+  if (conditions.dewpointF !== undefined && conditions.airTempF > 0 && conditions.dewpointF > 0) {
+    const dewpointSpread = conditions.airTempF - conditions.dewpointF;
+    if (dewpointSpread < 2 && conditions.visibilityMi > 3) {
+      // Forecast says clear, but dewpoint says fog is forming
+      factors.push({
+        factor: 'Fog forming',
+        severity: isPaddleCraft ? 'high' : 'medium',
+        description: `Dewpoint spread ${dewpointSpread.toFixed(1)}°F — fog is likely to form even if currently clear. ` +
+          `Marine fog in SF Bay can reduce visibility to under 1 mile within minutes.`,
+      });
+    }
+  }
+
+  // 1g. WMO weather code fog confirmation (codes 45, 48)
+  if (conditions.weatherCode === 45 || conditions.weatherCode === 48) {
+    if (conditions.visibilityMi > 3) {
+      // The weather model says fog but visibility forecast is still clear —
+      // trust the fog code and add a warning
+      factors.push({
+        factor: 'Fog forecast',
+        severity: 'medium',
+        description: 'Weather model indicates fog conditions. Visibility may drop suddenly.',
+      });
+    }
+  }
+
+  // 1h. UV exposure warning for all-day trips
+  if (conditions.uvIndex !== undefined && conditions.uvIndex >= 8) {
+    factors.push({
+      factor: 'High UV exposure',
+      severity: 'low',
+      description: `UV index ${Math.round(conditions.uvIndex)} — high sun exposure on the water. ` +
+        `Reflection from water doubles UV dose. Wear sunscreen and protective clothing.`,
+    });
+  }
+
   // 2. Wind-against-current modifier (can dramatically increase wave height)
   // Only applies when we have real current data (currentKts > 0, not -1 sentinel)
   if (conditions.currentKts > 0) {
@@ -396,7 +452,7 @@ export function fullConditionsScore(
   // currents (2-4kt) in high-exposure zones.
   let totalScore = baseScore + tidePenalty + waterTempPenalty + airTempPenalty
     + visibilityPenalty + currentUnavailablePenalty + currentWarningPenalty
-    + gustPenalty + precipPenalty;
+    + gustPenalty + precipPenalty + waveAnglePenalty;
 
   // 8. Ocean zone cap — ocean routes never score above 5/10
   // Ocean swell is persistent (rarely below 4ft), bar crossings are dangerous,
@@ -475,9 +531,16 @@ export function buildFullConditions(
     windGustKts: defaults?.windGustKts,
     precipitationIn: defaults?.precipitationIn,
     precipProbPct: defaults?.precipProbPct,
+    // Atmospheric — passed through from forecast data when available
+    pressureHpa: defaults?.pressureHpa,
+    dewpointF: defaults?.dewpointF,
+    uvIndex: defaults?.uvIndex,
+    weatherCode: defaults?.weatherCode,
+    waveDirDeg: defaults?.waveDirDeg,
     isLiveForecast: defaults?.isLiveForecast ?? false,
     isMissingWaveData: defaults?.isMissingWaveData ?? false,
     zoneId: defaults?.zoneId,
+    routeHeadingDeg: defaults?.routeHeadingDeg,
   };
 }
 
@@ -649,13 +712,17 @@ export function routeComfort(
   const rangeOk = isInRange(distance, vessel);
   const draft = draftClearance(destination, vessel);
 
+  // Compute route heading for directional wave scoring
+  const routeHeadingDeg = computeBearing(origin.lat, origin.lng, destination.lat, destination.lng);
+
   // Score each zone using full conditions — route comfort = worst zone (bottleneck rule)
   let worstScore = 10;
   let allRiskFactors: RiskFactor[] = [];
   for (const zone of zones) {
     const zoneConditions = getTimeConditions(zone, Math.floor(hour), month);
-    // Pass zone ID so the scoring engine can apply zone-specific current warnings
-    const fullConds = buildFullConditions(zoneConditions, month, Math.floor(hour), { zoneId: zone.id });
+    // Pass zone ID and route heading so the scoring engine can apply
+    // zone-specific current warnings and wave direction scoring
+    const fullConds = buildFullConditions(zoneConditions, month, Math.floor(hour), { zoneId: zone.id, routeHeadingDeg });
     const { score, factors } = fullConditionsScore(activity, fullConds, vessel);
     if (score < worstScore) {
       worstScore = score;
@@ -809,4 +876,18 @@ function getAlternativeReason(dest: Destination, score: number): string {
   if (score >= 9) return `${dest.name} is in excellent conditions right now`;
   if (score >= 7) return `${dest.name} is sheltered and comfortable`;
   return `${dest.name} has better conditions than your selection`;
+}
+
+/**
+ * Compute initial bearing from point A to point B in degrees (0-360).
+ * Used for route heading to enable directional wave/wind scoring.
+ */
+function computeBearing(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const lat1R = lat1 * Math.PI / 180;
+  const lat2R = lat2 * Math.PI / 180;
+  const y = Math.sin(dLng) * Math.cos(lat2R);
+  const x = Math.cos(lat1R) * Math.sin(lat2R) - Math.sin(lat1R) * Math.cos(lat2R) * Math.cos(dLng);
+  const bearing = Math.atan2(y, x) * 180 / Math.PI;
+  return (bearing + 360) % 360;
 }
