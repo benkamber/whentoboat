@@ -7,6 +7,7 @@ import type { DistanceMatrix } from '@/engine/types';
 const ids = [
   'sau', 'ang', 'tib', 'aqp', 'p39', 'fbg', 'mcc', 'clp', 'jls', 'alm', 'brk', 'ptr', 'hmb',
   'rwc', 'oyp', 'cop', 'srf', 'val', 'ben', 'ggb', 'stn', 'bol', 'pry', 'mry',
+  'scz', 'bdb', 'tmb', 'pcm', 'lrk', 'hsb', 'skm',
 ] as const;
 
 // Raw distance pairs (symmetric — both directions included via matrix builder)
@@ -408,6 +409,71 @@ const raw: [string, string, number][] = [
   ['stn', 'mry', 65],
   ['bol', 'mry', 62],
   ['pry', 'mry', 55],
+
+  // ══════════════════════════════════════════
+  // Santa Cruz (ocean_south, ~75nm from Gate)
+  ['sau', 'scz', 78],
+  ['aqp', 'scz', 75],
+  ['hmb', 'scz', 35],
+  ['mry', 'scz', 30],
+  ['ggb', 'scz', 73],
+  ['clp', 'scz', 78],
+
+  // ══════════════════════════════════════════
+  // Bodega Bay (ocean_north, ~55nm from Gate)
+  ['sau', 'bdb', 58],
+  ['aqp', 'bdb', 55],
+  ['ggb', 'bdb', 52],
+  ['stn', 'bdb', 40],
+  ['bol', 'bdb', 38],
+  ['pry', 'bdb', 25],
+
+  // ══════════════════════════════════════════
+  // Tomales Bay (ocean_north, ~40nm from Gate)
+  ['sau', 'tmb', 42],
+  ['aqp', 'tmb', 40],
+  ['ggb', 'tmb', 38],
+  ['stn', 'tmb', 28],
+  ['bol', 'tmb', 25],
+  ['pry', 'tmb', 12],
+  ['bdb', 'tmb', 18],
+
+  // ══════════════════════════════════════════
+  // Paradise Cay (richardson zone, sheltered)
+  ['sau', 'pcm', 3],
+  ['tib', 'pcm', 2],
+  ['skm', 'pcm', 2.5],
+  ['lrk', 'pcm', 1.5],
+  ['srf', 'pcm', 5],
+  ['ang', 'pcm', 4],
+
+  // ══════════════════════════════════════════
+  // Larkspur Landing (north_bay zone)
+  ['sau', 'lrk', 4],
+  ['tib', 'lrk', 3],
+  ['pcm', 'lrk', 1.5],
+  ['srf', 'lrk', 4],
+  ['ang', 'lrk', 5],
+  ['skm', 'lrk', 3.5],
+
+  // ══════════════════════════════════════════
+  // Horseshoe Bay (richardson zone, near Gate)
+  ['sau', 'hsb', 1.5],
+  ['aqp', 'hsb', 3],
+  ['ggb', 'hsb', 0.5],
+  ['ang', 'hsb', 3],
+  ['skm', 'hsb', 1],
+  ['tib', 'hsb', 4],
+  ['p39', 'hsb', 3.5],
+
+  // ══════════════════════════════════════════
+  // Schoonmaker Point (richardson zone)
+  ['sau', 'skm', 0.5],
+  ['ang', 'skm', 3],
+  ['tib', 'skm', 2.5],
+  ['hsb', 'skm', 1],
+  ['aqp', 'skm', 4],
+  ['pcm', 'skm', 2.5],
 ];
 
 // Build symmetric distance matrix

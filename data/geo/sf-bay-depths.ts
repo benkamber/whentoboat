@@ -121,6 +121,20 @@ export const zoneDepths: ZoneDepth[] = [
     notes:
       'Open Pacific Ocean south of the Golden Gate. Generally very deep (60-300ft) once past the Gate entrance. The Golden Gate bar (Potato Patch Shoal, 24-28ft charted) is the most dangerous area — large breaking waves form when ebb tide meets ocean swell, creating standing waves that can exceed 15ft. Depths along the coast are 30-100ft at 0.25nm offshore. Pillar Point Harbor entrance has 10-15ft in the channel. No draft concerns for recreational vessels in normal conditions, but sea state is the real hazard, not depth.',
   },
+  {
+    zoneId: 'ocean_north',
+    minDepthFt: 20,
+    typicalDepthFt: 150,
+    shallowAreas: [
+      'Potato Patch/Four Fathom Bank (24ft, breaking waves in ebb) — must cross on way out',
+      'Duxbury Reef off Bolinas (3-10ft, extensive shallow reef)',
+      'Tomales Bay bar entrance (6-12ft, EXTREMELY DANGEROUS in swell)',
+      'Tomales Point shoals (8-15ft)',
+      'Bodega Bay entrance rocks (variable, follow channel markers)',
+    ],
+    notes:
+      'Open Pacific Ocean north of the Golden Gate. Must transit the bar at the Gate exit. Coast north to Point Reyes is exposed to NW swell with deep water (60-200ft) offshore. Tomales Bay entrance is the most dangerous bar on this stretch — multiple fatalities. Bodega Bay entrance is narrow but well-marked. Sea state, not depth, is the primary hazard.',
+  },
 ];
 
 /**
