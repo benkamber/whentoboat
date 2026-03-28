@@ -416,8 +416,11 @@ export function fullConditionsScore(
   }
 
   // 6. Visibility / fog penalty
+  // NOTE: Guard uses >= 0, not > 0. When visibility = 0 (zero visibility),
+  // the fog penalty MUST still apply. The previous > 0 guard silently skipped
+  // all penalties at zero visibility for powerboats/sailboats.
   let visibilityPenalty = 0;
-  if (conditions.visibilityMi > 0 && conditions.visibilityMi < 10) {
+  if (conditions.visibilityMi >= 0 && conditions.visibilityMi < 10) {
     if (conditions.visibilityMi < 1) {
       visibilityPenalty = -3;
       factors.push({
