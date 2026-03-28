@@ -44,11 +44,13 @@ function VesselForm({
     if (!isNaN(n)) update(field, Math.max(min, Math.min(max, n)));
   };
 
+  const draftValid = vessel.draft > 0;
+
   return (
     <div className="space-y-4">
       {/* Name */}
       <div>
-        <label className="text-xs text-[var(--muted)] block mb-1">Vessel Name</label>
+        <label className="text-xs text-[var(--muted)] block mb-1">Vessel Name <span className="text-[var(--muted)]">(optional)</span></label>
         <input
           type="text"
           value={vessel.name}
@@ -61,7 +63,7 @@ function VesselForm({
       {/* Core specs — 2 column grid */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs text-[var(--muted)] block mb-1">Length (ft)</label>
+          <label className="text-xs text-[var(--muted)] block mb-1">Length (ft) <span className="text-[var(--muted)]">(optional)</span></label>
           <input
             type="number"
             value={vessel.loa}
@@ -71,7 +73,7 @@ function VesselForm({
         </div>
         <div>
           <label className="text-xs text-[var(--muted)] block mb-1">
-            {isPaddle ? 'Paddle Speed (mph)' : isSail ? 'Cruise Speed under power (mph)' : 'Cruise Speed (mph)'}
+            {isPaddle ? 'Paddle Speed (mph) (optional)' : isSail ? 'Cruise Speed (mph) (optional)' : 'Cruise Speed (mph) (optional)'}
           </label>
           <input
             type="number"
@@ -81,7 +83,7 @@ function VesselForm({
           />
         </div>
         <div>
-          <label className="text-xs text-[var(--muted)] block mb-1">Draft (ft)</label>
+          <label className="text-xs block mb-1"><span className="text-[var(--foreground)] font-medium">Draft (ft)</span> <span className="text-danger-red">*required</span></label>
           <input
             type="number"
             value={vessel.draft}
@@ -91,7 +93,7 @@ function VesselForm({
           />
         </div>
         <div>
-          <label className="text-xs text-[var(--muted)] block mb-1">Max Passengers</label>
+          <label className="text-xs text-[var(--muted)] block mb-1">Max Passengers <span className="text-[var(--muted)]">(optional)</span></label>
           <input
             type="number"
             value={vessel.passengers ?? 1}
@@ -105,7 +107,7 @@ function VesselForm({
       {!isPaddle && (
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-[var(--muted)] block mb-1">Fuel Capacity (gal)</label>
+            <label className="text-xs text-[var(--muted)] block mb-1">Fuel Capacity (gal) <span className="text-[var(--muted)]">(optional)</span></label>
             <input
               type="number"
               value={vessel.fuelCapacity ?? 0}
@@ -114,7 +116,7 @@ function VesselForm({
             />
           </div>
           <div>
-            <label className="text-xs text-[var(--muted)] block mb-1">Fuel Burn at Cruise (GPH)</label>
+            <label className="text-xs text-[var(--muted)] block mb-1">Fuel Burn (GPH) <span className="text-[var(--muted)]">(optional)</span></label>
             <input
               type="number"
               value={vessel.gph ?? 0}
@@ -129,7 +131,7 @@ function VesselForm({
       {/* Endurance (paddle only) */}
       {isPaddle && (
         <div>
-          <label className="text-xs text-[var(--muted)] block mb-1">Max Paddle Time (hours)</label>
+          <label className="text-xs text-[var(--muted)] block mb-1">Max Paddle Time (hrs) <span className="text-[var(--muted)]">(optional)</span></label>
           <input
             type="number"
             value={vessel.maxEnduranceHours ?? 2}
@@ -142,7 +144,7 @@ function VesselForm({
 
       {/* Hull type */}
       <div>
-        <label className="text-xs text-[var(--muted)] block mb-1">Hull Type</label>
+        <label className="text-xs text-[var(--muted)] block mb-1">Hull Type <span className="text-[var(--muted)]">(optional)</span></label>
         <select
           value={vessel.hullType ?? ''}
           onChange={(e) => update('hullType', e.target.value)}
@@ -159,7 +161,7 @@ function VesselForm({
       {isSail && (
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-[var(--muted)] block mb-1">Keel Type</label>
+            <label className="text-xs text-[var(--muted)] block mb-1">Keel Type <span className="text-[var(--muted)]">(optional)</span></label>
             <select
               value={vessel.keelType ?? ''}
               onChange={(e) => update('keelType', e.target.value)}
@@ -172,7 +174,7 @@ function VesselForm({
             </select>
           </div>
           <div>
-            <label className="text-xs text-[var(--muted)] block mb-1">Sail Area (sq ft)</label>
+            <label className="text-xs text-[var(--muted)] block mb-1">Sail Area (sq ft) <span className="text-[var(--muted)]">(optional)</span></label>
             <input
               type="number"
               value={vessel.sailArea ?? 0}
@@ -199,7 +201,7 @@ function VesselForm({
 
       {/* Notes */}
       <div>
-        <label className="text-xs text-[var(--muted)] block mb-1">Notes</label>
+        <label className="text-xs text-[var(--muted)] block mb-1">Notes <span className="text-[var(--muted)]">(optional)</span></label>
         <textarea
           value={vessel.notes ?? ''}
           onChange={(e) => update('notes', e.target.value)}
@@ -225,10 +227,18 @@ function VesselForm({
       </div>
 
       {/* Actions */}
+      {!draftValid && (
+        <p className="text-xs text-danger-red">Draft is required — it determines which waters are safe for your vessel.</p>
+      )}
+
       <div className="flex gap-2">
         <button
-          onClick={onSave}
-          className="flex-1 py-2.5 rounded-lg bg-reef-teal text-white font-medium text-sm hover:bg-reef-teal/90 transition-colors"
+          onClick={() => { if (draftValid) onSave(); }}
+          className={`flex-1 py-2.5 rounded-lg font-medium text-sm transition-colors ${
+            draftValid
+              ? 'bg-reef-teal text-white hover:bg-reef-teal/90'
+              : 'bg-[var(--card-elevated)] text-[var(--muted)] cursor-not-allowed'
+          }`}
         >
           Save Vessel
         </button>
