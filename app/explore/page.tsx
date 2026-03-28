@@ -12,6 +12,7 @@ import { useDestinationGeoJSON, useRouteGeoJSON } from '@/hooks/useMapData';
 import { Header } from '../components/Header';
 import { ScoreBadge } from '../components/ScoreBadge';
 import { TrajectoryPanel } from '../components/TrajectoryPanel';
+import { vesselPresets } from '@/data/vessels';
 import type { ActivityType } from '@/engine/types';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -142,7 +143,7 @@ export default function ExplorePage() {
   const mapRef = useRef<MapRef>(null);
   const {
     activity, month, hour, vessel, selectedOriginId,
-    setActivity, setMonth, setHour, setSelectedOrigin,
+    setActivity, setMonth, setHour, setSelectedOrigin, setVesselPreset,
   } = useAppStore();
   const [popup, setPopup] = useState<PopupInfo | null>(null);
   const [cursor, setCursor] = useState('auto');
@@ -326,6 +327,22 @@ export default function ExplorePage() {
                 {a.icon} {a.name}
               </button>
             ))}
+          </div>
+
+          {/* Vessel selector */}
+          <div className="pointer-events-auto">
+            <select
+              value={vessel.type}
+              onChange={(e) => {
+                const preset = vesselPresets.find(v => v.type === e.target.value);
+                if (preset) setVesselPreset(preset.type);
+              }}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-md bg-ocean-900/80 text-ocean-200 border border-ocean-700/50 cursor-pointer focus:border-compass-gold focus:outline-none"
+            >
+              {vesselPresets.map(v => (
+                <option key={v.type} value={v.type}>{v.name} ({v.loa}ft, {v.draft}ft draft)</option>
+              ))}
+            </select>
           </div>
 
           {/* Month selector */}

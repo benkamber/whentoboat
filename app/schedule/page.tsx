@@ -110,8 +110,9 @@ export default function SchedulePage() {
   const [timeWindow, setTimeWindow] = useState<TimeWindow>('am');
   const [sortBy, setSortBy] = useState<SortOption>('score');
 
+  const [departureCity, setDepartureCity] = useState(homeBaseId);
   const currentActivity = getActivity(activity);
-  const origin = sfBay.destinations.find((d) => d.id === homeBaseId) ?? sfBay.destinations[0];
+  const origin = sfBay.destinations.find((d) => d.id === departureCity) ?? sfBay.destinations[0];
 
   // Compute scored routes + timetables for all reachable destinations
   const entries = useMemo(() => {
@@ -203,25 +204,33 @@ export default function SchedulePage() {
 
       <main className="flex-1 px-4 py-6 max-w-3xl mx-auto w-full space-y-6">
         {/* ---- Header area: current settings ---- */}
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">Departure Board</h1>
-          <p className="text-sm text-[var(--muted)]">
-            {currentActivity.icon} {currentActivity.name} from{' '}
-            <span className="text-[var(--foreground)] font-medium">{origin.name}</span>
-            {' '}&middot; {MONTH_FULL[month]} &middot; {vessel.name}
-          </p>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold tracking-tight">Schedule</h1>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-[var(--muted)]">{currentActivity.icon} {currentActivity.name} from</span>
+            <select
+              value={departureCity}
+              onChange={(e) => setDepartureCity(e.target.value)}
+              className="bg-[var(--card-elevated)] border border-[var(--border)] rounded-lg px-2 py-1 text-sm font-medium text-[var(--foreground)] cursor-pointer focus:border-compass-gold focus:outline-none"
+            >
+              {sfBay.destinations.map((d) => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+            <span className="text-[var(--muted)]">&middot; {MONTH_FULL[month]} &middot; {vessel.name}</span>
+          </div>
         </div>
 
         {/* ---- Summary strip ---- */}
         <div className="flex items-center gap-3 text-xs">
-          <span className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-medium">
-            {recommended} recommended
+          <span className="px-2 py-1 rounded bg-reef-teal/20 text-reef-teal border border-reef-teal/30 font-medium">
+            {recommended} great
           </span>
-          <span className="px-2 py-1 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 font-medium">
-            {available} available
+          <span className="px-2 py-1 rounded bg-compass-gold/20 text-compass-gold border border-compass-gold/30 font-medium">
+            {available} fair
           </span>
           <span className="text-[var(--muted)]">
-            {entries.length} destinations total
+            {entries.length} total
           </span>
         </div>
 
