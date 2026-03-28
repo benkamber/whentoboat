@@ -606,6 +606,18 @@ export default function Home() {
               </select>
             </div>
 
+            {/* Active vessel indicator */}
+            <a
+              href="/vessels"
+              className="flex items-center justify-between bg-[var(--card-elevated)] border border-[var(--border)] rounded-lg px-2 py-1.5 hover:border-compass-gold transition-colors group"
+            >
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-[var(--muted)]">Vessel:</span>
+                <span className="text-xs font-medium">{vessel.name}</span>
+              </div>
+              <span className="text-[10px] text-[var(--muted)] group-hover:text-compass-gold">Edit →</span>
+            </a>
+
             {/* Month selector */}
             <div className="flex gap-0.5 overflow-x-auto">
               {MONTHS.map((m, i) => (

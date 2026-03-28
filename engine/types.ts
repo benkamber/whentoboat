@@ -31,6 +31,7 @@ export type VesselType = 'kayak' | 'sup' | 'powerboat' | 'sailboat';
 // significantly different wind tolerance, wave limits, and near-shore requirements
 
 export interface VesselProfile {
+  id?: string; // unique ID for saved vessels (undefined for presets)
   type: VesselType;
   name: string;
   loa: number; // length overall in feet
@@ -39,6 +40,15 @@ export interface VesselProfile {
   gph: number | null; // gallons per hour at cruise, null for human-powered
   draft: number; // feet
   maxEnduranceHours: number | null; // for human-powered craft
+  // Extended specs (optional — for detailed vessel profiles)
+  beam?: number; // beam width in feet
+  displacement?: number; // displacement in lbs
+  engineType?: string; // e.g., "Mercury 200XL", "paddle", "sail"
+  hullType?: string; // e.g., "deep-v", "flat-bottom", "displacement", "planing"
+  keelType?: string; // sailboat: "fin", "full", "centerboard", "daggerboard"
+  sailArea?: number; // sailboat: total sail area in sq ft
+  passengers?: number; // max passengers
+  notes?: string; // user notes about this vessel
 }
 
 // --- Location ---
