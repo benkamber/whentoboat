@@ -54,10 +54,18 @@ function cacheKey(lat: number, lng: number, days: number): string {
 }
 
 function evictCache() {
-  if (cache.size <= MAX_CACHE_SIZE) return;
   const now = Date.now();
+  // First: remove expired entries
   for (const [k, v] of cache) {
     if (now - v.ts > CACHE_TTL_MS) cache.delete(k);
+  }
+  // Second: if still over limit, remove oldest entries
+  if (cache.size > MAX_CACHE_SIZE) {
+    const sorted = [...cache.entries()].sort((a, b) => a[1].ts - b[1].ts);
+    const toRemove = cache.size - MAX_CACHE_SIZE;
+    for (let i = 0; i < toRemove; i++) {
+      cache.delete(sorted[i][0]);
+    }
   }
 }
 

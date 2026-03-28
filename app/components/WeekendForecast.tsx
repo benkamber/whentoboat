@@ -35,6 +35,7 @@ interface DaySummary {
   bestWindowEnd: number | null;
   bestWindowLabel: string;
   hours: ForecastHour[];
+  waveDataAvailable: boolean;
 }
 
 function formatHour(h: number): string {
@@ -83,7 +84,7 @@ function computeDaySummaries(
       const conditions = {
         windKts: h.windSpeedKts,
         windDirDeg: h.windDirDeg,
-        waveHtFt: h.waveHeightFt >= 0 ? h.waveHeightFt : 1.5,
+        waveHtFt: h.waveHeightFt >= 0 ? h.waveHeightFt : 2.5, // conservative fallback — assume moderate chop when data unavailable
         wavePeriodS: h.wavePeriodS > 0 ? h.wavePeriodS : 3,
         waterTempF: (h as any).waterTempF ?? 58,
         airTempF: (h as any).airTempF ?? h.airTempF ?? 62,
@@ -154,6 +155,7 @@ function computeDaySummaries(
       bestWindowEnd: bestEnd,
       bestWindowLabel,
       hours: daytimeHours,
+      waveDataAvailable: hasWaveData,
     });
   }
 
@@ -325,6 +327,11 @@ export function WeekendForecast() {
                   {day.peakWaveHtFt >= 0 ? `${day.peakWaveHtFt}ft` : 'N/A'}
                 </span>
               </div>
+              {!day.waveDataAvailable && (
+                <div className="text-[9px] text-warning-amber">
+                  ⚠ Wave data unavailable — conditions may be rougher
+                </div>
+              )}
               <div className="flex justify-between">
                 <span>Temp</span>
                 <span className="font-mono text-[var(--foreground)]">
