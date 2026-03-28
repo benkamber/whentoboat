@@ -14,6 +14,7 @@ import { useZoneOverlay } from '@/hooks/useZoneOverlay';
 import { useBathymetryOverlay } from '@/hooks/useBathymetryOverlay';
 import { useLiveForecast } from '@/hooks/useLiveForecast';
 import { vesselPresets } from '@/data/vessels';
+import { ferryRoutesGeoJSON } from '@/data/geo/sf-bay-ferry-routes';
 import { Header } from './components/Header';
 import { ScoreBadge, getScoreLabel } from './components/ScoreBadge';
 import { TrajectoryPanel } from './components/TrajectoryPanel';
@@ -204,6 +205,36 @@ const depthLabelLayer = {
   },
 };
 
+// Ferry routes + shipping lanes overlay
+const ferryLineLayer = {
+  id: 'ferry-routes',
+  type: 'line' as const,
+  paint: {
+    'line-color': ['get', 'color'] as any,
+    'line-width': ['get', 'lineWidth'] as any,
+    'line-opacity': ['get', 'opacity'] as any,
+    'line-dasharray': [4, 4] as any,
+  },
+};
+
+const ferryLabelLayer = {
+  id: 'ferry-labels',
+  type: 'symbol' as const,
+  layout: {
+    'symbol-placement': 'line' as const,
+    'text-field': ['get', 'name'] as any,
+    'text-size': 10,
+    'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'] as any,
+    'text-offset': [0, -0.8] as any,
+    'text-allow-overlap': false,
+  },
+  paint: {
+    'text-color': '#ef4444',
+    'text-halo-color': '#0a1628',
+    'text-halo-width': 1,
+  },
+};
+
 interface PopupInfo {
   lng: number;
   lat: number;
@@ -234,6 +265,8 @@ export default function Home() {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [useLiveData, setUseLiveData] = useState(false);
   const [showDepthOverlay, setShowDepthOverlay] = useState(false);
+  const [showFerryRoutes, setShowFerryRoutes] = useState(false);
+  const ferryGeoJSON = useMemo(() => ferryRoutesGeoJSON(), []);
 
   // Live forecast data
   const { forecast, loading: forecastLoading, error: forecastError, getConditionsForHour, hasLiveDataForDate, sources: forecastSources } = useLiveForecast();
@@ -947,8 +980,8 @@ export default function Home() {
               >
                 <NavigationControl position="bottom-right" />
 
-                {/* Depth chart toggle button */}
-                <div className="absolute top-3 right-3 z-10">
+                {/* Map layer toggle buttons */}
+                <div className="absolute top-3 right-3 z-10 flex gap-1.5">
                   <button
                     onClick={() => setShowDepthOverlay(!showDepthOverlay)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-md transition-colors shadow-lg ${
@@ -956,9 +989,20 @@ export default function Home() {
                         ? 'bg-safety-blue text-white border border-safety-blue'
                         : 'bg-ocean-900/80 text-ocean-200 border border-ocean-700/50 hover:bg-ocean-800/80'
                     }`}
-                    title={showDepthOverlay ? 'Show comfort overlay' : 'Show depth chart'}
+                    title={showDepthOverlay ? 'Hide depth chart' : 'Show depth chart'}
                   >
                     {showDepthOverlay ? 'Depth ON' : 'Depth'}
+                  </button>
+                  <button
+                    onClick={() => setShowFerryRoutes(!showFerryRoutes)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-md transition-colors shadow-lg ${
+                      showFerryRoutes
+                        ? 'bg-danger-red text-white border border-danger-red'
+                        : 'bg-ocean-900/80 text-ocean-200 border border-ocean-700/50 hover:bg-ocean-800/80'
+                    }`}
+                    title={showFerryRoutes ? 'Hide ferry routes' : 'Show ferry routes & shipping lanes'}
+                  >
+                    {showFerryRoutes ? 'Ferries ON' : 'Ferries'}
                   </button>
                 </div>
 
@@ -978,6 +1022,14 @@ export default function Home() {
                       <Layer {...zoneBorderLayer} />
                     </Source>
                   </>
+                )}
+
+                {/* Ferry routes & shipping lanes overlay */}
+                {showFerryRoutes && (
+                  <Source id="ferry-routes" type="geojson" data={ferryGeoJSON}>
+                    <Layer {...ferryLineLayer} />
+                    <Layer {...ferryLabelLayer} />
+                  </Source>
                 )}
 
                 {/* Route lines */}
