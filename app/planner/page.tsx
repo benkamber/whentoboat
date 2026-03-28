@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { sfBay } from '@/data/cities/sf-bay';
 import { activities, getActivity } from '@/data/activities';
@@ -176,7 +176,14 @@ export default function PlannerPage() {
     return data;
   }, [selectedActivity, selectedOrigin]);
 
+  const [expandedMonth, setExpandedMonth] = useState<number | null>(null);
+
   function handleMonthClick(month: number) {
+    // Toggle expansion instead of navigating away
+    setExpandedMonth(expandedMonth === month ? null : month);
+  }
+
+  function handleGoToMonth(month: number) {
     setMonth(month);
     setActivity(selectedActivity);
     router.push('/');
@@ -184,10 +191,59 @@ export default function PlannerPage() {
 
   function getGoodDaysIndicator(goodDays: number, totalDays: number) {
     const ratio = goodDays / totalDays;
-    if (ratio >= 0.6) return { color: 'text-green-500', icon: '●' };
-    if (ratio >= 0.3) return { color: 'text-yellow-500', icon: '●' };
-    return { color: 'text-red-400', icon: '●' };
+    if (ratio >= 0.6) return { color: 'text-reef-teal', icon: '●' };
+    if (ratio >= 0.3) return { color: 'text-compass-gold', icon: '●' };
+    return { color: 'text-danger-red', icon: '●' };
   }
+
+  // Compute weekly risk factors for the expanded month
+  const weeklyData = useMemo(() => {
+    if (expandedMonth === null) return null;
+    const act = getActivity(selectedActivity);
+    const origin = sfBay.destinations.find(d => d.id === selectedOrigin);
+    if (!origin) return null;
+
+    // 4 weeks per month: early, mid-early, mid-late, late
+    const weeks = [
+      { label: `Week 1 (1st–7th)`, hours: [7, 9, 11, 14] },
+      { label: `Week 2 (8th–14th)`, hours: [7, 9, 11, 14] },
+      { label: `Week 3 (15th–21st)`, hours: [7, 9, 11, 14] },
+      { label: `Week 4 (22nd–${DAYS_IN_MONTH[expandedMonth]}th)`, hours: [7, 9, 11, 14] },
+    ];
+
+    return weeks.map(week => {
+      // Compute scores at different times of day
+      const timeScores = week.hours.map(h => {
+        const zone = sfBay.zones.find(z => z.id === origin.zone);
+        if (!zone) return { hour: h, score: 5, wind: 0, wave: 0 };
+        const cond = getTimeConditions(zone, h, expandedMonth);
+        const wm = vesselWaveToleranceMultiplier(act.vesselType === 'powerboat' ? 24 : act.vesselType === 'sailboat' ? 30 : 14);
+        const s = activityScore(act, cond.windKts, cond.waveHtFt / wm, cond.wavePeriodS);
+        return { hour: h, score: s, wind: cond.windKts, wave: cond.waveHtFt };
+      });
+
+      // Identify the primary risk
+      const worstTime = timeScores.reduce((w, t) => t.score < w.score ? t : w, timeScores[0]);
+      let primaryRisk = 'Conditions look good';
+      if (worstTime.wind > 15) primaryRisk = `Strong afternoon wind (${worstTime.wind}kt)`;
+      else if (worstTime.wave > 2) primaryRisk = `Rough chop (${worstTime.wave}ft waves)`;
+      else if (worstTime.wind > 10) primaryRisk = `Moderate wind (${worstTime.wind}kt)`;
+      else if (worstTime.wave > 1) primaryRisk = `Light chop (${worstTime.wave}ft)`;
+
+      const bestScore = Math.max(...timeScores.map(t => t.score));
+      const worstScore = Math.min(...timeScores.map(t => t.score));
+
+      return {
+        label: week.label,
+        bestScore,
+        worstScore,
+        amScore: timeScores.find(t => t.hour === 9)?.score ?? 5,
+        pmScore: timeScores.find(t => t.hour === 14)?.score ?? 5,
+        primaryRisk,
+        timeScores,
+      };
+    });
+  }, [expandedMonth, selectedActivity, selectedOrigin]);
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
@@ -248,8 +304,8 @@ export default function PlannerPage() {
           {monthData.map((m) => {
             const indicator = getGoodDaysIndicator(m.goodDays, DAYS_IN_MONTH[m.month]);
             return (
+              <React.Fragment key={m.month}>
               <button
-                key={m.month}
                 onClick={() => handleMonthClick(m.month)}
                 className={`relative text-left p-4 rounded-xl border transition-all hover:shadow-lg hover:scale-[1.02] ${
                   m.isBestMonth
@@ -309,7 +365,56 @@ export default function PlannerPage() {
                     }}
                   />
                 </div>
+
+                {expandedMonth === m.month && (
+                  <div className="text-[10px] text-reef-teal mt-2 text-center font-medium">
+                    Click to collapse
+                  </div>
+                )}
               </button>
+
+              {/* Weekly risk breakdown — shown when month is expanded */}
+              {expandedMonth === m.month && weeklyData && (
+                <div className="col-span-full border border-[var(--border)] rounded-xl bg-[var(--card-elevated)] p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold">{m.name} — Weekly Risk Breakdown</h3>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleGoToMonth(m.month); }}
+                      className="text-xs text-reef-teal hover:underline"
+                    >
+                      View on map →
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-[var(--muted)]">Based on historical averages for {getActivity(selectedActivity).name}</p>
+
+                  <div className="space-y-2">
+                    {weeklyData.map((week, wi) => (
+                      <div key={wi} className="flex items-center gap-3 p-2 rounded-lg bg-[var(--card)] border border-[var(--border)]">
+                        <div className="w-20 shrink-0">
+                          <span className="text-xs font-medium">{week.label.split('(')[0]}</span>
+                          <span className="text-[10px] text-[var(--muted)] block">{week.label.match(/\(.*\)/)?.[0]}</span>
+                        </div>
+                        <div className="flex gap-1.5 items-center">
+                          <div className="text-center">
+                            <span className="text-[9px] text-[var(--muted)] block">AM</span>
+                            <ScoreBadge score={week.amScore} size="sm" />
+                          </div>
+                          <div className="text-center">
+                            <span className="text-[9px] text-[var(--muted)] block">PM</span>
+                            <ScoreBadge score={week.pmScore} size="sm" />
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className={`text-xs ${week.worstScore <= 3 ? 'text-danger-red' : week.worstScore <= 5 ? 'text-compass-gold' : 'text-[var(--muted)]'}`}>
+                            {week.primaryRisk}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </React.Fragment>
             );
           })}
         </div>
