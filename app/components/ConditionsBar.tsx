@@ -43,8 +43,8 @@ export function ConditionsBar() {
     const tideFt = conditions.tideFt ?? 3.0;
     const tideDesc = describeTide(tidePhase, tideFt);
 
-    // Compute a rough wind direction label from the windDirDeg if available
-    const windDirDeg = conditions.currentDirDeg ?? 270;
+    // Wind direction (prevailing westerly default for SF Bay)
+    const windDirDeg = (conditions as any).windDirDeg ?? 270;
     const windDirLabel = degToCompass(windDirDeg);
 
     return {
