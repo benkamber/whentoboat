@@ -187,6 +187,23 @@ const bathymetryFillLayer = {
   },
 };
 
+// Depth label layer — shows depth numbers on each zone polygon
+const depthLabelLayer = {
+  id: 'depth-labels',
+  type: 'symbol' as const,
+  layout: {
+    'text-field': ['concat', ['get', 'minDepthFt'], '-', ['get', 'depthFt'], 'ft'] as any,
+    'text-size': 11,
+    'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'] as any,
+    'text-allow-overlap': false,
+  },
+  paint: {
+    'text-color': '#93c5fd',
+    'text-halo-color': '#0a1628',
+    'text-halo-width': 1.5,
+  },
+};
+
 interface PopupInfo {
   lng: number;
   lat: number;
@@ -216,6 +233,7 @@ export default function Home() {
   // verifyLinksOpen removed — verify links only in trajectory panel now
   const [mapLoaded, setMapLoaded] = useState(false);
   const [useLiveData, setUseLiveData] = useState(false);
+  const [showDepthOverlay, setShowDepthOverlay] = useState(false);
 
   // Live forecast data
   const { forecast, loading: forecastLoading, error: forecastError, getConditionsForHour, hasLiveDataForDate, sources: forecastSources } = useLiveForecast();
@@ -929,16 +947,38 @@ export default function Home() {
               >
                 <NavigationControl position="bottom-right" />
 
-                {/* Bathymetry depth overlay (behind zone overlay) */}
-                <Source id="bathymetry" type="geojson" data={bathymetryGeoJSON}>
-                  <Layer {...bathymetryFillLayer} />
-                </Source>
+                {/* Depth chart toggle button */}
+                <div className="absolute top-3 right-3 z-10">
+                  <button
+                    onClick={() => setShowDepthOverlay(!showDepthOverlay)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-md transition-colors shadow-lg ${
+                      showDepthOverlay
+                        ? 'bg-safety-blue text-white border border-safety-blue'
+                        : 'bg-ocean-900/80 text-ocean-200 border border-ocean-700/50 hover:bg-ocean-800/80'
+                    }`}
+                    title={showDepthOverlay ? 'Show comfort overlay' : 'Show depth chart'}
+                  >
+                    {showDepthOverlay ? 'Depth ON' : 'Depth'}
+                  </button>
+                </div>
 
-                {/* Zone heat overlay (behind routes/markers, above bathymetry) */}
-                <Source id="zones" type="geojson" data={zoneOverlayGeoJSON}>
-                  <Layer {...zoneFillLayer} />
-                  <Layer {...zoneBorderLayer} />
-                </Source>
+                {/* Depth overlay OR zone comfort overlay (toggleable) */}
+                {showDepthOverlay ? (
+                  <Source id="bathymetry" type="geojson" data={bathymetryGeoJSON}>
+                    <Layer {...bathymetryFillLayer} />
+                    <Layer {...depthLabelLayer} />
+                  </Source>
+                ) : (
+                  <>
+                    <Source id="bathymetry" type="geojson" data={bathymetryGeoJSON}>
+                      <Layer {...bathymetryFillLayer} />
+                    </Source>
+                    <Source id="zones" type="geojson" data={zoneOverlayGeoJSON}>
+                      <Layer {...zoneFillLayer} />
+                      <Layer {...zoneBorderLayer} />
+                    </Source>
+                  </>
+                )}
 
                 {/* Route lines */}
                 <Source id="routes" type="geojson" data={routesGeoJSON}>
