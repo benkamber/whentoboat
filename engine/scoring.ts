@@ -160,9 +160,12 @@ export function fullConditionsScore(
     const isHighCurrentZone = (HIGH_CURRENT_ZONES as readonly string[]).includes(zoneId);
 
     if (isPaddleCraft) {
-      // Kayak/SUP: current data is safety-critical in high-current zones
+      // Kayak/SUP: current data is safety-critical in high-current zones.
+      // Penalty is -1 (not -2) — the WARNING is the safety mechanism, not the
+      // score crush. A -2 penalty stacked with cold water (-3) makes calm days
+      // show DANGEROUS, which destroys trust. The warning still says HIGH PRIORITY.
       if (isHighCurrentZone) {
-        currentUnavailablePenalty = -2;
+        currentUnavailablePenalty = -1;
         factors.push({
           factor: 'Current data unavailable — HIGH PRIORITY',
           severity: 'high',

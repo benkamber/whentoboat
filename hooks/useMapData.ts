@@ -98,13 +98,13 @@ export function useRouteGeoJSON(
 
       const scored = routeComfort(fromDest, toDest, month, hour, act, vessel, sfBay);
 
-      // Use validated water route waypoints when available — these follow actual
-      // navigable channels and go around land masses. Fall back to straight line
-      // only when no water route is defined for this pair.
+      // Use validated water route waypoints — these follow actual navigable
+      // channels and go around land masses. If no water route exists for this
+      // pair, DON'T draw a line at all — a straight line through land is worse
+      // than no line. The destination dot still shows with its score.
       const waterRoute = getWaterRoute(fromId, toId, vessel.type);
-      const coordinates = waterRoute
-        ? waterRoute.waypoints.map(wp => [wp[0], wp[1]])
-        : [[fromDest.lng, fromDest.lat], [toDest.lng, toDest.lat]];
+      if (!waterRoute) continue; // skip pairs without validated water routes
+      const coordinates = waterRoute.waypoints.map(wp => [wp[0], wp[1]]);
 
       const isSelected = selectedDestinationId === toId;
       const hasSelection = !!selectedDestinationId;

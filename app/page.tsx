@@ -667,7 +667,9 @@ export default function Home() {
                 onChange={(e) => setHomeBase(e.target.value)}
                 className="flex-1 bg-[var(--card-elevated)] border border-[var(--border)] rounded-lg px-2 py-1.5 text-sm text-[var(--foreground)] appearance-none cursor-pointer focus:border-compass-gold focus:outline-none"
               >
-                {sfBay.destinations.map((d) => (
+                {sfBay.destinations
+                  .filter((d) => d.launchRamp != null && d.id !== 'ggb') // GGB is destination-only, no launch
+                  .map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name}
                   </option>
@@ -678,30 +680,29 @@ export default function Home() {
             {/* Vessel selector — inline preset picker + customize */}
             <BoatSelector />
 
-            {/* Compact month + data source — single row */}
+            {/* Data source: Live vs Historical */}
             <div className="flex items-center gap-2">
-              <select
-                value={month}
-                onChange={(e) => { setMonth(Number(e.target.value)); setUseLiveData(false); }}
-                className="bg-[var(--card-elevated)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--foreground)] cursor-pointer focus:border-compass-gold focus:outline-none"
-              >
-                {MONTHS.map((m, i) => (
-                  <option key={i} value={i}>{m}</option>
-                ))}
-              </select>
+              {!useLiveData && (
+                <select
+                  value={month}
+                  onChange={(e) => setMonth(Number(e.target.value))}
+                  className="bg-[var(--card-elevated)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--foreground)] cursor-pointer focus:border-compass-gold focus:outline-none"
+                >
+                  {MONTHS.map((m, i) => (
+                    <option key={i} value={i}>{m}</option>
+                  ))}
+                </select>
+              )}
               <button
                 onClick={() => setUseLiveData(!useLiveData)}
-                className={`flex-1 px-2 py-1 rounded text-[10px] font-medium transition-colors ${
+                className={`flex-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
                   useLiveData
-                    ? 'bg-reef-teal/20 text-reef-teal border border-reef-teal/30'
-                    : 'text-[var(--muted)] hover:bg-[var(--card-elevated)] border border-transparent'
+                    ? 'bg-reef-teal text-white border border-reef-teal shadow-sm'
+                    : 'bg-[var(--card-elevated)] text-[var(--muted)] border border-[var(--border)] hover:border-reef-teal/50'
                 }`}
               >
-                {forecastLoading ? 'Loading...' : useLiveData ? 'Live Forecast' : 'Show Live'}
+                {forecastLoading ? 'Loading...' : useLiveData ? 'Live — Today' : 'Show Live Forecast'}
               </button>
-              {useLiveData && !forecastError && (
-                <span className="text-[9px] text-reef-teal">LIVE</span>
-              )}
             </div>
           </div>
 
@@ -981,6 +982,20 @@ export default function Home() {
                 cursor={cursor}
               >
                 <NavigationControl position="bottom-right" />
+
+                {/* DATA CONTEXT BANNER — always visible, always clear */}
+                <div className="absolute top-3 left-3 z-10">
+                  <div className={`px-3 py-1.5 rounded-lg text-xs font-bold backdrop-blur-md shadow-lg ${
+                    useLiveData
+                      ? 'bg-reef-teal text-white border border-reef-teal'
+                      : 'bg-compass-gold text-ocean-950 border border-compass-gold'
+                  }`}>
+                    {useLiveData
+                      ? `LIVE — ${new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · ${timeLabel}`
+                      : `Historical · ${MONTHS[month]} · ${timeLabel}`
+                    }
+                  </div>
+                </div>
 
                 {/* Map layer toggle buttons */}
                 <div className="absolute top-3 right-3 z-10 flex gap-1.5">
