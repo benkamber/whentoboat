@@ -4,6 +4,7 @@ import type {
   Destination,
   HourlyScore,
   MonthlyScore,
+  RiskFactor,
   ScoreRange,
   TimeWindow,
   TrajectoryAnalysis,
@@ -12,7 +13,7 @@ import type {
 } from './types';
 import { getTimeConditions } from './interpolation';
 import { getRouteZones, transitTime, fuelRoundTrip, isInRange, draftClearance } from './routing';
-import { activityScore, vesselWaveToleranceMultiplier, findAlternatives } from './scoring';
+import { fullConditionsScore, buildFullConditions, findAlternatives } from './scoring';
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -23,14 +24,29 @@ function formatHour(h: number): string {
   return `${h - 12}:00 PM`;
 }
 
-function effectiveWaveHeight(waveHtFt: number, vessel: VesselProfile): number {
-  const multiplier = vesselWaveToleranceMultiplier(vessel.loa, vessel.hullType);
-  return waveHtFt / multiplier;
+/**
+ * Score a zone using the FULL conditions scorer (not just wind/wave).
+ * This ensures trajectory scores match main page scores — no divergence.
+ */
+function scoreZone(
+  zone: { id: string; name: string; characteristics: string; monthlyConditions: any[] },
+  hour: number,
+  month: number,
+  activity: ActivityProfile,
+  vessel: VesselProfile
+): { score: number; factors: RiskFactor[] } {
+  const zoneConditions = getTimeConditions(zone as any, hour, month);
+  const fullConds = buildFullConditions(zoneConditions, month, hour, { zoneId: zone.id });
+  return fullConditionsScore(activity, fullConds, vessel);
 }
 
 /**
  * Full trajectory analysis for a route.
  * This is the core data that powers the trajectory panel.
+ *
+ * IMPORTANT: Uses fullConditionsScore() for ALL scoring — not activityScore().
+ * This ensures trajectory scores account for fog, current, temperature, zone
+ * restrictions, and ocean caps — matching the scores shown on the main page.
  */
 export function analyzeTrajectory(
   origin: Destination,
@@ -49,11 +65,12 @@ export function analyzeTrajectory(
   const rangeOk = isInRange(distance, vessel);
   const draft = draftClearance(destination, vessel);
 
-  // Build legs with per-zone scoring
+  // Build legs with per-zone scoring using FULL conditions scorer
+  let allRiskFactors: RiskFactor[] = [];
   const legs: TrajectoryLeg[] = zones.map((zone) => {
     const conditions = getTimeConditions(zone, hour, month);
-    const adjWave = effectiveWaveHeight(conditions.waveHtFt, vessel);
-    const score = activityScore(activity, conditions.windKts, adjWave, conditions.wavePeriodS);
+    const { score, factors } = scoreZone(zone, hour, month, activity, vessel);
+    allRiskFactors = allRiskFactors.concat(factors);
 
     return {
       zone,
@@ -75,7 +92,7 @@ export function analyzeTrajectory(
     }
   }
 
-  // Hourly profile: score at every hour 5 AM – 10 PM
+  // Hourly profile: score at every hour 5 AM – 10 PM using full scorer
   const hourlyProfile: HourlyScore[] = [];
   for (let h = 5; h <= 22; h++) {
     let worstScore = 10;
@@ -83,10 +100,9 @@ export function analyzeTrajectory(
     let worstWave = 0;
     for (const zone of zones) {
       const cond = getTimeConditions(zone, h, month);
-      const adjWave = effectiveWaveHeight(cond.waveHtFt, vessel);
-      const s = activityScore(activity, cond.windKts, adjWave, cond.wavePeriodS);
-      if (s < worstScore) {
-        worstScore = s;
+      const { score } = scoreZone(zone, h, month, activity, vessel);
+      if (score < worstScore) {
+        worstScore = score;
         worstWind = cond.windKts;
         worstWave = cond.waveHtFt;
       }
@@ -100,18 +116,14 @@ export function analyzeTrajectory(
     });
   }
 
-  // Monthly profile: score for each month at the current hour
+  // Monthly profile: score for each month at the current hour using full scorer
   const monthlyProfile: MonthlyScore[] = [];
   for (let m = 0; m < 12; m++) {
     let amWorst = 10;
     let pmWorst = 10;
     for (const zone of zones) {
-      const amCond = getTimeConditions(zone, 9, m);
-      const pmCond = getTimeConditions(zone, 14, m);
-      const amAdj = effectiveWaveHeight(amCond.waveHtFt, vessel);
-      const pmAdj = effectiveWaveHeight(pmCond.waveHtFt, vessel);
-      const amScore = activityScore(activity, amCond.windKts, amAdj, amCond.wavePeriodS);
-      const pmScore = activityScore(activity, pmCond.windKts, pmAdj, pmCond.wavePeriodS);
+      const { score: amScore } = scoreZone(zone, 9, m, activity, vessel);
+      const { score: pmScore } = scoreZone(zone, 14, m, activity, vessel);
       if (amScore < amWorst) amWorst = amScore;
       if (pmScore < pmWorst) pmWorst = pmScore;
     }
@@ -145,10 +157,10 @@ export function analyzeTrajectory(
   }
   // Afternoon buildup warning
   const amBest = hourlyProfile.find((h) => h.hour === 9)?.score ?? 5;
-  const pmWorst = hourlyProfile.find((h) => h.hour === 14)?.score ?? 5;
-  if (amBest - pmWorst >= 4) {
+  const pmWorstScore = hourlyProfile.find((h) => h.hour === 14)?.score ?? 5;
+  if (amBest - pmWorstScore >= 4) {
     warnings.push(
-      `Conditions deteriorate significantly by afternoon (${amBest}/10 → ${pmWorst}/10). Plan your return before noon.`
+      `Conditions deteriorate significantly by afternoon (${amBest}/10 → ${pmWorstScore}/10). Plan your return before noon.`
     );
   }
 
@@ -164,6 +176,14 @@ export function analyzeTrajectory(
 
   // Verify links from traversed zones
   const verifyLinks = city.verifyLinks;
+
+  // Deduplicate risk factors by name
+  const seenFactors = new Set<string>();
+  const riskFactors = allRiskFactors.filter(f => {
+    if (seenFactors.has(f.factor)) return false;
+    seenFactors.add(f.factor);
+    return true;
+  });
 
   // Alternatives
   const alternatives = minScore < 7
@@ -185,7 +205,7 @@ export function analyzeTrajectory(
     hourlyProfile,
     monthlyProfile,
     warnings,
-    riskFactors: [],
+    riskFactors,
     verifyLinks,
     beforeYouGo: activity.beforeYouGo,
     alternatives,
