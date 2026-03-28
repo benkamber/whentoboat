@@ -15,6 +15,7 @@ import { getTimeConditions } from './interpolation';
 import { getRouteZones, transitTime, fuelRoundTrip, isInRange, draftClearance } from './routing';
 import { routeDepthCheck } from './depth';
 import { getSeasonalConditions } from '@/data/cities/sf-bay/seasonal-conditions';
+import { HIGH_CURRENT_ZONES, CURRENT_WARNING_ZONES } from '@/data/cities/sf-bay/current-stations';
 
 // ============================================
 // Activity Comfort Scoring
@@ -99,6 +100,7 @@ export function fullConditionsScore(
   }
 
   // 2. Golden Gate max ebb + paddlecraft: current > 4kt + kayak/SUP = BLOCK
+  // Only applies when we have REAL current data (not the -1 sentinel)
   if ((activity.vesselType === 'kayak' || activity.vesselType === 'sup') && conditions.currentKts > 4) {
     return { score: 1, factors: [{
       factor: 'DANGER: Current exceeds paddle speed',
@@ -107,11 +109,69 @@ export function fullConditionsScore(
     }]};
   }
 
+  // 3. Moderate current + paddlecraft in high-exposure zones = WARNING
+  // SAFETY-CRITICAL: Central Bay, Ocean South, and San Pablo Bay have strong
+  // tidal currents that create dangerous conditions even at 2-3 knots when
+  // combined with wind chop. Expert validation confirmed these thresholds.
+  const isPaddleCraft = activity.vesselType === 'kayak' || activity.vesselType === 'sup';
+  const zoneId = conditions.zoneId ?? '';
+  const isCurrentWarningZone = (CURRENT_WARNING_ZONES as readonly string[]).includes(zoneId);
+
+  if (isPaddleCraft && conditions.currentKts > 2 && conditions.currentKts <= 4 && isCurrentWarningZone) {
+    factors.push({
+      factor: 'Strong current in exposed zone',
+      severity: 'high',
+      description: `${conditions.currentKts.toFixed(1)}kt current in ${zoneId.replace('_', ' ')} — challenging for ${activity.name}. ` +
+        `Current will affect your speed and course. Check NOAA current predictions before departing.`,
+    });
+    // -3 penalty applied below via currentWarningPenalty
+  }
+
+  // 4. Current data unavailable — SAFETY-CRITICAL sentinel handling
+  // When currentKts === -1, we do NOT have current data. We must NOT default
+  // to 0kt (which implies calm). Instead, we add explicit warnings and
+  // uncertainty penalties, especially for high-current zones.
+  let currentUnavailablePenalty = 0;
+  if (conditions.currentKts === -1) {
+    const isHighCurrentZone = (HIGH_CURRENT_ZONES as readonly string[]).includes(zoneId);
+
+    if (isPaddleCraft) {
+      // Kayak/SUP: current data is safety-critical in high-current zones
+      if (isHighCurrentZone) {
+        currentUnavailablePenalty = -2;
+        factors.push({
+          factor: 'Current data unavailable — HIGH PRIORITY',
+          severity: 'high',
+          description: `Current data unavailable for ${zoneId.replace('_', ' ')}. ` +
+            `This zone has strong tidal currents (up to 5kt). ` +
+            `Check NOAA current predictions at tidesandcurrents.noaa.gov before crossing any strait or channel.`,
+        });
+      } else {
+        currentUnavailablePenalty = -1;
+        factors.push({
+          factor: 'Current data unavailable',
+          severity: 'medium',
+          description: `Current data unavailable — check NOAA before crossing any strait or channel. ` +
+            `Do not assume calm conditions.`,
+        });
+      }
+    } else {
+      // Powerboat/sail: note it but don't penalize as heavily
+      factors.push({
+        factor: 'Current data not factored',
+        severity: 'low',
+        description: `Current data not available for this forecast. ` +
+          `Verify current conditions at NOAA tidesandcurrents.noaa.gov for transit planning.`,
+      });
+    }
+  }
+
   // 1. Base wind/wave/period score (existing algorithm)
   const adjWave = conditions.waveHtFt / vesselWaveToleranceMultiplier(vessel.loa, vessel.hullType);
   let baseScore = activityScore(activity, conditions.windKts, adjWave, conditions.wavePeriodS);
 
   // 2. Wind-against-current modifier (can dramatically increase wave height)
+  // Only applies when we have real current data (currentKts > 0, not -1 sentinel)
   if (conditions.currentKts > 0) {
     const waveMultiplier = windCurrentInteraction(
       conditions.windKts,
@@ -133,11 +193,12 @@ export function fullConditionsScore(
     }
   }
 
-  // 3. Tide phase bonus/penalty (for fishing especially)
+  // 3. Tide phase bonus/penalty
   let tidePenalty = 0;
+  // Only apply current-based tide penalty when we have real data (not -1 sentinel)
   if (conditions.tidePhase === 'ebb' && conditions.currentKts > 2) {
     // Strong ebb at the Gate is dangerous for all small craft
-    if (activity.vesselType === 'kayak' || activity.vesselType === 'sup') {
+    if (isPaddleCraft) {
       tidePenalty = -3;
       factors.push({
         factor: 'Strong ebb current',
@@ -146,6 +207,11 @@ export function fullConditionsScore(
       });
     }
   }
+
+  // Current warning penalty for moderate currents in exposed zones
+  const currentWarningPenalty =
+    (isPaddleCraft && conditions.currentKts > 2 && conditions.currentKts <= 4 && isCurrentWarningZone)
+      ? -3 : 0;
 
   // 4. Water temperature factor
   let waterTempPenalty = 0;
@@ -230,7 +296,11 @@ export function fullConditionsScore(
   }
 
   // 7. Combine all factors
-  const totalScore = baseScore + tidePenalty + waterTempPenalty + airTempPenalty + visibilityPenalty;
+  // SAFETY: currentUnavailablePenalty ensures we don't silently present
+  // scores as if current were 0kt. currentWarningPenalty catches moderate
+  // currents (2-4kt) in high-exposure zones.
+  const totalScore = baseScore + tidePenalty + waterTempPenalty + airTempPenalty
+    + visibilityPenalty + currentUnavailablePenalty + currentWarningPenalty;
   return {
     score: Math.max(1, Math.min(10, Math.round(totalScore))),
     factors,
@@ -240,6 +310,13 @@ export function fullConditionsScore(
 /**
  * Build FullConditions from zone data + optional forecast overlay.
  * This bridges the gap between historical zone data and the full scoring engine.
+ *
+ * SAFETY NOTE on currentKts: When zoneConditions doesn't include current data
+ * and no forecast overlay provides it, we use -1 (sentinel for "unavailable")
+ * rather than defaulting to 0 or an estimated value. The scoring engine will
+ * handle this by adding appropriate warnings. The previous approach of using
+ * seasonal average * 0.5 produced scientifically unsound estimates that could
+ * mask dangerous conditions.
  */
 export function buildFullConditions(
   zoneConditions: ZoneConditions,
@@ -251,6 +328,14 @@ export function buildFullConditions(
   const seasonal = month !== undefined ? getSeasonalConditions(month) : null;
   const isAM = (hour ?? 9) < 12;
 
+  // SAFETY-CRITICAL: Current speed uses -1 sentinel when not provided.
+  // We explicitly do NOT estimate current from seasonal averages — that
+  // produced false confidence in invalid data. If real NOAA CO-OPS data
+  // is available, it should be passed via defaults?.currentKts.
+  const currentKts = zoneConditions.currentKts
+    ?? defaults?.currentKts
+    ?? -1; // sentinel: current data unavailable
+
   return {
     windKts: zoneConditions.windKts,
     windDirDeg: defaults?.windDirDeg ?? 270, // prevailing westerly for SF Bay
@@ -260,7 +345,7 @@ export function buildFullConditions(
     airTempF: zoneConditions.airTempF ?? (isAM
       ? (seasonal?.airTempLowF ?? 55)
       : (seasonal?.airTempHighF ?? 65)),
-    currentKts: zoneConditions.currentKts ?? defaults?.currentKts ?? (seasonal?.goldenGateMaxEbbKts ?? 0) * 0.5, // average current, not max
+    currentKts,
     currentDirDeg: zoneConditions.currentDirDeg ?? defaults?.currentDirDeg ?? 0,
     visibilityMi: zoneConditions.visibilityMi ?? (isAM
       ? (seasonal?.typicalVisibilityAM_Mi ?? 10)
@@ -269,6 +354,7 @@ export function buildFullConditions(
     tidePhase: zoneConditions.tidePhase ?? defaults?.tidePhase ?? 'flood',
     isLiveForecast: defaults?.isLiveForecast ?? false,
     isMissingWaveData: defaults?.isMissingWaveData ?? false,
+    zoneId: defaults?.zoneId,
   };
 }
 
@@ -445,7 +531,8 @@ export function routeComfort(
   let allRiskFactors: RiskFactor[] = [];
   for (const zone of zones) {
     const zoneConditions = getTimeConditions(zone, Math.floor(hour), month);
-    const fullConds = buildFullConditions(zoneConditions, month, Math.floor(hour));
+    // Pass zone ID so the scoring engine can apply zone-specific current warnings
+    const fullConds = buildFullConditions(zoneConditions, month, Math.floor(hour), { zoneId: zone.id });
     const { score, factors } = fullConditionsScore(activity, fullConds, vessel);
     if (score < worstScore) {
       worstScore = score;

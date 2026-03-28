@@ -349,6 +349,7 @@ export default function Home() {
           wavePeriodS: fh.wavePeriodS > 0 ? fh.wavePeriodS : 3,
           waterTempF: fh.waterTempF,
           airTempF: fh.airTempF,
+          // SAFETY: preserve -1 sentinel. Scoring engine handles unavailable current data.
           currentKts: fh.currentKts,
           currentDirDeg: fh.currentDirDeg,
           visibilityMi: fh.visibilityMi,

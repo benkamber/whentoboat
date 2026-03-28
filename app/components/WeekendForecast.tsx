@@ -88,7 +88,10 @@ function computeDaySummaries(
         wavePeriodS: h.wavePeriodS > 0 ? h.wavePeriodS : 3,
         waterTempF: (h as any).waterTempF ?? 58,
         airTempF: (h as any).airTempF ?? h.airTempF ?? 62,
-        currentKts: (h as any).currentKts ?? 0,
+        // SAFETY-CRITICAL: Use -1 sentinel when current data is missing.
+        // Do NOT default to 0 — that falsely implies calm. The scoring engine
+        // handles -1 by adding explicit "current data unavailable" warnings.
+        currentKts: (h as any).currentKts ?? -1,
         currentDirDeg: (h as any).currentDirDeg ?? 0,
         visibilityMi: h.visibilityMi,
         tideFt: (h as any).tideFt ?? 3,
