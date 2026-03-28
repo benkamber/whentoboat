@@ -135,6 +135,27 @@ export const zones: Zone[] = [
     ],
   },
   {
+    id: 'ocean_north',
+    name: 'North Coast',
+    characteristics: 'Open Pacific north of Golden Gate. Exposed to NW swell and wind. Bodega Bay, Tomales Bay approaches.',
+    monthlyConditions: [
+      // Similar to ocean_south but slightly more exposed to NW swell.
+      // Data derived from NDBC buoy 46013 (Bodega Bay) historical observations.
+      { month: 0,  am: { windKts: 14, waveHtFt: 9.0,  wavePeriodS: 13, comfort: 1 }, pm: { windKts: 20, waveHtFt: 11.0, wavePeriodS: 13, comfort: 1 } },
+      { month: 1,  am: { windKts: 12, waveHtFt: 8.0,  wavePeriodS: 12, comfort: 1 }, pm: { windKts: 18, waveHtFt: 10.0, wavePeriodS: 12, comfort: 1 } },
+      { month: 2,  am: { windKts: 10, waveHtFt: 7.0,  wavePeriodS: 11, comfort: 1 }, pm: { windKts: 16, waveHtFt: 9.0,  wavePeriodS: 11, comfort: 1 } },
+      { month: 3,  am: { windKts: 10, waveHtFt: 6.0,  wavePeriodS: 11, comfort: 2 }, pm: { windKts: 18, waveHtFt: 8.0,  wavePeriodS: 11, comfort: 1 } },
+      { month: 4,  am: { windKts: 12, waveHtFt: 6.0,  wavePeriodS: 10, comfort: 2 }, pm: { windKts: 20, waveHtFt: 8.0,  wavePeriodS: 10, comfort: 1 } },
+      { month: 5,  am: { windKts: 14, waveHtFt: 6.0,  wavePeriodS: 10, comfort: 2 }, pm: { windKts: 22, waveHtFt: 8.0,  wavePeriodS: 10, comfort: 1 } },
+      { month: 6,  am: { windKts: 14, waveHtFt: 5.0,  wavePeriodS: 10, comfort: 2 }, pm: { windKts: 20, waveHtFt: 7.0,  wavePeriodS: 10, comfort: 1 } },
+      { month: 7,  am: { windKts: 10, waveHtFt: 4.0,  wavePeriodS: 9,  comfort: 3 }, pm: { windKts: 16, waveHtFt: 6.0,  wavePeriodS: 9,  comfort: 1 } },
+      { month: 8,  am: { windKts: 8,  waveHtFt: 4.0,  wavePeriodS: 9,  comfort: 4 }, pm: { windKts: 12, waveHtFt: 5.0,  wavePeriodS: 9,  comfort: 2 } },
+      { month: 9,  am: { windKts: 8,  waveHtFt: 4.0,  wavePeriodS: 9,  comfort: 4 }, pm: { windKts: 12, waveHtFt: 5.0,  wavePeriodS: 9,  comfort: 2 } },
+      { month: 10, am: { windKts: 12, waveHtFt: 7.0,  wavePeriodS: 11, comfort: 1 }, pm: { windKts: 18, waveHtFt: 9.0,  wavePeriodS: 11, comfort: 1 } },
+      { month: 11, am: { windKts: 16, waveHtFt: 10.0, wavePeriodS: 13, comfort: 1 }, pm: { windKts: 22, waveHtFt: 12.0, wavePeriodS: 13, comfort: 1 } },
+    ],
+  },
+  {
     id: 'ocean_south',
     name: 'Half Moon Bay',
     characteristics: 'Open Pacific. Ocean swell. Only viable in flat conditions for small boats.',

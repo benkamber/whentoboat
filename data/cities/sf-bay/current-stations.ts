@@ -70,6 +70,8 @@ export const zoneCurrentStations: Record<string, string> = {
   // are driven by the same tidal prism. This is the most dangerous crossing
   // in the region and current data is critical for bar passage timing
   ocean_south: 'SFB1201',
+  // North coast uses the same Golden Gate station — all traffic transits the Gate
+  ocean_north: 'SFB1201',
 };
 
 /**
@@ -83,6 +85,7 @@ export const zoneCurrentStations: Record<string, string> = {
 export const HIGH_CURRENT_ZONES = [
   'central_bay',  // Golden Gate ebb/flood up to 5.5kt
   'ocean_south',  // Bar crossing — currents create standing waves
+  'ocean_north',  // North coast — same Gate transit required
   'san_pablo',    // Carquinez currents + exposed fetch
   'richardson',   // Raccoon Strait constriction
   'north_bay',    // Angel Island current acceleration
@@ -96,5 +99,6 @@ export const HIGH_CURRENT_ZONES = [
 export const CURRENT_WARNING_ZONES = [
   'central_bay',
   'ocean_south',
+  'ocean_north',
   'san_pablo',
 ] as const;

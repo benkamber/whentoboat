@@ -119,6 +119,24 @@ export const zoneVerifyLinks: Record<string, VerifyLink[]> = {
       type: 'forecast',
     },
   ],
+
+  ocean_north: [
+    {
+      label: '46013 Buoy — Bodega Bay',
+      url: 'https://www.ndbc.noaa.gov/station_page.php?station=46013',
+      type: 'buoy',
+    },
+    {
+      label: '46026 Buoy — San Francisco Bar',
+      url: 'https://www.ndbc.noaa.gov/station_page.php?station=46026',
+      type: 'buoy',
+    },
+    {
+      label: 'NWS Forecast — Coastal Waters (PZZ545)',
+      url: 'https://forecast.weather.gov/MapClick.php?zoneid=PZZ545',
+      type: 'forecast',
+    },
+  ],
 };
 
 export const cityVerifyLinks: VerifyLink[] = [
