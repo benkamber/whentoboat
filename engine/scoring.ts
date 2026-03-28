@@ -207,6 +207,61 @@ export function fullConditionsScore(
     });
   }
 
+  // 1c. Gust factor — gusts are what capsize kayaks and slam passengers.
+  // A 12kt sustained wind with 25kt gusts is fundamentally different from steady 12kt.
+  let gustPenalty = 0;
+  if (conditions.windGustKts && conditions.windKts > 0) {
+    const gustRatio = conditions.windGustKts / conditions.windKts;
+    if (gustRatio > 2.0) {
+      gustPenalty = -2;
+      factors.push({
+        factor: 'Very gusty conditions',
+        severity: 'high',
+        description: `Gusts to ${Math.round(conditions.windGustKts)}kt (${gustRatio.toFixed(1)}x sustained). Sudden gusts can capsize small craft and make conditions unpredictable.`,
+      });
+    } else if (gustRatio > 1.5 && conditions.windGustKts > 10) {
+      gustPenalty = -1;
+      factors.push({
+        factor: 'Gusty conditions',
+        severity: 'medium',
+        description: `Gusts to ${Math.round(conditions.windGustKts)}kt (${gustRatio.toFixed(1)}x sustained). Conditions may feel rougher than the average wind suggests.`,
+      });
+    }
+  }
+
+  // 1d. Precipitation — rain reduces visibility, makes decks slippery, and kills comfort.
+  let precipPenalty = 0;
+  if (conditions.precipitationIn !== undefined && conditions.precipitationIn > 0) {
+    if (conditions.precipitationIn > 0.25) {
+      precipPenalty = -3;
+      factors.push({
+        factor: 'Heavy rain',
+        severity: 'high',
+        description: 'Heavy rain significantly reduces visibility and comfort. Slippery decks increase fall risk.',
+      });
+    } else if (conditions.precipitationIn > 0.1) {
+      precipPenalty = -2;
+      factors.push({
+        factor: 'Rain',
+        severity: 'medium',
+        description: 'Moderate rain. Reduced visibility and wet conditions. Dress accordingly.',
+      });
+    } else if (conditions.precipitationIn > 0.02) {
+      precipPenalty = -1;
+      factors.push({
+        factor: 'Light rain',
+        severity: 'low',
+        description: 'Light rain or drizzle. Minor impact on conditions.',
+      });
+    }
+  } else if (conditions.precipProbPct !== undefined && conditions.precipProbPct > 60) {
+    factors.push({
+      factor: 'Rain likely',
+      severity: 'low',
+      description: `${Math.round(conditions.precipProbPct)}% chance of rain. Bring rain gear.`,
+    });
+  }
+
   // 2. Wind-against-current modifier (can dramatically increase wave height)
   // Only applies when we have real current data (currentKts > 0, not -1 sentinel)
   if (conditions.currentKts > 0) {
@@ -340,7 +395,8 @@ export function fullConditionsScore(
   // scores as if current were 0kt. currentWarningPenalty catches moderate
   // currents (2-4kt) in high-exposure zones.
   let totalScore = baseScore + tidePenalty + waterTempPenalty + airTempPenalty
-    + visibilityPenalty + currentUnavailablePenalty + currentWarningPenalty;
+    + visibilityPenalty + currentUnavailablePenalty + currentWarningPenalty
+    + gustPenalty + precipPenalty;
 
   // 8. Ocean zone cap — ocean routes never score above 5/10
   // Ocean swell is persistent (rarely below 4ft), bar crossings are dangerous,
@@ -415,6 +471,10 @@ export function buildFullConditions(
     // defaults to -1 sentinel when unavailable), so the ebb penalty won't fire anyway
     // when both tide phase AND current data are missing.
     tidePhase: zoneConditions.tidePhase ?? defaults?.tidePhase ?? 'flood',
+    // Gust and precipitation — passed through from forecast data when available
+    windGustKts: defaults?.windGustKts,
+    precipitationIn: defaults?.precipitationIn,
+    precipProbPct: defaults?.precipProbPct,
     isLiveForecast: defaults?.isLiveForecast ?? false,
     isMissingWaveData: defaults?.isMissingWaveData ?? false,
     zoneId: defaults?.zoneId,
@@ -640,6 +700,7 @@ export function routeComfort(
     originId: origin.id,
     destinationId: destination.id,
     score: worstScore,
+    primaryReason: getPrimaryReason(worstScore, riskFactors, zones, month, Math.floor(hour)),
     scoreRange,
     distance,
     transitMinutes: transit,
@@ -653,6 +714,58 @@ export function routeComfort(
     beforeYouGo: activity.beforeYouGo,
     alternatives: [], // filled by findAlternatives
   };
+}
+
+/**
+ * Generate a one-sentence explanation of WHY a route scored the way it did.
+ * This replaces raw wind/wave numbers on destination cards with human-readable reasons.
+ */
+function getPrimaryReason(
+  score: number,
+  riskFactors: RiskFactor[],
+  zones: Zone[],
+  month: number,
+  hour: number,
+): string {
+  // Dangerous — use the first high-severity risk factor
+  if (score <= 2) {
+    const danger = riskFactors.find(r => r.severity === 'high');
+    return danger?.factor ?? 'Dangerous conditions';
+  }
+
+  // Poor/marginal — show the primary limiting factor
+  if (score <= 4) {
+    const warning = riskFactors.find(r => r.severity === 'high' || r.severity === 'medium');
+    if (warning) return warning.factor;
+    // Fall back to worst zone conditions
+    const worst = zones.reduce((w, z) => {
+      const c = getTimeConditions(z, hour, month);
+      return c.windKts > (w?.windKts ?? 0) ? c : w;
+    }, getTimeConditions(zones[0], hour, month));
+    if (worst.windKts > 15) return `Strong wind (${worst.windKts}kt)`;
+    if (worst.waveHtFt > 2) return `Rough water (${worst.waveHtFt}ft waves)`;
+    return 'Marginal conditions';
+  }
+
+  // Fair — note the moderate limiting factor
+  if (score <= 6) {
+    const factor = riskFactors.find(r => r.severity === 'medium');
+    if (factor) return factor.factor;
+    return 'Fair conditions — check forecast';
+  }
+
+  // Good — describe what makes it good
+  if (score <= 8) {
+    const cond = getTimeConditions(zones[0], hour, month);
+    if (cond.windKts < 8 && cond.waveHtFt < 1) return 'Calm and sheltered';
+    if (cond.windKts < 12) return 'Light wind, manageable chop';
+    return 'Good conditions';
+  }
+
+  // Excellent
+  const cond = getTimeConditions(zones[0], hour, month);
+  if (cond.windKts < 5) return 'Glass-calm, perfect conditions';
+  return 'Excellent conditions';
 }
 
 /**

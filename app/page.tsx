@@ -356,6 +356,9 @@ export default function Home() {
           visibilityMi: fh.visibilityMi,
           tideFt: fh.tideFt >= 0 ? fh.tideFt : 3,
           tidePhase: (fh.tidePhase === 'unknown' ? 'flood' : fh.tidePhase) as any,
+          windGustKts: fh.windGustKts,
+          precipitationIn: fh.precipitationIn,
+          precipProbPct: fh.precipProbPct,
           isLiveForecast: true,
           isMissingWaveData: !fh.waveDataAvailable,
         };
@@ -615,94 +618,60 @@ export default function Home() {
             {/* Vessel selector — inline preset picker + customize */}
             <BoatSelector />
 
-            {/* Month selector */}
-            <div className="flex gap-0.5 overflow-x-auto">
-              {MONTHS.map((m, i) => (
-                <button
-                  key={i}
-                  onClick={() => setMonth(i)}
-                  className={`flex-1 min-w-[28px] px-0.5 py-1.5 rounded text-[11px] font-medium transition-colors ${
-                    month === i
-                      ? 'bg-compass-gold text-ocean-950'
-                      : 'text-[var(--muted)] hover:bg-[var(--card-elevated)]'
-                  }`}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Data source toggle: Historical vs Live */}
-          <div className="px-3 py-1.5 border-b border-[var(--border)] shrink-0">
-            <div className="flex gap-1">
-              <button
-                onClick={() => setUseLiveData(false)}
-                className={`flex-1 px-2 py-1 rounded text-[10px] font-medium transition-colors ${
-                  !useLiveData
-                    ? 'bg-compass-gold/20 text-compass-gold border border-compass-gold/30'
-                    : 'text-[var(--muted)] hover:bg-[var(--card-elevated)]'
-                }`}
+            {/* Compact month + data source — single row */}
+            <div className="flex items-center gap-2">
+              <select
+                value={month}
+                onChange={(e) => { setMonth(Number(e.target.value)); setUseLiveData(false); }}
+                className="bg-[var(--card-elevated)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--foreground)] cursor-pointer focus:border-compass-gold focus:outline-none"
               >
-                Typical for {MONTHS[month]}
-              </button>
+                {MONTHS.map((m, i) => (
+                  <option key={i} value={i}>{m}</option>
+                ))}
+              </select>
               <button
-                onClick={() => setUseLiveData(true)}
+                onClick={() => setUseLiveData(!useLiveData)}
                 className={`flex-1 px-2 py-1 rounded text-[10px] font-medium transition-colors ${
                   useLiveData
                     ? 'bg-reef-teal/20 text-reef-teal border border-reef-teal/30'
-                    : 'text-[var(--muted)] hover:bg-[var(--card-elevated)]'
+                    : 'text-[var(--muted)] hover:bg-[var(--card-elevated)] border border-transparent'
                 }`}
               >
-                {forecastLoading ? 'Loading...' : "This Week's Forecast"}
+                {forecastLoading ? 'Loading...' : useLiveData ? 'Live Forecast' : 'Show Live'}
               </button>
+              {useLiveData && !forecastError && (
+                <span className="text-[9px] text-reef-teal">LIVE</span>
+              )}
             </div>
-          </div>
-
-          {/* Current conditions bar */}
-          <ConditionsBar />
-
-          {/* Score summary bar */}
-          <div className="px-3 py-2 border-b border-[var(--border)] bg-[var(--card-elevated)] shrink-0">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-[var(--muted)]">
-                {currentActivity.icon} {currentActivity.name} · {useLiveData ? 'Live' : MONTHS[month]} · {timeLabel}
-              </span>
-              <span className="text-reef-teal font-medium">
-                {scoredRoutes.filter(r => r.score >= 7).length}/{scoredRoutes.length} good
-              </span>
-            </div>
-            {useLiveData && forecastSources.length > 0 && (
-              <div className="text-[9px] text-[var(--muted)] mt-0.5">
-                Sources: {forecastSources.join(' · ')}
-              </div>
-            )}
-            {useLiveData && forecastError && (
-              <div className="text-[9px] text-warning-amber mt-0.5">
-                ⚠ Forecast unavailable — showing historical data. Conditions may differ from current reality.
-              </div>
-            )}
           </div>
 
           {/* Scrollable destination list */}
           <div className="flex-1 overflow-y-auto">
-            {/* Best This Week banner — shown when live forecast is active */}
-            {useLiveData && bestForecastDay && (
-              <div className="p-3 bg-reef-teal/10 border border-reef-teal/30 rounded-lg mx-2 mt-2">
-                <h3 className="text-xs font-medium text-reef-teal uppercase tracking-wider">Best This Week</h3>
-                <p className="text-sm font-semibold mt-1">
-                  {bestForecastDay.dayLabel} {bestForecastDay.timeLabel} — {bestForecastDay.score}/10 at {bestForecastDay.destName}
-                </p>
-                <p className="text-xs text-[var(--muted)] mt-0.5">
-                  {bestForecastDay.description}
-                </p>
+            {/* Hero recommendation — THE answer to "where should I go?" */}
+            {scoredRoutes.length > 0 && scoredRoutes[0].score >= 5 && (
+              <div className="p-3 mx-2 mt-2 bg-reef-teal/10 border border-reef-teal/30 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <ScoreBadge score={scoredRoutes[0].score} size="md" />
+                  <div>
+                    <p className="text-sm font-bold">{scoredRoutes[0].dest.name}</p>
+                    <p className="text-xs text-[var(--muted)]">
+                      {scoredRoutes[0].primaryReason} · {scoredRoutes[0].distance} mi · {scoredRoutes[0].transitMinutes} min
+                    </p>
+                  </div>
+                </div>
+                {useLiveData && bestForecastDay && (
+                  <p className="text-[10px] text-reef-teal mt-1.5">
+                    Best this week: {bestForecastDay.dayLabel} {bestForecastDay.timeLabel}
+                  </p>
+                )}
               </div>
             )}
 
-            {/* Activity Advisor — "What should I do?" at the TOP */}
-            <div className="p-2 pb-0">
-              <ActivityAdvisor />
-            </div>
+            {useLiveData && forecastError && (
+              <div className="mx-2 mt-2 px-3 py-1.5 rounded bg-warning-amber/10 text-[10px] text-warning-amber">
+                ⚠ Forecast unavailable — showing historical averages
+              </div>
+            )}
 
             {/* Bad conditions guidance */}
             {scoredRoutes.length > 0 && scoredRoutes.every(r => r.score < 5) && (
@@ -788,61 +757,17 @@ export default function Home() {
                             </span>
                           )}
                         </div>
-                        {/* Danger banner for life-threatening scores — text-xs (12px) minimum for safety-critical info */}
-                        {route.score <= 2 && route.riskFactors.length > 0 && (
+                        {/* Danger banner for life-threatening scores */}
+                        {route.score <= 2 && (
                           <div className="text-xs text-danger-red font-medium bg-danger-red/10 rounded px-1.5 py-0.5 mt-0.5">
-                            {route.riskFactors.find(r => r.severity === 'high')?.factor ?? 'Do not launch in these conditions'}
+                            {route.primaryReason}
                           </div>
                         )}
+                        {/* Compact card: primaryReason + distance/time */}
                         {route.score > 2 && (
-                          <div className="flex items-center gap-2 text-[11px] text-[var(--muted)]">
-                            <span>{route.distance} mi</span>
-                            <span>·</span>
-                            <span>{route.transitMinutes} min</span>
+                          <div className="text-[11px] text-[var(--muted)]">
+                            {route.primaryReason} · {route.distance} mi · {route.transitMinutes} min
                           </div>
-                        )}
-                        {route.score > 2 && (
-                        <div className="flex items-center gap-2 text-[10px] text-[var(--secondary)] flex-wrap">
-                          {(() => {
-                            const zone = sfBay.zones.find(z => z.id === route.dest.zone);
-                            if (!zone) return null;
-                            const cond = getTimeConditions(zone, Math.floor(hour), month);
-                            const windDesc = describeWind(cond.windKts);
-                            const waveDesc = describeWaves(cond.waveHtFt, cond.wavePeriodS);
-                            return (
-                              <>
-                                <span
-                                  className={windDesc.severity === 'dangerous' ? 'text-danger-red' : windDesc.severity === 'strong' ? 'text-compass-gold' : ''}
-                                  title={windDesc.text}
-                                >
-                                  {windDesc.emoji} {cond.windKts}kt
-                                </span>
-                                <span
-                                  className={waveDesc.severity === 'dangerous' ? 'text-danger-red' : waveDesc.severity === 'rough' ? 'text-compass-gold' : ''}
-                                  title={waveDesc.text}
-                                >
-                                  {waveDesc.emoji} {cond.waveHtFt}ft
-                                </span>
-                                {cond.waterTempF && (
-                                  <span
-                                    title={`Water: ${cond.waterTempF}\u00B0F${cond.waterTempF < 55 ? ' — drysuit strongly recommended' : cond.waterTempF < 60 ? ' — wetsuit recommended' : ''}`}
-                                    className={
-                                      cond.waterTempF < 50 ? 'text-danger-red font-medium' :
-                                      cond.waterTempF < 55 ? 'text-safety-blue font-medium' :
-                                      cond.waterTempF < 60 ? 'text-safety-blue' : ''
-                                    }
-                                  >
-                                    {cond.waterTempF < 55 ? '\u2744\uFE0F' : '\u{1F321}\uFE0F'} {cond.waterTempF}&deg;F
-                                  </span>
-                                )}
-                              </>
-                            );
-                          })()}
-                        </div>
-                        )}
-                        {/* High-severity warning for scores above danger threshold */}
-                        {route.score > 2 && route.riskFactors.some(r => r.severity === 'high') && (
-                          <span className="text-[10px] text-danger-red mt-0.5">⚠ Conditions warning</span>
                         )}
                       </div>
                     </div>

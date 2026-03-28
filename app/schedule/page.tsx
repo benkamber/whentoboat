@@ -49,11 +49,13 @@ function formatTime(decimalHours: number): string {
   return `${h}:${m.toString().padStart(2, '0')} ${ampm}`;
 }
 
+// Status badge uses the unified score label system (no competing color systems)
 function getStatusBadge(score: number): { label: string; classes: string } {
-  if (score >= 8) return { label: 'RECOMMENDED', classes: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' };
-  if (score >= 5) return { label: 'AVAILABLE', classes: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
-  if (score >= 3) return { label: 'MARGINAL', classes: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' };
-  return { label: 'UNAVAILABLE', classes: 'bg-red-500/20 text-red-400 border-red-500/30' };
+  const label = getScoreLabel(score);
+  if (score >= 8) return { label, classes: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' };
+  if (score >= 5) return { label, classes: 'bg-compass-gold/20 text-compass-gold border-compass-gold/30' };
+  if (score >= 3) return { label, classes: 'bg-warning-amber/20 text-warning-amber border-warning-amber/30' };
+  return { label, classes: 'bg-danger-red/20 text-danger-red border-danger-red/30' };
 }
 
 function getDepartHour(month: number, window: TimeWindow): number {

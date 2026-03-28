@@ -116,6 +116,7 @@ export interface ZoneConditions {
 export interface FullConditions {
   windKts: number;
   windDirDeg: number;
+  windGustKts?: number;       // peak gust speed — gustRatio > 1.5 is a comfort killer
   waveHtFt: number;
   wavePeriodS: number;
   waterTempF: number;
@@ -129,6 +130,9 @@ export interface FullConditions {
   visibilityMi: number;
   tideFt: number;
   tidePhase: 'flood' | 'ebb' | 'slack_high' | 'slack_low';
+  // Precipitation
+  precipitationIn?: number;   // hourly precipitation in inches
+  precipProbPct?: number;     // probability of precipitation %
   // Source flags
   isLiveForecast: boolean; // true = from Open-Meteo, false = historical average
   isMissingWaveData: boolean;
@@ -156,6 +160,7 @@ export interface ScoredRoute {
   originId: string;
   destinationId: string;
   score: number; // P50 — the headline number (1-10)
+  primaryReason: string; // one-sentence explanation of WHY this score (e.g., "Calm morning, light breeze")
   scoreRange: ScoreRange;
   distance: number; // statute miles
   transitMinutes: number;
