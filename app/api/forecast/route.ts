@@ -12,20 +12,32 @@ export interface ForecastHour {
   windSpeedKts: number;
   windGustKts: number;
   windDirDeg: number;
-  // Waves
+  // Waves — combined
   waveHeightFt: number;    // -1 = unavailable
   wavePeriodS: number;
+  waveDirDeg: number;       // overall wave direction
+  waveDataAvailable: boolean;
+  // Waves — swell component (ocean-generated, long period)
   swellHeightFt: number;
   swellPeriodS: number;
-  waveDataAvailable: boolean;
+  swellDirDeg: number;      // swell propagation direction
+  // Waves — wind wave component (locally generated chop, short period)
+  windWaveHeightFt: number; // -1 = unavailable
+  windWavePeriodS: number;
+  windWaveDirDeg: number;
   // Temperature
   airTempF: number;
-  waterTempF: number;       // from seasonal data or SST model
+  waterTempF: number;       // from Open-Meteo SST when available, seasonal fallback
+  apparentTempF: number;    // feels-like temperature (wind chill on water)
   // Atmosphere
   visibilityMi: number;
   cloudCoverPct: number;
   precipitationIn: number;  // hourly precipitation in inches
   precipProbPct: number;    // probability of precipitation %
+  pressureHpa: number;      // barometric pressure (msl)
+  dewpointF: number;        // dewpoint — fog when spread < 3F
+  uvIndex: number;           // UV index for sun exposure
+  weatherCode: number;      // WMO weather code (45/48 = fog)
   // Tides (from NOAA CO-OPS, interpolated to hour)
   tideFt: number;           // height above MLLW
   tidePhase: 'flood' | 'ebb' | 'slack_high' | 'slack_low' | 'unknown';
@@ -169,12 +181,17 @@ export async function GET(request: NextRequest) {
     // Fetch ALL data sources in parallel
     const weatherUrl =
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
-      `&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility,cloud_cover,precipitation,precipitation_probability` +
+      `&hourly=temperature_2m,apparent_temperature,wind_speed_10m,wind_direction_10m,wind_gusts_10m,` +
+      `visibility,cloud_cover,precipitation,precipitation_probability,` +
+      `pressure_msl,dew_point_2m,uv_index,weather_code` +
       `&forecast_days=${days}&temperature_unit=fahrenheit&wind_speed_unit=kn`;
 
     const marineUrl =
       `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}` +
-      `&hourly=wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_period` +
+      `&hourly=wave_height,wave_direction,wave_period,` +
+      `swell_wave_height,swell_wave_period,swell_wave_direction,` +
+      `wind_wave_height,wind_wave_period,wind_wave_direction,` +
+      `sea_surface_temperature` +
       `&forecast_days=${days}`;
 
     const [weatherRes, marineRes, tideData] = await Promise.all([
@@ -215,9 +232,12 @@ export async function GET(request: NextRequest) {
       const tidePhase = tideFt >= 0 ? estimateTidePhase(tideFt, prevTideHeight) : 'unknown';
       if (tideFt >= 0) prevTideHeight = tideFt;
 
-      // Water temp from monthly average (Open-Meteo doesn't provide SST for bays)
+      // Water temp: prefer real SST from Open-Meteo Marine, fallback to monthly average
+      const sstCelsius = marineHourly.sea_surface_temperature?.[i];
       const monthFromTime = new Date(time).getMonth();
-      const waterTempF = WATER_TEMP_BY_MONTH[monthFromTime] ?? 58;
+      const waterTempF = sstCelsius != null
+        ? sstCelsius * 9/5 + 32  // Convert C to F
+        : WATER_TEMP_BY_MONTH[monthFromTime] ?? 58;
 
       return {
         time,
@@ -225,29 +245,38 @@ export async function GET(request: NextRequest) {
         windSpeedKts: weatherHourly.wind_speed_10m?.[i] ?? 0,
         windGustKts: weatherHourly.wind_gusts_10m?.[i] ?? 0,
         windDirDeg: weatherHourly.wind_direction_10m?.[i] ?? 0,
-        // Waves
+        // Waves — combined
         waveHeightFt: hasWaveData ? marineHourly.wave_height[i] * 3.281 : -1,
         wavePeriodS: marineHourly.wave_period?.[i] ?? 0,
+        waveDirDeg: marineHourly.wave_direction?.[i] ?? 0,
+        waveDataAvailable: hasWaveData,
+        // Waves — swell component
         swellHeightFt: marineHourly.swell_wave_height?.[i] != null
           ? marineHourly.swell_wave_height[i] * 3.281 : -1,
         swellPeriodS: marineHourly.swell_wave_period?.[i] ?? 0,
-        waveDataAvailable: hasWaveData,
+        swellDirDeg: marineHourly.swell_wave_direction?.[i] ?? 0,
+        // Waves — wind wave component (locally generated chop)
+        windWaveHeightFt: marineHourly.wind_wave_height?.[i] != null
+          ? marineHourly.wind_wave_height[i] * 3.281 : -1,
+        windWavePeriodS: marineHourly.wind_wave_period?.[i] ?? 0,
+        windWaveDirDeg: marineHourly.wind_wave_direction?.[i] ?? 0,
         // Temperature
         airTempF: weatherHourly.temperature_2m?.[i] ?? 0,
-        waterTempF,
+        waterTempF: Math.round(waterTempF * 10) / 10,
+        apparentTempF: weatherHourly.apparent_temperature?.[i] ?? weatherHourly.temperature_2m?.[i] ?? 0,
         // Atmosphere
         visibilityMi: (weatherHourly.visibility?.[i] ?? 0) / 1609,
         cloudCoverPct: weatherHourly.cloud_cover?.[i] ?? 0,
         precipitationIn: (weatherHourly.precipitation?.[i] ?? 0) / 25.4, // mm to inches
         precipProbPct: weatherHourly.precipitation_probability?.[i] ?? 0,
+        pressureHpa: weatherHourly.pressure_msl?.[i] ?? 0,
+        dewpointF: weatherHourly.dew_point_2m?.[i] ?? 0,
+        uvIndex: weatherHourly.uv_index?.[i] ?? 0,
+        weatherCode: weatherHourly.weather_code?.[i] ?? 0,
         // Tides
         tideFt: tideFt >= 0 ? Math.round(tideFt * 10) / 10 : -1,
         tidePhase,
         // Current: SENTINEL VALUE — this forecast does NOT include current data.
-        // SAFETY-CRITICAL: -1 means "unknown/unavailable." The scoring engine
-        // MUST treat this as uncertain, NOT as 0kt (which would falsely imply calm).
-        // Real current data must be fetched separately from /api/currents,
-        // which queries NOAA CO-OPS harmonic current predictions.
         currentKts: -1,
         currentDirDeg: 0,
         currentDataSource: 'none' as const,
