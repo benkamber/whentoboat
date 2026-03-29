@@ -731,12 +731,28 @@ export default function Home() {
               <div className="p-3 mx-2 mt-2 bg-reef-teal/10 border border-reef-teal/30 rounded-lg">
                 <div className="flex items-center gap-2">
                   <ScoreBadge score={scoredRoutes[0].score} size="md" />
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm font-bold">{scoredRoutes[0].dest.name}</p>
                     <p className="text-xs text-[var(--muted)]">
                       {scoredRoutes[0].primaryReason} · {scoredRoutes[0].distance} mi · {scoredRoutes[0].transitMinutes} min
                     </p>
                   </div>
+                  <button
+                    onClick={() => {
+                      const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+                      const url = `${window.location.origin}/share?activity=${activity}&dest=${scoredRoutes[0].dest.id}&origin=${homeBaseId}&month=${month}&hour=${Math.floor(hour)}&date=${encodeURIComponent(today)}`;
+                      if (navigator.share) {
+                        navigator.share({ title: `${currentActivity.name} to ${scoredRoutes[0].dest.name}`, text: `${scoredRoutes[0].primaryReason} — ${scoredRoutes[0].score}/10`, url });
+                      } else {
+                        navigator.clipboard.writeText(url);
+                        alert('Link copied!');
+                      }
+                    }}
+                    className="shrink-0 px-2 py-1 rounded text-[10px] font-medium text-reef-teal hover:bg-reef-teal/20 transition-colors"
+                    title="Share this recommendation"
+                  >
+                    Share
+                  </button>
                 </div>
                 {useLiveData && bestForecastDay && (
                   <p className="text-[10px] text-reef-teal mt-1.5">
