@@ -2224,9 +2224,14 @@ export const waterRoutes: WaterRoute[] = [
   },
 ];
 
+// Merge extended routes (239 additional paths for all destination pairs)
+import { waterRoutesExtended } from './water-routes-extended';
+const allWaterRoutes: WaterRoute[] = [...waterRoutes, ...waterRoutesExtended];
+
 /**
  * Look up a water route between two destinations.
  *
+ * Searches both the original 78 routes and the 239 extended routes.
  * Tries vessel-specific routes first, then falls back to 'default'.
  * Also checks the reverse direction (routes are symmetric — waypoints
  * are simply reversed).
@@ -2243,7 +2248,7 @@ export function getWaterRoute(
 ): WaterRoute | null {
   // Try vessel-specific route first (forward direction)
   if (vesselType) {
-    const specific = waterRoutes.find(
+    const specific = allWaterRoutes.find(
       (r) =>
         r.fromId === fromId &&
         r.toId === toId &&
@@ -2253,7 +2258,7 @@ export function getWaterRoute(
   }
 
   // Try default route (forward direction)
-  const forward = waterRoutes.find(
+  const forward = allWaterRoutes.find(
     (r) =>
       r.fromId === fromId &&
       r.toId === toId &&
@@ -2263,7 +2268,7 @@ export function getWaterRoute(
 
   // Try reverse direction — vessel-specific first
   if (vesselType) {
-    const reverseSpecific = waterRoutes.find(
+    const reverseSpecific = allWaterRoutes.find(
       (r) =>
         r.fromId === toId &&
         r.toId === fromId &&
@@ -2281,7 +2286,7 @@ export function getWaterRoute(
   }
 
   // Try reverse direction — default
-  const reverse = waterRoutes.find(
+  const reverse = allWaterRoutes.find(
     (r) =>
       r.fromId === toId &&
       r.toId === fromId &&
