@@ -8,7 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
  * which eliminates the "current data unavailable" penalty and warning.
  */
 export function useCurrents() {
-  const [currentData, setCurrentData] = useState<Record<string, { speed: number; direction: number }> | null>(null);
+  const [currentData, setCurrentData] = useState<Record<string, { speed: number; direction: number; type: 'flood' | 'ebb' | 'slack' }> | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchCurrents = useCallback(async (signal?: AbortSignal) => {
@@ -23,14 +23,25 @@ export function useCurrents() {
         return;
       }
 
-      // Build a zone → current mapping from station predictions
-      // The /api/currents response has stations with predictions
-      const zoneCurrents: Record<string, { speed: number; direction: number }> = {};
+      // Build a zone → current mapping from station predictions.
+      // The API returns stations as an array of { station, stationName, predictions }.
+      const zoneCurrents: Record<string, { speed: number; direction: number; type: 'flood' | 'ebb' | 'slack' }> = {};
       const now = new Date();
 
-      for (const [stationId, stationData] of Object.entries(data.stations ?? {})) {
-        const predictions = (stationData as any)?.predictions ?? [];
-        if (predictions.length === 0) continue;
+      // Map NOAA station IDs to scoring engine zone IDs
+      const stationToZone: Record<string, string> = {
+        'SFB1201': 'central_bay',
+        'SFB1203': 'central_bay',
+        'PCT0261': 'richardson',
+        'SFB1213': 'san_pablo',
+        's06010': 'north_bay',
+      };
+
+      const stations = Array.isArray(data.stations) ? data.stations : [];
+      for (const stationData of stations) {
+        const stationId = stationData?.station;
+        const predictions = stationData?.predictions ?? [];
+        if (!stationId || predictions.length === 0) continue;
 
         // Find the prediction closest to now
         let closest = predictions[0];
@@ -43,20 +54,17 @@ export function useCurrents() {
           }
         }
 
-        // Map station to zone (from current-stations.ts mapping)
-        const stationToZone: Record<string, string> = {
-          'SFB1201': 'central_bay',
-          'SFB1203': 'central_bay',
-          'PCT0261': 'richardson',
-          'SFB1213': 'san_pablo',
-          's06010': 'north_bay',
-        };
-
         const zone = stationToZone[stationId];
-        if (zone && closest.speed_kts != null) {
+        if (zone && closest.velocity != null) {
+          // Classify type from the NOAA prediction type field
+          const rawType: string = closest.type ?? '';
+          const type: 'flood' | 'ebb' | 'slack' =
+            rawType.includes('flood') ? 'flood' :
+            rawType.includes('ebb') ? 'ebb' : 'slack';
           zoneCurrents[zone] = {
-            speed: Math.abs(closest.speed_kts),
-            direction: closest.direction_deg ?? 0,
+            speed: Math.abs(closest.velocity),
+            direction: closest.direction ?? 0,
+            type,
           };
         }
       }

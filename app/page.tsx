@@ -21,6 +21,9 @@ import { TrajectoryPanel } from './components/TrajectoryPanel';
 import { ActivityAdvisor } from './components/ActivityAdvisor';
 import { BoatSelector } from './components/BoatSelector';
 import { MapErrorBoundary } from './components/MapErrorBoundary';
+import { WeekendForecast } from './components/WeekendForecast';
+import { Onboarding } from './components/Onboarding';
+import { BayConditionsOverlay } from './components/BayConditionsOverlay';
 import { useMarineAlerts } from '@/hooks/useMarineAlerts';
 import { useCurrents } from '@/hooks/useCurrents';
 import { describeWind, describeWaves } from '@/lib/conditions-text';
@@ -270,6 +273,10 @@ export default function Home() {
   const [useLiveData, setUseLiveData] = useState(month === new Date().getMonth());
   const [showDepthOverlay, setShowDepthOverlay] = useState(true); // depth ON by default
   const [showFerryRoutes, setShowFerryRoutes] = useState(false);
+  const [showConditions, setShowConditions] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('whentoboat-show-conditions') === 'true';
+  });
   const ferryGeoJSON = useMemo(() => ferryRoutesGeoJSON(), []);
 
   // Live forecast data
@@ -279,7 +286,7 @@ export default function Home() {
   const { alerts: marineAlerts, hasActiveAlerts, hasGaleWarning, hasSmallCraftAdvisory, hasFogAdvisory } = useMarineAlerts();
 
   // Live tidal current data from NOAA CO-OPS
-  const { getCurrentForZone, hasCurrentData } = useCurrents();
+  const { currentData, getCurrentForZone, hasCurrentData } = useCurrents();
 
   const mapRef = useRef<any>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -675,7 +682,7 @@ export default function Home() {
     }
 
     // On mobile, close sidebar when card is tapped
-    if (window.innerWidth < 768) {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
       setSidebarOpen(false);
     }
   }, [homeBaseId]);
@@ -705,6 +712,7 @@ export default function Home() {
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="md:hidden absolute top-3 left-3 z-30 bg-ocean-900/90 backdrop-blur-md text-ocean-100 px-3 py-2 rounded-lg border border-ocean-700/50 text-sm font-medium shadow-lg"
+          aria-label={sidebarOpen ? 'Show map view' : `Show ${scoredRoutes.length} destinations`}
         >
           {sidebarOpen ? 'Show Map' : `Destinations (${scoredRoutes.length})`}
         </button>
@@ -1030,6 +1038,13 @@ export default function Home() {
               )}
             </div>
 
+            {/* 7-Day Forecast — live hourly conditions */}
+            {useLiveData && (
+              <div className="mx-2 mt-3">
+                <WeekendForecast />
+              </div>
+            )}
+
             {/* Before You Go (collapsible) */}
             <div className="border-t border-[var(--border)]">
               <button
@@ -1135,6 +1150,24 @@ export default function Home() {
 
                 {/* Map layer toggle buttons */}
                 <div className="absolute top-3 right-3 z-10 flex gap-1.5">
+                  {useLiveData && (
+                    <button
+                      onClick={() => {
+                        const next = !showConditions;
+                        setShowConditions(next);
+                        try { localStorage.setItem('whentoboat-show-conditions', String(next)); } catch {}
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-md transition-colors shadow-lg ${
+                        showConditions
+                          ? 'bg-compass-gold text-ocean-950 border border-compass-gold'
+                          : 'bg-ocean-900/80 text-ocean-200 border border-ocean-700/50 hover:bg-ocean-800/80'
+                      }`}
+                      aria-label={showConditions ? 'Hide wind, current, and wave animation' : 'Show animated wind, currents, and waves'}
+                      title={showConditions ? 'Hide conditions animation' : 'Show wind, currents, waves, fog'}
+                    >
+                      {showConditions ? 'Conditions ON' : 'Conditions'}
+                    </button>
+                  )}
                   <button
                     onClick={() => setShowDepthOverlay(!showDepthOverlay)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-md transition-colors shadow-lg ${
@@ -1222,6 +1255,25 @@ export default function Home() {
                   </Popup>
                 )}
               </MapGL>
+
+              {/* Animated conditions overlay — wind particles, current arrows, wave ripples, fog */}
+              {useLiveData && mapLoaded && showConditions && (() => {
+                const lc = getConditionsForHour(new Date(), Math.floor(hour));
+                return (
+                  <BayConditionsOverlay
+                    mapRef={mapRef}
+                    windSpeedKts={lc?.windKts ?? 0}
+                    windDirDeg={lc?.windDirDeg ?? 270}
+                    windGustKts={lc?.windGustKts ?? 0}
+                    waveHeightFt={lc?.waveHtFt ?? 0}
+                    wavePeriodS={lc?.wavePeriodS ?? 0}
+                    waveDirDeg={lc?.waveDirDeg ?? 270}
+                    visibilityMi={lc?.visibilityMi ?? 10}
+                    currentData={currentData ?? null}
+                    active={true}
+                  />
+                );
+              })()}
             </>
           ) : (
             /* Fallback when no Mapbox token */
@@ -1263,6 +1315,11 @@ export default function Home() {
                   step={0.25}
                   value={hour}
                   onChange={(e) => setHour(parseFloat(e.target.value))}
+                  aria-label={`Time of day: ${timeLabel}`}
+                  aria-valuemin={5}
+                  aria-valuemax={22}
+                  aria-valuenow={hour}
+                  aria-valuetext={timeLabel}
                   className="relative w-full appearance-none bg-transparent cursor-pointer z-10
                     [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
                     [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2
@@ -1304,6 +1361,9 @@ export default function Home() {
           }}
         />
       )}
+
+      {/* First-visit onboarding walkthrough */}
+      <Onboarding />
     </div>
   );
 }

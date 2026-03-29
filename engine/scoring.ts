@@ -103,7 +103,6 @@ export function fullConditionsScore(
 
   // 1. Fog in ferry/shipping lanes: kayak/SUP in visibility < 1 mile = BLOCK
   if ((activity.vesselType === 'kayak' || activity.vesselType === 'sup') && conditions.visibilityMi < 1) {
-    if (typeof console !== 'undefined') console.warn('[SAFETY_BLOCK]', { block: 'fog_paddlecraft', vesselType: activity.vesselType, visibility: conditions.visibilityMi, zoneId });
     return { score: 1, factors: [{
       factor: 'DANGER: Dense fog near shipping lanes',
       severity: 'high',
@@ -114,7 +113,6 @@ export function fullConditionsScore(
   // 2. Golden Gate max ebb + paddlecraft: current > 4kt + kayak/SUP = BLOCK
   // Only applies when we have REAL current data (not the -1 sentinel)
   if ((activity.vesselType === 'kayak' || activity.vesselType === 'sup') && conditions.currentKts > 4) {
-    if (typeof console !== 'undefined') console.warn('[SAFETY_BLOCK]', { block: 'current_exceeds_paddle', vesselType: activity.vesselType, currentKts: conditions.currentKts, zoneId });
     return { score: 1, factors: [{
       factor: 'DANGER: Current exceeds paddle speed',
       severity: 'high',
@@ -126,7 +124,6 @@ export function fullConditionsScore(
   // SUPs cannot safely cross open water — standing profile catches wind like a sail,
   // and falling off in shipping lanes / strong current is potentially fatal.
   if (activity.vesselType === 'sup' && OPEN_WATER_BLOCK_ZONES.includes(zoneId)) {
-    if (typeof console !== 'undefined') console.warn('[SAFETY_BLOCK]', { block: 'sup_open_water', zoneId });
     return { score: 1, factors: [{
       factor: 'DANGER: Open water crossing on SUP',
       severity: 'high',

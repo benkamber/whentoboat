@@ -18,13 +18,39 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "WhenToBoat — Know When and Where to Go",
   description:
-    "AllTrails-style planning intelligence for water outings. Activity-specific comfort scores for kayakers, sailors, and powerboaters on San Francisco Bay.",
+    "Activity-specific comfort scores for kayakers, sailors, and powerboaters on San Francisco Bay. Live forecasts, tidal currents, and safety-first planning.",
   manifest: "/manifest.json",
-  openGraph: {
-    title: "WhenToBoat",
-    description: "Know when and where to go boating. Plan with confidence.",
-    type: "website",
+  metadataBase: new URL("https://whentoboat.com"),
+  alternates: {
+    canonical: "/",
   },
+  openGraph: {
+    title: "WhenToBoat — Know When and Where to Go",
+    description:
+      "Live comfort scores for kayaking, sailing, and powerboating on SF Bay. 7-day forecast, tidal currents, and 37 destinations scored 1-10.",
+    type: "website",
+    siteName: "WhenToBoat",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "WhenToBoat — Know When and Where to Go",
+    description:
+      "Live comfort scores for kayaking, sailing, and powerboating on SF Bay.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  keywords: [
+    "boating conditions",
+    "kayaking SF Bay",
+    "sailing conditions San Francisco",
+    "powerboat weather",
+    "tide current forecast",
+    "when to kayak",
+    "SF Bay boating planner",
+  ],
 };
 
 export const viewport: Viewport = {

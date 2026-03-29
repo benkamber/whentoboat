@@ -46,6 +46,11 @@ export const activities: ActivityProfile[] = [
         url: null,
         activityTypes: ['kayak'],
       },
+      {
+        text: 'File a float plan — tell someone your route and return time',
+        url: 'https://www.uscgboating.org/recreational-boaters/floating-plan.php',
+        activityTypes: 'all',
+      },
     ],
     notes:
       'Can venture into moderate exposure zones. Current awareness critical. Spray skirt recommended for Bay conditions.',
@@ -97,7 +102,7 @@ export const activities: ActivityProfile[] = [
       },
       {
         text: 'Tell someone your plan and expected return time',
-        url: null,
+        url: 'https://www.uscgboating.org/recreational-boaters/floating-plan.php',
         activityTypes: 'all',
       },
     ],
@@ -141,8 +146,13 @@ export const activities: ActivityProfile[] = [
       },
       {
         text: 'File a float plan with someone on shore',
-        url: null,
+        url: 'https://www.uscgboating.org/recreational-boaters/floating-plan.php',
         activityTypes: 'all',
+      },
+      {
+        text: 'Check tide and current timing — ebb currents at Golden Gate can exceed 5 knots',
+        url: 'https://tidesandcurrents.noaa.gov/noaacurrents/Predictions?id=SFB1201',
+        activityTypes: ['powerboat_cruise'],
       },
     ],
     notes: 'Passenger comfort is priority. Avoid short-period chop.',

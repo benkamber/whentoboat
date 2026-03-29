@@ -141,13 +141,28 @@ export const zoneVerifyLinks: Record<string, VerifyLink[]> = {
 
 export const cityVerifyLinks: VerifyLink[] = [
   {
-    label: 'NWS Bay Area General Forecast',
+    label: 'NWS Bay Area Marine Forecast',
     url: 'https://forecast.weather.gov/MapClick.php?lat=37.8&lon=-122.4',
     type: 'forecast',
   },
   {
-    label: 'USCG SF Bay Safety Information',
+    label: 'NOAA SF Bay Currents Overview',
+    url: 'https://tidesandcurrents.noaa.gov/noaacurrents/Regions?g=530',
+    type: 'current',
+  },
+  {
+    label: 'NOAA SF Bay Tide Predictions',
+    url: 'https://tidesandcurrents.noaa.gov/noaatidepredictions.html?id=9414290',
+    type: 'tide',
+  },
+  {
+    label: 'USCG Sector San Francisco',
     url: 'https://www.pacificarea.uscg.mil/Our-Organization/District-11/About-Us/Units/Sector-San-Francisco/',
+    type: 'forecast',
+  },
+  {
+    label: 'USCG Float Plan',
+    url: 'https://www.uscgboating.org/recreational-boaters/floating-plan.php',
     type: 'forecast',
   },
 ];
