@@ -22,6 +22,7 @@ import { ActivityAdvisor } from './components/ActivityAdvisor';
 import { BoatSelector } from './components/BoatSelector';
 import { MapErrorBoundary } from './components/MapErrorBoundary';
 import { useMarineAlerts } from '@/hooks/useMarineAlerts';
+import { useCurrents } from '@/hooks/useCurrents';
 import { describeWind, describeWaves } from '@/lib/conditions-text';
 import type { ActivityType, Destination, ScoredRoute } from '@/engine/types';
 
@@ -277,6 +278,9 @@ export default function Home() {
   // NWS marine weather alerts
   const { alerts: marineAlerts, hasActiveAlerts, hasGaleWarning, hasSmallCraftAdvisory, hasFogAdvisory } = useMarineAlerts();
 
+  // Live tidal current data from NOAA CO-OPS
+  const { getCurrentForZone, hasCurrentData } = useCurrents();
+
   const mapRef = useRef<any>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -307,8 +311,23 @@ export default function Home() {
 
           // If live forecast is available, override the score with live conditions
           if (liveConditions) {
-            const { score: liveScore, factors } = fullConditionsScore(currentActivity, liveConditions, vessel);
+            // Inject real current data from NOAA CO-OPS when available
+            // This replaces the -1 sentinel and eliminates the "current data unavailable" penalty
+            const zoneId = dest.zone;
+            const currentForZone = hasCurrentData ? getCurrentForZone(zoneId) : { speed: -1, direction: 0 };
+            const enrichedConditions = {
+              ...liveConditions,
+              currentKts: currentForZone.speed,
+              currentDirDeg: currentForZone.direction,
+              zoneId,
+            };
+            const { score: liveScore, factors } = fullConditionsScore(currentActivity, enrichedConditions, vessel);
             scored.score = liveScore;
+            scored.primaryReason = scored.score <= 2
+              ? (factors.find(f => f.severity === 'high')?.factor ?? 'Dangerous conditions')
+              : scored.score <= 4
+                ? (factors.find(f => f.severity === 'high' || f.severity === 'medium')?.factor ?? 'Marginal conditions')
+                : scored.primaryReason;
             scored.riskFactors = [...factors, ...scored.riskFactors.filter(f =>
               !factors.some(lf => lf.factor === f.factor)
             )];
@@ -329,7 +348,70 @@ export default function Home() {
       })
       .filter((r): r is NonNullable<typeof r> => r !== null)
       .sort((a, b) => b.score - a.score);
-  }, [activity, month, hour, vessel, origin, currentActivity, useLiveData, getConditionsForHour]);
+  }, [activity, month, hour, vessel, origin, currentActivity, useLiveData, getConditionsForHour, hasCurrentData, getCurrentForZone]);
+
+  // --- Best Boating Today: cross-activity recommendation ---
+  const bestBoatingToday = useMemo(() => {
+    if (!useLiveData) return null;
+    const liveConditions = getConditionsForHour(new Date(), Math.floor(hour));
+    if (!liveConditions) return null;
+
+    let best: { activity: string; activityName: string; icon: string; dest: string; destName: string; score: number; reason: string } | null = null;
+
+    for (const act of activities) {
+      const vesselMap: Record<string, string> = { kayak: 'kayak', sup: 'sup', powerboat_cruise: 'powerboat', casual_sail: 'sailboat' };
+      const v = vesselPresets.find(vp => vp.type === (vesselMap[act.id] ?? 'kayak')) ?? vesselPresets[0];
+
+      for (const dest of sfBay.destinations) {
+        if (dest.id === origin.id) continue;
+        if (!dest.activityTags.includes(act.id)) continue;
+        try {
+          const scored = routeComfort(origin, dest, month, hour, act, v, sfBay);
+          if (!best || scored.score > best.score) {
+            best = {
+              activity: act.id,
+              activityName: act.name,
+              icon: act.icon,
+              dest: dest.id,
+              destName: dest.name,
+              score: scored.score,
+              reason: scored.primaryReason,
+            };
+          }
+        } catch { /* skip */ }
+      }
+    }
+    return best;
+  }, [useLiveData, getConditionsForHour, hour, origin, month]);
+
+  // --- Best per activity type ---
+  const bestPerActivity = useMemo(() => {
+    const results: { activity: string; name: string; icon: string; destName: string; score: number; reason: string }[] = [];
+    for (const act of activities) {
+      const vesselMap: Record<string, string> = { kayak: 'kayak', sup: 'sup', powerboat_cruise: 'powerboat', casual_sail: 'sailboat' };
+      const v = vesselPresets.find(vp => vp.type === (vesselMap[act.id] ?? 'kayak')) ?? vesselPresets[0];
+
+      let bestScore = -1;
+      let bestDest = '';
+      let bestReason = '';
+      for (const dest of sfBay.destinations) {
+        if (dest.id === origin.id) continue;
+        if (!dest.activityTags.includes(act.id)) continue;
+        try {
+          const scored = routeComfort(origin, dest, month, hour, act, v, sfBay);
+          if (scored.score > bestScore) {
+            bestScore = scored.score;
+            bestDest = dest.name;
+            bestReason = scored.primaryReason;
+          }
+        } catch { /* skip */ }
+      }
+      if (bestScore > 0) {
+        results.push({ activity: act.id, name: act.name, icon: act.icon, destName: bestDest, score: bestScore, reason: bestReason });
+      }
+    }
+    return results;
+  }, [origin, month, hour]);
 
   // --- Feature 1: Hourly comfort scores for the color-gradient slider ---
   const hourlyComfort = useMemo(() => {
@@ -725,6 +807,41 @@ export default function Home() {
                 </div>
                 {marineAlerts.slice(0, 2).map((alert, i) => (
                   <p key={i} className="text-[11px] opacity-90">{alert.headline}</p>
+                ))}
+              </div>
+            )}
+
+            {/* BEST BOATING TODAY — cross-activity recommendation */}
+            {bestBoatingToday && bestBoatingToday.score >= 5 && (
+              <div className="mx-2 mt-2 p-3 bg-compass-gold/10 border border-compass-gold/30 rounded-lg">
+                <p className="text-[10px] font-bold text-compass-gold uppercase tracking-wider">Best Boating Today</p>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <ScoreBadge score={bestBoatingToday.score} size="md" />
+                  <div>
+                    <p className="text-sm font-bold">{bestBoatingToday.icon} {bestBoatingToday.activityName} to {bestBoatingToday.destName}</p>
+                    <p className="text-xs text-[var(--muted)]">{bestBoatingToday.reason}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Best per activity type */}
+            {bestPerActivity.length > 0 && (
+              <div className="mx-2 mt-2 space-y-1">
+                {bestPerActivity.map(b => (
+                  <button
+                    key={b.activity}
+                    onClick={() => setActivity(b.activity as ActivityType)}
+                    className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${
+                      activity === b.activity ? 'bg-[var(--card-elevated)] border border-[var(--border)]' : 'hover:bg-[var(--card-elevated)]'
+                    }`}
+                  >
+                    <ScoreBadge score={b.score} size="sm" />
+                    <span className="text-xs flex-1 truncate">
+                      <span className="font-medium">{b.icon} {b.name}</span>
+                      <span className="text-[var(--muted)]"> — {b.destName}</span>
+                    </span>
+                  </button>
                 ))}
               </div>
             )}

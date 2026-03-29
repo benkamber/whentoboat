@@ -8,6 +8,7 @@ const ids = [
   'sau', 'ang', 'tib', 'aqp', 'p39', 'fbg', 'mcc', 'clp', 'jls', 'alm', 'brk', 'ptr', 'hmb',
   'rwc', 'oyp', 'cop', 'srf', 'val', 'ben', 'ggb', 'stn', 'bol', 'pry', 'mry',
   'scz', 'bdb', 'tmb', 'pcm', 'lrk', 'hsb', 'skm',
+  'cnc', 'mcn', 'fcy', 'crb', 'hdb', 'lkm',
 ] as const;
 
 // Raw distance pairs (symmetric — both directions included via matrix builder)
@@ -474,6 +475,59 @@ const raw: [string, string, number][] = [
   ['hsb', 'skm', 1],
   ['aqp', 'skm', 4],
   ['pcm', 'skm', 2.5],
+
+  // ══════════════════════════════════════════
+  // China Camp (north_bay, Marin)
+  ['cnc', 'srf', 3],
+  ['cnc', 'mcn', 2],
+  ['cnc', 'pcm', 6],
+  ['cnc', 'lrk', 5],
+  ['cnc', 'tib', 7],
+  ['cnc', 'sau', 8],
+  ['cnc', 'ang', 6],
+  ['cnc', 'ptr', 5],
+  ['cnc', 'brk', 7],
+  ['cnc', 'val', 8],
+
+  // ══════════════════════════════════════════
+  // McNears Beach (north_bay, Marin)
+  ['mcn', 'srf', 2.5],
+  ['mcn', 'cnc', 2],
+  ['mcn', 'pcm', 5],
+  ['mcn', 'tib', 6],
+  ['mcn', 'sau', 7],
+  ['mcn', 'ang', 5.5],
+  ['mcn', 'ptr', 4],
+  ['mcn', 'val', 7],
+
+  // ══════════════════════════════════════════
+  // Foster City Lagoon (south_bay, Peninsula)
+  ['fcy', 'oyp', 3],
+  ['fcy', 'cop', 4],
+  ['fcy', 'rwc', 5],
+  ['fcy', 'mcc', 8],
+  ['fcy', 'fbg', 9],
+
+  // ══════════════════════════════════════════
+  // Crown Beach (east_bay, Alameda)
+  ['crb', 'alm', 1.5],
+  ['crb', 'jls', 2],
+  ['crb', 'clp', 3],
+  ['crb', 'mcc', 5],
+  ['crb', 'fbg', 5],
+  ['crb', 'brk', 6],
+  ['crb', 'oyp', 8],
+
+  // ══════════════════════════════════════════
+  // Heart's Desire Beach (inside Tomales Bay — safe side)
+  ['hdb', 'tmb', 5],
+  ['hdb', 'bdb', 20],
+
+  // ══════════════════════════════════════════
+  // Lake Merritt (east_bay, Oakland — urban lake)
+  ['lkm', 'jls', 2],
+  ['lkm', 'crb', 3],
+  ['lkm', 'alm', 3],
 ];
 
 // Build symmetric distance matrix
