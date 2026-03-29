@@ -264,8 +264,10 @@ export default function Home() {
   const [beforeYouGoOpen, setBeforeYouGoOpen] = useState(false);
   // verifyLinksOpen removed — verify links only in trajectory panel now
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [useLiveData, setUseLiveData] = useState(false);
-  const [showDepthOverlay, setShowDepthOverlay] = useState(false);
+  // Auto-enable live data when viewing the current month — users checking
+  // conditions for TODAY should see live forecast, not historical averages.
+  const [useLiveData, setUseLiveData] = useState(month === new Date().getMonth());
+  const [showDepthOverlay, setShowDepthOverlay] = useState(true); // depth ON by default
   const [showFerryRoutes, setShowFerryRoutes] = useState(false);
   const ferryGeoJSON = useMemo(() => ferryRoutesGeoJSON(), []);
 
@@ -546,6 +548,7 @@ export default function Home() {
         const score = feature.properties?.score ?? 5;
         if (dest) {
           const isOrigin = dest.id === homeBaseId;
+          const depthInfo = dest.minDepth !== null ? ` · Depth: ${dest.minDepth}ft+` : '';
           setPopup({
             lng: dest.lng,
             lat: dest.lat,
@@ -553,8 +556,8 @@ export default function Home() {
             name: dest.name,
             score,
             detail: isOrigin
-              ? `Home base · ${dest.dockInfo}`
-              : `Click to set as home base · ${dest.dockInfo}`,
+              ? `Home base · ${dest.dockInfo}${depthInfo}`
+              : `${dest.dockInfo}${depthInfo}`,
           });
         }
       } else if (layerId === 'route-lines-hit') {

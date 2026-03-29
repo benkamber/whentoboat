@@ -365,33 +365,34 @@ export function fullConditionsScore(
       ? -3 : 0;
 
   // 4. Water temperature factor
-  // Guard: only apply when we have a realistic reading (> -40°F sanity floor).
-  // Uses -40 instead of 0 to support future expansion to freshwater lakes where
-  // water can be near freezing (32°F / 0°C).
+  // RECALIBRATED: SF Bay water is 50-63°F year-round, so the old penalties
+  // (-2 to -4) crushed scores EVERY DAY for kayakers. Cold water is a GEAR
+  // issue (wear a wetsuit), not a "don't go" issue. The WARNING is the safety
+  // mechanism — telling users what to wear — not the score penalty.
   let waterTempPenalty = 0;
   if (conditions.waterTempF > -40 && (activity.vesselType === 'kayak' || activity.vesselType === 'sup')) {
     if (conditions.waterTempF < 60 && conditions.waterTempF >= 55) {
-      waterTempPenalty = -2;
+      waterTempPenalty = -0.5; // was -2 — gear warning, not score penalty
       factors.push({
-        factor: 'Cold water risk',
-        severity: 'medium',
-        description: `Water temperature ${conditions.waterTempF}°F — cold water shock risk if capsized. Wear a wetsuit or drysuit.`,
+        factor: 'Cold water — wear a wetsuit',
+        severity: 'low',
+        description: `Water temperature ${conditions.waterTempF}°F — wear a wetsuit or drysuit. Cold water shock risk if capsized.`,
       });
     }
     if (conditions.waterTempF < 55 && conditions.waterTempF >= 50) {
-      waterTempPenalty = -3;
+      waterTempPenalty = -1; // was -3 — gear warning, not score crusher
       factors.push({
-        factor: 'Cold water — drysuit required',
-        severity: 'high',
-        description: `Water temperature ${conditions.waterTempF}°F — serious cold water shock risk if capsized. Drysuit strongly recommended.`,
+        factor: 'Cold water — drysuit strongly recommended',
+        severity: 'medium',
+        description: `Water temperature ${conditions.waterTempF}°F — drysuit strongly recommended. Cold water shock is survivable with proper gear.`,
       });
     }
     if (conditions.waterTempF < 50) {
-      waterTempPenalty = -4;
+      waterTempPenalty = -2; // was -4 — still significant but not DANGEROUS alone
       factors.push({
-        factor: 'Very cold water',
+        factor: 'Very cold water — drysuit essential',
         severity: 'high',
-        description: `Water temperature ${conditions.waterTempF}°F — hypothermia risk within minutes of immersion. Immersion suit required.`,
+        description: `Water temperature ${conditions.waterTempF}°F — drysuit essential. Without thermal protection, hypothermia risk within minutes of immersion.`,
       });
     }
   }
