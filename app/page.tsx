@@ -810,26 +810,26 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Sticky safety alerts — NEVER scroll off screen */}
+          {hasActiveAlerts && (
+            <div className={`mx-2 mt-2 mb-1 px-3 py-2 rounded-lg border text-xs shrink-0 ${
+              hasGaleWarning
+                ? 'bg-danger-red/15 border-danger-red/40 text-danger-red'
+                : hasSmallCraftAdvisory
+                  ? 'bg-warning-amber/15 border-warning-amber/40 text-warning-amber'
+                  : 'bg-safety-blue/15 border-safety-blue/40 text-safety-blue'
+            }`}>
+              <div className="font-bold mb-1">
+                {hasGaleWarning ? '⚠ GALE WARNING' : hasSmallCraftAdvisory ? '⚠ SMALL CRAFT ADVISORY' : '⚠ MARINE WEATHER ALERT'}
+              </div>
+              {marineAlerts.slice(0, 2).map((alert, i) => (
+                <p key={i} className="text-[11px] opacity-90">{alert.headline}</p>
+              ))}
+            </div>
+          )}
+
           {/* Scrollable destination list */}
           <div className="flex-1 overflow-y-auto">
-            {/* NWS Marine Weather Alerts — these are authoritative safety warnings */}
-            {hasActiveAlerts && (
-              <div className={`mx-2 mt-2 px-3 py-2 rounded-lg border text-xs ${
-                hasGaleWarning
-                  ? 'bg-danger-red/15 border-danger-red/40 text-danger-red'
-                  : hasSmallCraftAdvisory
-                    ? 'bg-warning-amber/15 border-warning-amber/40 text-warning-amber'
-                    : 'bg-safety-blue/15 border-safety-blue/40 text-safety-blue'
-              }`}>
-                <div className="font-bold mb-1">
-                  {hasGaleWarning ? '⚠ GALE WARNING' : hasSmallCraftAdvisory ? '⚠ SMALL CRAFT ADVISORY' : '⚠ MARINE WEATHER ALERT'}
-                </div>
-                {marineAlerts.slice(0, 2).map((alert, i) => (
-                  <p key={i} className="text-[11px] opacity-90">{alert.headline}</p>
-                ))}
-              </div>
-            )}
-
             {/* BEST BOATING TODAY — cross-activity recommendation (only in All mode) */}
             {allActivities && bestBoatingToday && bestBoatingToday.score >= 5 && (
               <div className="mx-2 mt-2 p-3 bg-compass-gold/10 border border-compass-gold/30 rounded-lg">
@@ -850,7 +850,7 @@ export default function Home() {
                 {bestPerActivity.map(b => (
                   <button
                     key={b.activity}
-                    onClick={() => setActivity(b.activity as ActivityType)}
+                    onClick={() => { setActivity(b.activity as ActivityType); setAllActivities(false); }}
                     className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${
                       activity === b.activity ? 'bg-[var(--card-elevated)] border border-[var(--border)]' : 'hover:bg-[var(--card-elevated)]'
                     }`}
@@ -865,47 +865,61 @@ export default function Home() {
               </div>
             )}
 
-            {/* Hero recommendation — THE answer to "where should I go?" */}
-            {scoredRoutes.length > 0 && scoredRoutes[0].score >= 5 && (
-              <div className="p-3 mx-2 mt-2 bg-reef-teal/10 border border-reef-teal/30 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <ScoreBadge score={scoredRoutes[0].score} size="md" />
-                  <div className="flex-1">
-                    <p className="text-sm font-bold">{scoredRoutes[0].dest.name}</p>
-                    <p className="text-xs text-[var(--muted)]">
-                      {scoredRoutes[0].primaryReason} · {scoredRoutes[0].distance} mi · {scoredRoutes[0].transitMinutes} min
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-                      const url = `${window.location.origin}/share?activity=${activity}&dest=${scoredRoutes[0].dest.id}&origin=${homeBaseId}&month=${month}&hour=${Math.floor(hour)}&date=${encodeURIComponent(today)}`;
-                      if (navigator.share) {
-                        navigator.share({ title: `${currentActivity.name} to ${scoredRoutes[0].dest.name}`, text: `${scoredRoutes[0].primaryReason} — ${scoredRoutes[0].score}/10`, url });
-                      } else {
-                        navigator.clipboard.writeText(url);
-                        alert('Link copied!');
-                      }
-                    }}
-                    className="shrink-0 px-2 py-1 rounded text-[10px] font-medium text-reef-teal hover:bg-reef-teal/20 transition-colors"
-                    title="Share this recommendation"
-                  >
-                    Share
-                  </button>
-                </div>
-                {useLiveData && bestForecastDay && (
-                  <p className="text-[10px] text-reef-teal mt-1.5">
-                    Best this week: {bestForecastDay.dayLabel} {bestForecastDay.timeLabel}
-                  </p>
-                )}
-              </div>
-            )}
-
             {useLiveData && forecastError && (
               <div className="mx-2 mt-2 px-3 py-1.5 rounded bg-warning-amber/10 text-[10px] text-warning-amber">
                 ⚠ Forecast unavailable — showing historical averages
               </div>
             )}
+
+            {/* Before You Go — elevated above destinations, auto-expands when conditions are risky */}
+            {(() => {
+              const hasRisky = scoredRoutes.some(r => r.score <= 4);
+              const isOpen = beforeYouGoOpen || hasRisky;
+              return (
+            <div className={`border-b border-[var(--border)] ${hasRisky ? 'bg-warning-amber/5' : ''}`}>
+              <button
+                onClick={() => setBeforeYouGoOpen(!isOpen)}
+                className="w-full px-4 py-2.5 text-left flex items-center justify-between text-sm font-medium text-[var(--secondary)] hover:text-[var(--foreground)] transition-colors"
+              >
+                <span>{hasRisky ? 'Safety Checklist' : 'Safety Checklist'} — {currentActivity.name}</span>
+                <span className="flex items-center gap-1.5">
+                  {hasRisky && <span className="text-[10px] text-warning-amber font-medium">Check conditions</span>}
+                  <span className="text-[10px] text-[var(--muted)]">{currentActivity.beforeYouGo.length} items</span>
+                  <span className="text-xs text-[var(--muted)]">{isOpen ? '−' : '+'}</span>
+                </span>
+              </button>
+              {isOpen && (
+                <div className="px-4 pb-3 space-y-0">
+                  {currentActivity.beforeYouGo.map((item, i) => (
+                    <label
+                      key={i}
+                      className="flex items-center gap-2 py-2 cursor-pointer border-b border-[var(--border)] last:border-b-0 group"
+                    >
+                      <input
+                        type="checkbox"
+                        className="w-3.5 h-3.5 rounded accent-reef-teal shrink-0"
+                      />
+                      <span className="text-xs text-[var(--secondary)] group-hover:text-[var(--foreground)] transition-colors flex-1">
+                        {item.text}
+                      </span>
+                      {item.url && (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-safety-blue text-[10px] hover:underline shrink-0"
+                        >
+                          Link
+                        </a>
+                      )}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+              );
+            })()}
 
             {/* Bad conditions guidance */}
             {scoredRoutes.length > 0 && scoredRoutes.every(r => r.score < 5) && (
@@ -1000,7 +1014,7 @@ export default function Home() {
                         {/* Compact card: primaryReason + distance/time */}
                         {route.score > 2 && (
                           <div className="text-[11px] text-[var(--muted)]">
-                            {route.primaryReason} · {route.distance} mi · {route.transitMinutes} min
+                            {route.primaryReason} · {route.distance < 0.5 ? '< 1' : route.distance} mi · {route.transitMinutes} min
                           </div>
                         )}
                       </div>
@@ -1051,68 +1065,10 @@ export default function Home() {
 
             {/* 7-Day Forecast — live hourly conditions */}
             {useLiveData && (
-              <div className="mx-2 mt-3">
+              <div className="mx-2 mt-3 mb-3">
                 <WeekendForecast />
               </div>
             )}
-
-            {/* Before You Go (collapsible) */}
-            <div className="border-t border-[var(--border)]">
-              <button
-                onClick={() => setBeforeYouGoOpen(!beforeYouGoOpen)}
-                className="w-full px-4 py-3 text-left flex items-center justify-between text-sm font-medium text-[var(--secondary)] hover:text-[var(--foreground)] transition-colors"
-              >
-                <span>Before You Go - {currentActivity.name}</span>
-                <span className="text-xs text-[var(--muted)]">{beforeYouGoOpen ? '−' : '+'}</span>
-              </button>
-              {beforeYouGoOpen && (
-                <div className="px-4 pb-4 space-y-0">
-                  {currentActivity.beforeYouGo.map((item, i) => (
-                    <label
-                      key={i}
-                      className="flex items-center gap-2 py-2 cursor-pointer border-b border-[var(--border)] last:border-b-0 group"
-                    >
-                      <input
-                        type="checkbox"
-                        className="w-3.5 h-3.5 rounded accent-reef-teal shrink-0"
-                      />
-                      <span className="text-xs text-[var(--secondary)] group-hover:text-[var(--foreground)] transition-colors flex-1">
-                        {item.text}
-                      </span>
-                      {item.url && (
-                        <a
-                          href={item.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-safety-blue text-[10px] hover:underline shrink-0"
-                        >
-                          Link
-                        </a>
-                      )}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Links to other pages */}
-            <div className="border-t border-[var(--border)] p-3">
-              <div className="flex gap-2">
-                <Link
-                  href="/explore"
-                  className="flex-1 text-center py-2 rounded-lg border border-compass-gold/50 text-compass-gold text-xs font-medium hover:bg-compass-gold/10 transition-colors"
-                >
-                  Full-screen map
-                </Link>
-                <Link
-                  href="/schedule"
-                  className="flex-1 text-center py-2 rounded-lg border border-reef-teal/50 text-reef-teal text-xs font-medium hover:bg-reef-teal/10 transition-colors"
-                >
-                  Departure board
-                </Link>
-              </div>
-            </div>
           </div>
         </div>
 
