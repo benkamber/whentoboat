@@ -4,6 +4,7 @@ import {
   fullConditionsScore,
   vesselWaveToleranceMultiplier,
   windCurrentInteraction,
+  haversineDistanceMi,
   DEFAULT_WATER_TEMP_F,
 } from '../scoring';
 import { getActivity } from '@/data/activities';
@@ -432,5 +433,36 @@ describe('activityScore', () => {
   it('gives sailboat a high score in ideal wind', () => {
     const score = activityScore(sailActivity, 12, 1.0, 6);
     expect(score).toBeGreaterThanOrEqual(8);
+  });
+});
+
+// ── Haversine distance fallback ──
+
+describe('haversineDistanceMi', () => {
+  it('returns reasonable distance for Sausalito to Angel Island', () => {
+    // Actual: ~1.8 mi. Haversine with 1.3x should be close.
+    const dist = haversineDistanceMi(37.8594, -122.4853, 37.8636, -122.4330);
+    expect(dist).toBeGreaterThan(1);
+    expect(dist).toBeLessThan(5);
+  });
+
+  it('returns zero for same point', () => {
+    const dist = haversineDistanceMi(37.8, -122.4, 37.8, -122.4);
+    expect(dist).toBe(0);
+  });
+
+  it('returns reasonable distance for cross-bay route', () => {
+    // Sausalito to Oakland (~7.5 mi actual)
+    const dist = haversineDistanceMi(37.8594, -122.4853, 37.7955, -122.2795);
+    expect(dist).toBeGreaterThan(5);
+    expect(dist).toBeLessThan(20);
+  });
+
+  it('applies 1.3x water route multiplier', () => {
+    // Two points 1 mile apart straight-line should be ~1.3 mi
+    // 1 mile of latitude ≈ 0.0145 degrees
+    const dist = haversineDistanceMi(37.8, -122.4, 37.8145, -122.4);
+    expect(dist).toBeGreaterThan(1.2);
+    expect(dist).toBeLessThan(1.5);
   });
 });

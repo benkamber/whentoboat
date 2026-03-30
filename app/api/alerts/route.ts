@@ -78,13 +78,16 @@ export async function GET(_request: NextRequest) {
         if (!props || seenIds.has(props.id)) continue;
         seenIds.add(props.id);
 
+        // Strip HTML tags from NWS text fields to prevent XSS
+        const stripHtml = (s: string) => s.replace(/<[^>]*>/g, '');
+
         alerts.push({
           id: props.id,
-          event: props.event ?? 'Unknown',
+          event: stripHtml(props.event ?? 'Unknown'),
           severity: props.severity ?? 'Unknown',
-          headline: props.headline ?? '',
-          description: props.description ?? '',
-          instruction: props.instruction ?? null,
+          headline: stripHtml(props.headline ?? ''),
+          description: stripHtml(props.description ?? ''),
+          instruction: props.instruction ? stripHtml(props.instruction) : null,
           onset: props.onset ?? props.effective ?? '',
           expires: props.expires ?? '',
           zones: props.affectedZones?.map((z: string) => z.split('/').pop()) ?? [],

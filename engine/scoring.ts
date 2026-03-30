@@ -711,6 +711,7 @@ export function routeComfort(
   const zones = getRouteZones(origin, destination, city);
   const distanceKey = `${origin.id}-${destination.id}`;
   const matrixDistance = city.distances[distanceKey];
+  const distanceEstimated = matrixDistance == null;
   // Fallback to Haversine estimate when distance matrix is missing an entry
   const distance = matrixDistance ?? haversineDistanceMi(origin.lat, origin.lng, destination.lat, destination.lng);
   const transit = transitTime(distance, vessel.cruiseSpeed);
@@ -776,6 +777,7 @@ export function routeComfort(
     primaryReason: getPrimaryReason(worstScore, riskFactors, zones, month, Math.floor(hour)),
     scoreRange,
     distance,
+    distanceEstimated,
     transitMinutes: transit,
     fuelGallons: fuel,
     inRange: rangeOk,

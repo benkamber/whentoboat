@@ -171,6 +171,7 @@ export interface ScoredRoute {
   primaryReason: string; // one-sentence explanation of WHY this score (e.g., "Calm morning, light breeze")
   scoreRange: ScoreRange;
   distance: number; // statute miles
+  distanceEstimated: boolean; // true if Haversine fallback used (no matrix entry)
   transitMinutes: number;
   fuelGallons: number | null;
   inRange: boolean;

@@ -1014,7 +1014,7 @@ export default function Home() {
                         {/* Compact card: primaryReason + distance/time */}
                         {route.score > 2 && (
                           <div className="text-[11px] text-[var(--muted)]">
-                            {route.primaryReason} · {route.distance < 0.5 ? '< 1' : route.distance} mi · {route.transitMinutes} min
+                            {route.primaryReason} · {route.distance < 0.5 ? '< 1' : route.distanceEstimated ? `~${route.distance}` : route.distance} mi · {route.transitMinutes} min
                           </div>
                         )}
                       </div>
