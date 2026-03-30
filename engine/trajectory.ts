@@ -13,7 +13,7 @@ import type {
 } from './types';
 import { getTimeConditions } from './interpolation';
 import { getRouteZones, transitTime, fuelRoundTrip, isInRange, draftClearance } from './routing';
-import { fullConditionsScore, buildFullConditions, findAlternatives } from './scoring';
+import { fullConditionsScore, buildFullConditions, findAlternatives, haversineDistanceMi } from './scoring';
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -59,7 +59,9 @@ export function analyzeTrajectory(
 ): TrajectoryAnalysis {
   const zones = getRouteZones(origin, destination, city);
   const distanceKey = `${origin.id}-${destination.id}`;
-  const distance = city.distances[distanceKey] ?? 0;
+  const matrixDistance = city.distances[distanceKey];
+  // Fallback to Haversine estimate when distance matrix is missing an entry
+  const distance = matrixDistance ?? haversineDistanceMi(origin.lat, origin.lng, destination.lat, destination.lng);
   const transit = transitTime(distance, vessel.cruiseSpeed);
   const fuel = fuelRoundTrip(distance, vessel.gph, vessel.cruiseSpeed);
   const rangeOk = isInRange(distance, vessel);

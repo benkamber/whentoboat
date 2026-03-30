@@ -710,7 +710,9 @@ export function routeComfort(
 ): ScoredRoute {
   const zones = getRouteZones(origin, destination, city);
   const distanceKey = `${origin.id}-${destination.id}`;
-  const distance = city.distances[distanceKey] ?? 0;
+  const matrixDistance = city.distances[distanceKey];
+  // Fallback to Haversine estimate when distance matrix is missing an entry
+  const distance = matrixDistance ?? haversineDistanceMi(origin.lat, origin.lng, destination.lat, destination.lng);
   const transit = transitTime(distance, vessel.cruiseSpeed);
   const fuel = fuelRoundTrip(distance, vessel.gph, vessel.cruiseSpeed);
   const rangeOk = isInRange(distance, vessel);
@@ -894,4 +896,21 @@ function computeBearing(lat1: number, lng1: number, lat2: number, lng2: number):
   const x = Math.cos(lat1R) * Math.sin(lat2R) - Math.sin(lat1R) * Math.cos(lat2R) * Math.cos(dLng);
   const bearing = Math.atan2(y, x) * 180 / Math.PI;
   return (bearing + 360) % 360;
+}
+
+/**
+ * Haversine distance in statute miles between two lat/lng points.
+ * Used as fallback when the distance matrix has no entry for a pair.
+ * Multiplied by 1.3 to approximate water route distance (routes aren't straight lines).
+ */
+export function haversineDistanceMi(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 3958.8; // Earth radius in statute miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const straightLine = R * c;
+  // Water routes are ~1.3x straight-line distance due to navigating around land
+  return Math.round(straightLine * 1.3 * 10) / 10;
 }

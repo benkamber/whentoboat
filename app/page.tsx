@@ -265,6 +265,7 @@ export default function Home() {
   const [hoveredDestId, setHoveredDestId] = useState<string | null>(null);
   const [selectedDestId, setSelectedDestId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [allActivities, setAllActivities] = useState(false);
   const [beforeYouGoOpen, setBeforeYouGoOpen] = useState(false);
   // verifyLinksOpen removed — verify links only in trajectory panel now
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -310,7 +311,7 @@ export default function Home() {
     const liveConditions = useLiveData ? getConditionsForHour(new Date(), Math.floor(hour)) : null;
 
     return sfBay.destinations
-      .filter((d) => d.id !== origin.id && d.activityTags.includes(activity))
+      .filter((d) => d.id !== origin.id && (allActivities || d.activityTags.includes(activity)))
       .map((dest) => {
         try {
           // Base scoring always uses historical route comfort (for distance, fuel, zones, etc.)
@@ -355,7 +356,7 @@ export default function Home() {
       })
       .filter((r): r is NonNullable<typeof r> => r !== null)
       .sort((a, b) => b.score - a.score);
-  }, [activity, month, hour, vessel, origin, currentActivity, useLiveData, getConditionsForHour, hasCurrentData, getCurrentForZone]);
+  }, [activity, month, hour, vessel, origin, currentActivity, useLiveData, allActivities, getConditionsForHour, hasCurrentData, getCurrentForZone]);
 
   // --- Best Boating Today: cross-activity recommendation ---
   const bestBoatingToday = useMemo(() => {
@@ -737,12 +738,22 @@ export default function Home() {
           <div className="p-3 border-b border-[var(--border)] space-y-2 shrink-0 bg-[var(--card)]">
             {/* Activity selector */}
             <div className="flex gap-1">
+              <button
+                onClick={() => setAllActivities(true)}
+                className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  allActivities
+                    ? 'bg-compass-gold text-ocean-950 shadow-sm'
+                    : 'bg-[var(--card-elevated)] text-[var(--secondary)] border border-[var(--border)] hover:border-compass-gold/50'
+                }`}
+              >
+                All
+              </button>
               {activities.map((a) => (
                 <button
                   key={a.id}
-                  onClick={() => setActivity(a.id)}
+                  onClick={() => { setActivity(a.id); setAllActivities(false); }}
                   className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    activity === a.id
+                    activity === a.id && !allActivities
                       ? 'bg-reef-teal text-white shadow-sm'
                       : 'bg-[var(--card-elevated)] text-[var(--secondary)] border border-[var(--border)] hover:border-reef-teal/50'
                   }`}
@@ -819,8 +830,8 @@ export default function Home() {
               </div>
             )}
 
-            {/* BEST BOATING TODAY — cross-activity recommendation */}
-            {bestBoatingToday && bestBoatingToday.score >= 5 && (
+            {/* BEST BOATING TODAY — cross-activity recommendation (only in All mode) */}
+            {allActivities && bestBoatingToday && bestBoatingToday.score >= 5 && (
               <div className="mx-2 mt-2 p-3 bg-compass-gold/10 border border-compass-gold/30 rounded-lg">
                 <p className="text-[10px] font-bold text-compass-gold uppercase tracking-wider">Best Boating Today</p>
                 <div className="flex items-center gap-2 mt-1.5">
@@ -833,8 +844,8 @@ export default function Home() {
               </div>
             )}
 
-            {/* Best per activity type */}
-            {bestPerActivity.length > 0 && (
+            {/* Best per activity type (only in All mode) */}
+            {allActivities && bestPerActivity.length > 0 && (
               <div className="mx-2 mt-2 space-y-1">
                 {bestPerActivity.map(b => (
                   <button
