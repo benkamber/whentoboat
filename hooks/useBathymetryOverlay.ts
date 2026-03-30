@@ -12,15 +12,15 @@ import { zoneDepths } from '@/data/geo/sf-bay-depths';
  */
 function depthToStyle(typicalDepthFt: number): { color: string; opacity: number } {
   if (typicalDepthFt >= 30) {
-    return { color: '#1e3a5f', opacity: 0.15 };  // Deep — subtle but visible
+    return { color: '#1e40af', opacity: 0.45 };  // Deep — dark blue, clearly visible
   }
   if (typicalDepthFt >= 10) {
-    return { color: '#2563eb', opacity: 0.25 };  // Moderate — clearly visible
+    return { color: '#3b82f6', opacity: 0.55 };  // Moderate — bright blue
   }
   if (typicalDepthFt >= 4) {
-    return { color: '#22d3ee', opacity: 0.35 };  // Shallow — prominent
+    return { color: '#22d3ee', opacity: 0.60 };  // Shallow — cyan, prominent
   }
-  return { color: '#d4a574', opacity: 0.50 };    // Very shallow — hazard, very visible
+  return { color: '#f59e0b', opacity: 0.70 };    // Very shallow — amber hazard
 }
 
 /**
