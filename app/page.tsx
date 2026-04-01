@@ -11,7 +11,6 @@ import { getTimeConditions } from '@/engine/interpolation';
 import { scoreToColor } from '@/lib/colors';
 import { useDestinationGeoJSON, useRouteGeoJSON } from '@/hooks/useMapData';
 import { useZoneOverlay } from '@/hooks/useZoneOverlay';
-import { useBathymetryOverlay } from '@/hooks/useBathymetryOverlay';
 import { useLiveForecast } from '@/hooks/useLiveForecast';
 import { vesselPresets } from '@/data/vessels';
 import { ferryRoutesGeoJSON } from '@/data/geo/sf-bay-ferry-routes';
@@ -183,33 +182,6 @@ const zoneBorderLayer = {
   },
 };
 
-// Bathymetry depth overlay — sits behind zone comfort overlay
-const bathymetryFillLayer = {
-  id: 'bathymetry-fill',
-  type: 'fill' as const,
-  paint: {
-    'fill-color': ['get', 'color'] as any,
-    'fill-opacity': ['get', 'opacity'] as any,
-  },
-};
-
-// Depth label layer — shows depth numbers on each zone polygon
-const depthLabelLayer = {
-  id: 'depth-labels',
-  type: 'symbol' as const,
-  layout: {
-    'text-field': ['concat', ['get', 'minDepthFt'], '-', ['get', 'depthFt'], 'ft'] as any,
-    'text-size': 11,
-    'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'] as any,
-    'text-allow-overlap': false,
-  },
-  paint: {
-    'text-color': '#93c5fd',
-    'text-halo-color': '#0a1628',
-    'text-halo-width': 1.5,
-  },
-};
-
 // Ferry routes + shipping lanes overlay
 const ferryLineLayer = {
   id: 'ferry-routes',
@@ -272,7 +244,7 @@ export default function Home() {
   // Auto-enable live data when viewing the current month — users checking
   // conditions for TODAY should see live forecast, not historical averages.
   const [useLiveData, setUseLiveData] = useState(month === new Date().getMonth());
-  const [showDepthOverlay, setShowDepthOverlay] = useState(true); // depth ON by default
+  const [showNauticalChart, setShowNauticalChart] = useState(false);
   const [showFerryRoutes, setShowFerryRoutes] = useState(false);
   const [showConditions, setShowConditions] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -575,7 +547,6 @@ export default function Home() {
   // Map data hooks
   const destinationsGeoJSON = useDestinationGeoJSON(activity, month, hour, vessel, homeBaseId);
   const routesGeoJSON = useRouteGeoJSON(activity, month, hour, vessel, homeBaseId, selectedDestId);
-  const bathymetryGeoJSON = useBathymetryOverlay();
   const zoneOverlayGeoJSON = useZoneOverlay(activity, month, hour, vessel);
 
   // --- Map callbacks ---
@@ -1136,15 +1107,16 @@ export default function Home() {
                     </button>
                   )}
                   <button
-                    onClick={() => setShowDepthOverlay(!showDepthOverlay)}
+                    onClick={() => setShowNauticalChart(!showNauticalChart)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-md transition-colors shadow-lg ${
-                      showDepthOverlay
+                      showNauticalChart
                         ? 'bg-safety-blue text-white border border-safety-blue'
                         : 'bg-ocean-900/80 text-ocean-200 border border-ocean-700/50 hover:bg-ocean-800/80'
                     }`}
-                    title={showDepthOverlay ? 'Hide depth chart' : 'Show depth chart'}
+                    aria-label={showNauticalChart ? 'Hide NOAA nautical chart' : 'Show NOAA nautical chart overlay'}
+                    title={showNauticalChart ? 'Hide NOAA chart' : 'Show official NOAA nautical chart'}
                   >
-                    {showDepthOverlay ? 'Depth ON' : 'Depth'}
+                    {showNauticalChart ? 'Chart ON' : 'Chart'}
                   </button>
                   <button
                     onClick={() => setShowFerryRoutes(!showFerryRoutes)}
@@ -1159,23 +1131,29 @@ export default function Home() {
                   </button>
                 </div>
 
-                {/* Depth overlay OR zone comfort overlay (toggleable) */}
-                {showDepthOverlay ? (
-                  <Source id="bathymetry" type="geojson" data={bathymetryGeoJSON}>
-                    <Layer {...bathymetryFillLayer} />
-                    <Layer {...depthLabelLayer} />
+                {/* NOAA nautical chart overlay — official ENC data rendered by NOAA Chart Display Service */}
+                {showNauticalChart && (
+                  <Source
+                    id="noaa-chart"
+                    type="raster"
+                    tiles={[
+                      'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/NOAAChartDisplay/MapServer/exts/MaritimeChartService/WMSServer?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=0,1,2,3,4,5,6,7&STYLES=&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true',
+                    ]}
+                    tileSize={256}
+                  >
+                    <Layer
+                      id="noaa-chart-layer"
+                      type="raster"
+                      paint={{ 'raster-opacity': 0.7 }}
+                    />
                   </Source>
-                ) : (
-                  <>
-                    <Source id="bathymetry" type="geojson" data={bathymetryGeoJSON}>
-                      <Layer {...bathymetryFillLayer} />
-                    </Source>
-                    <Source id="zones" type="geojson" data={zoneOverlayGeoJSON}>
-                      <Layer {...zoneFillLayer} />
-                      <Layer {...zoneBorderLayer} />
-                    </Source>
-                  </>
                 )}
+
+                {/* Zone comfort overlay */}
+                <Source id="zones" type="geojson" data={zoneOverlayGeoJSON}>
+                  <Layer {...zoneFillLayer} />
+                  <Layer {...zoneBorderLayer} />
+                </Source>
 
                 {/* Ferry routes & shipping lanes overlay */}
                 {showFerryRoutes && (
