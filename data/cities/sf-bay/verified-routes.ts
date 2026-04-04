@@ -373,12 +373,15 @@ export const verifiedRoutes: VerifiedRoute[] = [
     from: 'sau',
     to: 'oyp',
     waypoints: [
-      [-122.4833, 37.8583],
-      [-122.425, 37.815],
-      [-122.3833, 37.7883],
-      [-122.375, 37.775],
-      [-122.3667, 37.6583],
-      [-122.38, 37.6633],
+      [-122.4833, 37.8583],  // Sausalito
+      [-122.425, 37.815],    // Central Bay south of Alcatraz
+      [-122.3833, 37.7883],  // Bay Bridge area
+      [-122.3650, 37.7800],  // East of SF waterfront (IN THE BAY)
+      [-122.3550, 37.7650],  // East of Hunters Point (IN THE BAY)
+      [-122.3500, 37.7400],  // India Basin / Candlestick area
+      [-122.3550, 37.7100],  // South Bay channel
+      [-122.3600, 37.6900],  // Approaching Oyster Point
+      [-122.3780, 37.6640],  // Oyster Point Marina
     ],
     distanceNm: 10.0,
     minDepthFt: 2,
@@ -399,14 +402,19 @@ export const verifiedRoutes: VerifiedRoute[] = [
     from: 'sau',
     to: 'rwc',
     waypoints: [
-      [-122.4833, 37.8583],
-      [-122.425, 37.815],
-      [-122.3833, 37.7883],
-      [-122.375, 37.775],
-      [-122.3667, 37.65],
-      [-122.25, 37.5833],
-      [-122.2167, 37.5083],
-      [-122.2083, 37.505],
+      [-122.4833, 37.8583],  // Sausalito
+      [-122.425, 37.815],    // Central Bay south of Alcatraz
+      [-122.3833, 37.7883],  // Bay Bridge area
+      [-122.3650, 37.7800],  // East of SF waterfront (IN THE BAY)
+      [-122.3550, 37.7650],  // East of Hunters Point (IN THE BAY)
+      [-122.3500, 37.7400],  // India Basin / Candlestick area
+      [-122.3550, 37.7100],  // South Bay channel
+      [-122.3500, 37.6800],  // South Bay, east of SFO
+      [-122.3300, 37.6400],  // Approaching San Mateo Bridge
+      [-122.2800, 37.5900],  // Past San Mateo Bridge
+      [-122.2400, 37.5500],  // Approaching Dumbarton
+      [-122.2167, 37.5083],  // Redwood Creek entrance
+      [-122.2083, 37.505],   // Redwood City Marina
     ],
     distanceNm: 25.0,
     minDepthFt: 10,
