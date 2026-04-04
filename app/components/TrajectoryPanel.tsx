@@ -6,6 +6,7 @@ import { getActivity } from '@/data/activities';
 import { analyzeTrajectory } from '@/engine/trajectory';
 import { useAppStore } from '@/store';
 import { ScoreBadge, getScoreLabel, getScoreColor, getDangerLevel } from './ScoreBadge';
+import { getDocksForDestination } from '@/data/cities/sf-bay/docks';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -324,6 +325,40 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
             </div>
           )}
         </div>
+
+        {/* Docking options */}
+        {(() => {
+          const dockList = getDocksForDestination(destinationId);
+          if (dockList.length === 0) return null;
+          return (
+            <div className="space-y-2">
+              <h3 className="text-xs font-medium text-reef-teal uppercase tracking-wider">
+                Docking Options
+              </h3>
+              {dockList.map((dock, i) => (
+                <div key={i} className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">{dock.name}</span>
+                    <span className="text-[10px] text-reef-teal">
+                      {dock.dockType.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                  <div className="text-xs text-[var(--muted)]">{dock.fees}</div>
+                  <div className="text-xs text-[var(--muted)]">{dock.hours}</div>
+                  <div className="text-xs text-[var(--muted)]">Depth: {dock.depthFt} · Max LOA: {dock.maxLoa}</div>
+                  {dock.restrictions && (
+                    <div className="text-[10px] text-warning-amber">{dock.restrictions}</div>
+                  )}
+                  {dock.dineOptions.length > 0 && (
+                    <div className="text-[10px] text-reef-teal">
+                      Dining: {dock.dineOptions.join(', ')}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Data source footer */}
         <p className="text-[10px] text-[var(--muted)] text-center pb-4">

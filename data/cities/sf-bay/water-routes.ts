@@ -2226,6 +2226,7 @@ export const waterRoutes: WaterRoute[] = [
 
 // Merge extended routes (239 additional paths for all destination pairs)
 import { waterRoutesExtended } from './water-routes-extended';
+import { verifiedRoutes } from './verified-routes';
 const allWaterRoutes: WaterRoute[] = [...waterRoutes, ...waterRoutesExtended];
 
 /**
@@ -2246,6 +2247,28 @@ export function getWaterRoute(
   toId: string,
   vesselType?: VesselType,
 ): WaterRoute | null {
+  // Check verified routes first (research-verified from NOAA charts)
+  const verified = verifiedRoutes.find(
+    (r) =>
+      (r.from === fromId && r.to === toId) ||
+      (r.from === toId && r.to === fromId),
+  );
+  if (verified) {
+    const waypoints =
+      verified.from === fromId
+        ? verified.waypoints
+        : ([...verified.waypoints].reverse() as [number, number][]);
+    return {
+      fromId: verified.from === fromId ? verified.from : verified.to,
+      toId: verified.from === fromId ? verified.to : verified.from,
+      vesselType: 'default',
+      waypoints,
+      distance: verified.distanceNm,
+      zones: [],
+      notes: verified.notes,
+    };
+  }
+
   // Try vessel-specific route first (forward direction)
   if (vesselType) {
     const specific = allWaterRoutes.find(
