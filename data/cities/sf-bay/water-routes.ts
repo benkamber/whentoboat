@@ -2245,85 +2245,26 @@ const allWaterRoutes: WaterRoute[] = [...waterRoutes, ...waterRoutesExtended];
 export function getWaterRoute(
   fromId: string,
   toId: string,
-  vesselType?: VesselType,
+  _vesselType?: VesselType,
 ): WaterRoute | null {
-  // Check verified routes first (research-verified from NOAA charts)
+  // Only return verified routes — unverified routes may cross land
   const verified = verifiedRoutes.find(
     (r) =>
       (r.from === fromId && r.to === toId) ||
       (r.from === toId && r.to === fromId),
   );
-  if (verified) {
-    const waypoints =
-      verified.from === fromId
-        ? verified.waypoints
-        : ([...verified.waypoints].reverse() as [number, number][]);
-    return {
-      fromId: verified.from === fromId ? verified.from : verified.to,
-      toId: verified.from === fromId ? verified.to : verified.from,
-      vesselType: 'default',
-      waypoints,
-      distance: verified.distanceNm,
-      zones: [],
-      notes: verified.notes,
-    };
-  }
+  if (!verified) return null;
 
-  // Try vessel-specific route first (forward direction)
-  if (vesselType) {
-    const specific = allWaterRoutes.find(
-      (r) =>
-        r.fromId === fromId &&
-        r.toId === toId &&
-        r.vesselType === vesselType,
-    );
-    if (specific) return specific;
-  }
-
-  // Try default route (forward direction)
-  const forward = allWaterRoutes.find(
-    (r) =>
-      r.fromId === fromId &&
-      r.toId === toId &&
-      r.vesselType === 'default',
-  );
-  if (forward) return forward;
-
-  // Try reverse direction — vessel-specific first
-  if (vesselType) {
-    const reverseSpecific = allWaterRoutes.find(
-      (r) =>
-        r.fromId === toId &&
-        r.toId === fromId &&
-        r.vesselType === vesselType,
-    );
-    if (reverseSpecific) {
-      return {
-        ...reverseSpecific,
-        fromId,
-        toId,
-        waypoints: [...reverseSpecific.waypoints].reverse() as [number, number][],
-        zones: [...reverseSpecific.zones].reverse(),
-      };
-    }
-  }
-
-  // Try reverse direction — default
-  const reverse = allWaterRoutes.find(
-    (r) =>
-      r.fromId === toId &&
-      r.toId === fromId &&
-      r.vesselType === 'default',
-  );
-  if (reverse) {
-    return {
-      ...reverse,
-      fromId,
-      toId,
-      waypoints: [...reverse.waypoints].reverse() as [number, number][],
-      zones: [...reverse.zones].reverse(),
-    };
-  }
-
-  return null;
+  const isReversed = verified.from !== fromId;
+  return {
+    fromId: isReversed ? verified.to : verified.from,
+    toId: isReversed ? verified.from : verified.to,
+    vesselType: 'default',
+    waypoints: isReversed
+      ? ([...verified.waypoints].reverse() as [number, number][])
+      : verified.waypoints,
+    distance: verified.distanceNm,
+    zones: [],
+    notes: verified.notes,
+  };
 }

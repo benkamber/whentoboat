@@ -271,6 +271,28 @@ export function BoatSelector({
               ))}
             </div>
           )}
+
+          {/* Reset + manage */}
+          <div className="flex items-center justify-between pt-1">
+            <button
+              onClick={() => {
+                const preset = vesselPresets.find(v => v.type === vessel.type);
+                if (preset) {
+                  setCustomVessel(preset);
+                  setVessel(preset);
+                }
+              }}
+              className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+            >
+              Reset to preset
+            </button>
+            <a
+              href="/vessels"
+              className="text-xs text-reef-teal hover:underline"
+            >
+              Manage saved boats
+            </a>
+          </div>
         </div>
       )}
     </div>

@@ -3,12 +3,10 @@
 import { useMemo } from 'react';
 import { sfBay } from '@/data/cities/sf-bay';
 import { getActivity } from '@/data/activities';
-import { analyzeTrajectory } from '@/engine/trajectory';
 import { useAppStore } from '@/store';
-import { ScoreBadge, getScoreLabel, getScoreColor, getDangerLevel } from './ScoreBadge';
+import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
 import { getDocksForDestination } from '@/data/cities/sf-bay/docks';
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+import { haversineDistanceMi } from '@/engine/scoring';
 
 interface TrajectoryPanelProps {
   originId: string;
@@ -17,234 +15,175 @@ interface TrajectoryPanelProps {
 }
 
 export function TrajectoryPanel({ originId, destinationId, onClose }: TrajectoryPanelProps) {
-  const { activity, month, hour, vessel } = useAppStore();
+  const { activity, vessel } = useAppStore();
 
-  const analysis = useMemo(() => {
+  const routeInfo = useMemo(() => {
     const origin = sfBay.destinations.find((d) => d.id === originId);
     const dest = sfBay.destinations.find((d) => d.id === destinationId);
     if (!origin || !dest) return null;
 
     const act = getActivity(activity);
-    return analyzeTrajectory(origin, dest, month, hour, act, vessel, sfBay);
-  }, [originId, destinationId, activity, month, hour, vessel]);
 
-  if (!analysis) return null;
+    // Find verified route
+    const verified = verifiedRoutes.find(
+      (r) =>
+        (r.from === originId && r.to === destinationId) ||
+        (r.from === destinationId && r.to === originId),
+    );
 
-  const { origin, destination, overallScore, scoreRange, distance, transitMinutes, fuelGallons, inRange, legs, hourlyProfile, monthlyProfile, departureWindow, warnings, riskFactors, alternatives, beforeYouGo, verifyLinks } = analysis;
+    // Distance: use verified route NM converted to statute miles, or haversine fallback
+    const distanceMi = verified
+      ? Math.round(verified.distanceNm * 1.15078 * 10) / 10
+      : Math.round(haversineDistanceMi(origin.lat, origin.lng, dest.lat, dest.lng) * 10) / 10;
+
+    // Transit time in minutes
+    const transitMinutes = vessel.cruiseSpeed > 0
+      ? Math.round((distanceMi / vessel.cruiseSpeed) * 60)
+      : null;
+
+    // Round trip fuel: (distance * 2) / cruiseSpeed * GPH
+    const fuelGallons = vessel.gph
+      ? Math.round((distanceMi * 2 / vessel.cruiseSpeed) * vessel.gph * 10) / 10
+      : null;
+
+    // Docking options
+    const dockList = getDocksForDestination(destinationId);
+
+    // Before You Go checklist from activity
+    const beforeYouGo = act.beforeYouGo;
+
+    // Verify links from city
+    const verifyLinks = sfBay.verifyLinks;
+
+    return {
+      origin,
+      destination: dest,
+      verified,
+      distanceMi,
+      transitMinutes,
+      fuelGallons,
+      dockList,
+      beforeYouGo,
+      verifyLinks,
+    };
+  }, [originId, destinationId, activity, vessel]);
+
+  if (!routeInfo) return null;
+
+  const { origin, destination, verified, distanceMi, transitMinutes, fuelGallons, dockList, beforeYouGo, verifyLinks } = routeInfo;
 
   return (
     <div className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-[var(--background)] border-l border-[var(--border)] overflow-y-auto z-50 shadow-2xl">
-      {/* Sticky header — route title persists as user scrolls */}
+      {/* Sticky header */}
       <div className="sticky top-0 bg-[var(--background)] border-b border-[var(--border)] p-4 z-10">
         <div className="flex items-center justify-between mb-2">
           <button onClick={onClose} className="text-[var(--muted)] hover:text-[var(--foreground)] text-sm">
             ✕ Close
           </button>
-          <span className="text-xs text-[var(--muted)]">Trajectory Analysis</span>
+          <span className="text-xs text-[var(--muted)]">Route Details</span>
         </div>
-        <div className="flex items-center gap-3">
-          <ScoreBadge score={overallScore} size="md" />
-          <div className="min-w-0">
-            <h2 className="text-sm font-bold truncate">
-              {origin.name} → {destination.name}
-            </h2>
-            <p className="text-xs text-[var(--muted)]">
-              {distance} mi · {transitMinutes} min · {getScoreLabel(overallScore)}
-            </p>
-          </div>
+        <div className="min-w-0">
+          <h2 className="text-sm font-bold truncate">
+            {origin.name} → {destination.name}
+          </h2>
+          <p className="text-xs text-[var(--muted)]">
+            {distanceMi} mi
+            {transitMinutes !== null && ` · ${transitMinutes} min`}
+            {fuelGallons !== null && ` · ${fuelGallons} gal RT`}
+          </p>
         </div>
       </div>
 
       <div className="p-4 space-y-6">
-        {/* At a glance — full details */}
-        <div className="space-y-3">
-          <div className="flex items-start gap-3">
-            <ScoreBadge score={overallScore} size="lg" showRange={{ p10: scoreRange.p10, p90: scoreRange.p90 }} />
-            <div>
-              <h2 className="text-lg font-bold">
-                {origin.name} → {destination.name}
-              </h2>
-              <p className="text-sm text-[var(--muted)]">
-                {distance} mi · {transitMinutes} min ·{' '}
-                {fuelGallons !== null ? `${fuelGallons} gal RT` : 'paddle power'}
-              </p>
-              <p className="text-sm font-medium" style={{ color: getScoreColor(overallScore) }}>
-                {getScoreLabel(overallScore)}
-              </p>
-            </div>
+        {/* Vessel specs */}
+        <div className="bg-[var(--card-elevated)] rounded-lg p-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-[var(--muted)] uppercase tracking-wider">Vessel</span>
+            <span className="text-xs font-medium">{vessel.name}</span>
           </div>
-
-          {/* DANGER banner — prominent, un-missable warning for lethal conditions */}
-          {getDangerLevel(overallScore) === 'dangerous' && (
-            <div className="bg-danger-red/15 border-2 border-danger-red rounded-lg p-3">
-              <p className="text-sm font-bold text-danger-red">
-                DO NOT LAUNCH — Conditions are life-threatening
-              </p>
-              {riskFactors.filter(r => r.severity === 'high').map((r, i) => (
-                <p key={i} className="text-xs text-danger-red/90 mt-1">{r.description}</p>
-              ))}
-            </div>
-          )}
-
-          {!inRange && (
-            <div className="bg-danger-red/10 border border-danger-red/30 rounded-lg p-3 text-sm text-danger-red">
-              ⚠ Out of range for {vessel.name}
-            </div>
-          )}
-
-          {/* Vessel specs used for this analysis */}
-          <div className="bg-[var(--card-elevated)] rounded-lg p-2.5 mt-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] text-[var(--muted)] uppercase tracking-wider">Vessel</span>
-              <span className="text-xs font-medium">{vessel.name}</span>
-            </div>
-            <div className="flex gap-3 mt-1 text-[10px] text-[var(--muted)]">
-              <span>{vessel.loa}ft</span>
-              <span>{vessel.cruiseSpeed}mph</span>
-              {vessel.fuelCapacity && <span>{vessel.fuelCapacity}gal tank</span>}
-              {vessel.gph && <span>{vessel.gph}GPH</span>}
-              <span>{vessel.draft}ft draft</span>
-            </div>
+          <div className="flex gap-3 mt-1 text-[10px] text-[var(--muted)]">
+            <span>{vessel.loa}ft</span>
+            <span>{vessel.cruiseSpeed}mph</span>
+            {vessel.fuelCapacity && <span>{vessel.fuelCapacity}gal tank</span>}
+            {vessel.gph && <span>{vessel.gph}GPH</span>}
+            <span>{vessel.draft}ft draft</span>
           </div>
         </div>
 
-        {/* Leg-by-leg breakdown */}
-        <div className="space-y-2">
-          <h3 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-            Zones Traversed
-          </h3>
-          {legs.map((leg, i) => (
-            <div
-              key={i}
-              className={`flex items-center gap-3 p-3 rounded-lg ${
-                leg.isBottleneck
-                  ? 'bg-danger-red/10 border border-danger-red/30'
-                  : 'bg-[var(--card)] border border-[var(--border)]'
-              }`}
-            >
-              <ScoreBadge score={leg.score} size="sm" />
-              <div className="flex-1">
-                <div className="text-sm font-medium">
-                  {leg.zone.name}
-                  {leg.isBottleneck && (
-                    <span className="ml-2 text-xs text-danger-red font-normal">← lowest scoring</span>
-                  )}
-                </div>
-                <div className="text-xs text-[var(--muted)]">
-                  Wind {leg.wind} kts · Waves {leg.waveHeight} ft · Period {leg.wavePeriod}s
-                </div>
-                {leg.isBottleneck && (
-                  <div className="text-xs mt-1 text-warning-amber">
-                    {leg.wind > 15 ? '💨 Strong wind — uncomfortable for passengers, challenging for small craft'
-                      : leg.wind > 10 ? '💨 Moderate wind — some spray, hold on to hats'
-                      : '✓ Wind is manageable'}
-                    {' · '}
-                    {leg.waveHeight > 3 ? '🌊 Rough seas — consider postponing'
-                      : leg.waveHeight > 1.5 ? '🌊 Choppy — expect bumpy ride'
-                      : leg.waveHeight > 0.5 ? '🌊 Light chop — comfortable for most'
-                      : '🌊 Calm water'}
-                    {leg.wavePeriod > 0 && leg.wavePeriod < 4 && leg.waveHeight > 1 ? ' · ⚠ Short wave period = steep, uncomfortable chop' : ''}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Warnings */}
-        {warnings.length > 0 && (
-          <div className="space-y-2">
-            {warnings.map((w, i) => (
-              <div key={i} className="bg-warning-amber/10 border border-warning-amber/30 rounded-lg p-3 text-sm text-warning-amber">
-                ⚠ {w}
-              </div>
-            ))}
+        {/* No verified route warning */}
+        {!verified && (
+          <div className="bg-warning-amber/10 border border-warning-amber/30 rounded-lg p-3 text-sm text-warning-amber">
+            ⚠ No verified route available for this destination pair. Route shown is approximate.
           </div>
         )}
 
-        {/* Hour-by-hour timeline */}
-        <div className="space-y-2">
-          <h3 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-            Hour by Hour
-          </h3>
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3">
-            <div className="flex gap-0.5 h-16 items-end">
-              {hourlyProfile.map((h) => (
-                <div key={h.hour} className="flex-1 flex flex-col items-center gap-0.5">
-                  <div
-                    className="w-full rounded-sm transition-all"
-                    style={{
-                      height: `${(h.score / 10) * 100}%`,
-                      backgroundColor: getScoreColor(h.score),
-                      opacity: 0.8,
-                    }}
-                    title={`${h.label}: ${h.score}/10 — Wind ${h.wind} kts, Waves ${h.waveHeight} ft`}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-between mt-1 text-xs text-[var(--muted)]">
-              <span>5 AM</span>
-              <span>Noon</span>
-              <span>10 PM</span>
-            </div>
-            <div className="mt-2 text-xs text-reef-teal">
-              Best window: {departureWindow.label}
+        {/* Hazards */}
+        {verified && verified.hazards && (
+          <div className="space-y-2">
+            <h3 className="text-xs font-medium text-warning-amber uppercase tracking-wider">
+              ⚠ Hazards
+            </h3>
+            <div className="bg-warning-amber/10 border border-warning-amber/30 rounded-lg p-3">
+              <p className="text-sm text-warning-amber">{verified.hazards}</p>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* 12-month calendar */}
-        <div className="space-y-2">
-          <h3 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-            Monthly Pattern
-          </h3>
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3">
-            <div className="grid grid-cols-12 gap-1">
-              {monthlyProfile.map((m) => (
-                <div key={m.month} className="flex flex-col items-center gap-1">
-                  <div className="flex flex-col gap-0.5 w-full">
-                    <div
-                      className="h-3 rounded-sm"
-                      style={{ backgroundColor: getScoreColor(m.amScore), opacity: 0.9 }}
-                      title={`${m.label} AM: ${m.amScore}/10`}
-                    />
-                    <div
-                      className="h-3 rounded-sm"
-                      style={{ backgroundColor: getScoreColor(m.pmScore), opacity: 0.9 }}
-                      title={`${m.label} PM: ${m.pmScore}/10`}
-                    />
-                  </div>
-                  <span className="text-[9px] text-[var(--muted)]">{m.label}</span>
+        {/* Route Details */}
+        {verified && (
+          <div className="space-y-2">
+            <h3 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
+              Route Details
+            </h3>
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[var(--muted)]">Min depth</span>
+                <span className="font-medium">{verified.minDepthFt} ft MLLW</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[var(--muted)]">TSS crossing</span>
+                <span className={`font-medium ${verified.crossesTss ? 'text-warning-amber' : ''}`}>
+                  {verified.crossesTss ? 'Yes — use caution' : 'No'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[var(--muted)]">Bridges</span>
+                <span className="font-medium">{verified.bridges}</span>
+              </div>
+              {verified.notes && (
+                <div className="pt-2 border-t border-[var(--border)]">
+                  <p className="text-xs text-[var(--secondary)]">{verified.notes}</p>
                 </div>
-              ))}
-            </div>
-            <div className="flex gap-4 mt-2 text-[10px] text-[var(--muted)]">
-              <span>Top row = AM</span>
-              <span>Bottom row = PM</span>
+              )}
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Where else? */}
-        {alternatives.length > 0 && (
+        {/* Docking Options */}
+        {dockList.length > 0 && (
           <div className="space-y-2">
             <h3 className="text-xs font-medium text-reef-teal uppercase tracking-wider">
-              Better Alternatives
+              Docking Options
             </h3>
-            {alternatives.map((alt) => (
-              <div
-                key={alt.destinationId}
-                className="flex items-center gap-3 bg-reef-teal/10 border border-reef-teal/30 rounded-lg p-3"
-              >
-                <ScoreBadge score={alt.score} size="sm" />
-                <div className="flex-1">
-                  <div className="text-sm font-medium">{alt.destinationName}</div>
-                  <div className="text-xs text-[var(--muted)]">
-                    {alt.distance} mi · {alt.transitMinutes} min
-                  </div>
+            {dockList.map((dock, i) => (
+              <div key={i} className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{dock.name}</span>
+                  <span className="text-[10px] text-reef-teal">
+                    {dock.dockType.replace(/_/g, ' ')}
+                  </span>
                 </div>
-                <span className="text-xs text-reef-teal">{alt.reason}</span>
+                <div className="text-xs text-[var(--muted)]">{dock.fees}</div>
+                <div className="text-xs text-[var(--muted)]">{dock.hours}</div>
+                <div className="text-xs text-[var(--muted)]">Depth: {dock.depthFt} · Max LOA: {dock.maxLoa}</div>
+                {dock.restrictions && (
+                  <div className="text-[10px] text-warning-amber">{dock.restrictions}</div>
+                )}
+                {dock.dineOptions.length > 0 && (
+                  <div className="text-[10px] text-reef-teal">
+                    Dining: {dock.dineOptions.join(', ')}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -326,43 +265,9 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
           )}
         </div>
 
-        {/* Docking options */}
-        {(() => {
-          const dockList = getDocksForDestination(destinationId);
-          if (dockList.length === 0) return null;
-          return (
-            <div className="space-y-2">
-              <h3 className="text-xs font-medium text-reef-teal uppercase tracking-wider">
-                Docking Options
-              </h3>
-              {dockList.map((dock, i) => (
-                <div key={i} className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{dock.name}</span>
-                    <span className="text-[10px] text-reef-teal">
-                      {dock.dockType.replace(/_/g, ' ')}
-                    </span>
-                  </div>
-                  <div className="text-xs text-[var(--muted)]">{dock.fees}</div>
-                  <div className="text-xs text-[var(--muted)]">{dock.hours}</div>
-                  <div className="text-xs text-[var(--muted)]">Depth: {dock.depthFt} · Max LOA: {dock.maxLoa}</div>
-                  {dock.restrictions && (
-                    <div className="text-[10px] text-warning-amber">{dock.restrictions}</div>
-                  )}
-                  {dock.dineOptions.length > 0 && (
-                    <div className="text-[10px] text-reef-teal">
-                      Dining: {dock.dineOptions.join(', ')}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          );
-        })()}
-
         {/* Data source footer */}
         <p className="text-[10px] text-[var(--muted)] text-center pb-4">
-          Conditions based on historical NOAA data. Not a real-time forecast.
+          Route data from NOAA charts and US Coast Pilot. Not a real-time forecast.
         </p>
       </div>
     </div>
