@@ -494,6 +494,16 @@ export default function Home() {
                               {dock.restrictions.includes('GROUNDING') || dock.restrictions.includes('grounding') ? (
                                 <span className="text-warning-amber ml-1">⚠ Shallow</span>
                               ) : null}
+                              {(() => {
+                                const hasDining = dockList.some(d => d.dineOptions.length > 0);
+                                if (!hasDining) return null;
+                                const dineCount = dockList.reduce((sum, d) => sum + d.dineOptions.length, 0);
+                                return (
+                                  <span className="text-[10px] text-reef-teal ml-1">
+                                    · {dineCount} restaurant{dineCount !== 1 ? 's' : ''}
+                                  </span>
+                                );
+                              })()}
                             </div>
                           );
                         })()}
