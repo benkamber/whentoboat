@@ -24,10 +24,6 @@ export function Header() {
 
       <nav className="flex items-center gap-0.5">
         <NavLink href="/" label="Home" active={pathname === '/'} />
-        <NavLink href="/explore" label="Full Map" active={pathname === '/explore'} />
-        <NavLink href="/schedule" label="Schedule" active={pathname === '/schedule'} />
-        <NavLink href="/planner" label="Planner" active={pathname === '/planner'} />
-        <NavLink href="/vessels" label="My Boats" active={pathname === '/vessels'} />
         <button
           onClick={toggleDarkMode}
           className="ml-3 p-2 rounded-lg text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card-elevated)] transition-colors"
