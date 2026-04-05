@@ -7,6 +7,7 @@ import { useAppStore } from '@/store';
 import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
 import { getDocksForDestination } from '@/data/cities/sf-bay/docks';
 import { haversineDistanceMi } from '@/engine/scoring';
+import type { Source } from '@/engine/types';
 
 interface TrajectoryPanelProps {
   originId: string;
@@ -71,6 +72,32 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
   if (!routeInfo) return null;
 
   const { origin, destination, verified, distanceMi, transitMinutes, fuelGallons, dockList, beforeYouGo, verifyLinks } = routeInfo;
+
+  // Collect all sources for attribution
+  const allSources = useMemo(() => {
+    const seen = new Set<string>();
+    const sources: Source[] = [];
+
+    const addSource = (src: Source) => {
+      const key = src.name + (src.section || '');
+      if (!seen.has(key)) {
+        seen.add(key);
+        sources.push(src);
+      }
+    };
+
+    // Route sources
+    if (verified) {
+      verified.sources?.forEach(addSource);
+    }
+
+    // Dock sources
+    dockList.forEach(dock => {
+      dock.sources?.forEach(addSource);
+    });
+
+    return sources;
+  }, [verified, dockList]);
 
   return (
     <div className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-[var(--background)] border-l border-[var(--border)] overflow-y-auto z-50 shadow-2xl">
@@ -231,6 +258,33 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
             ))}
           </div>
         </div>
+
+        {/* Sources — every data point is attributed */}
+        {allSources.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
+              Sources
+            </h3>
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-1.5">
+              <p className="text-[10px] text-[var(--muted)] mb-2">
+                Verify all information before departure. Data may have changed since last verified.
+              </p>
+              {allSources.map((src, i) => (
+                <div key={i} className="text-[11px]">
+                  {src.url ? (
+                    <a href={src.url} target="_blank" rel="noopener noreferrer" className="text-safety-blue hover:underline">
+                      {src.name}
+                    </a>
+                  ) : (
+                    <span className="text-[var(--secondary)]">{src.name}</span>
+                  )}
+                  {src.section && <span className="text-[var(--muted)] ml-1">({src.section})</span>}
+                  <span className="text-[var(--muted)] ml-1">· Verified {src.date}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Destination info */}
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-1">

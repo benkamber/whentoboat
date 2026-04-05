@@ -3,6 +3,14 @@
 // City-agnostic — ZERO location-specific references
 // ============================================
 
+/** Source attribution for every data point — users can click through to verify */
+export interface Source {
+  name: string;        // e.g. "NOAA Chart 18649"
+  url: string | null;  // clickable verification link (null for books)
+  date: string;        // "2026-03" when last verified
+  section?: string;    // "Chapter 7, p.142" for books
+}
+
 // --- Activity ---
 
 export type ActivityType = 'kayak' | 'sup' | 'powerboat_cruise' | 'casual_sail';

@@ -2247,11 +2247,12 @@ export function getWaterRoute(
   toId: string,
   _vesselType?: VesselType,
 ): WaterRoute | null {
-  // Only return verified routes — unverified routes may cross land
+  // Only return validated routes — unvalidated routes may cross land
   const verified = verifiedRoutes.find(
     (r) =>
-      (r.from === fromId && r.to === toId) ||
-      (r.from === toId && r.to === fromId),
+      r.validated && // ONLY validated routes
+      ((r.from === fromId && r.to === toId) ||
+      (r.from === toId && r.to === fromId)),
   );
   if (!verified) return null;
 
