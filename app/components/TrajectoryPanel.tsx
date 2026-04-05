@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { sfBay } from '@/data/cities/sf-bay';
 import { getActivity } from '@/data/activities';
 import { useAppStore } from '@/store';
+import { seasonalPlanning } from '@/data/cities/sf-bay/seasonal-planning';
 import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
 import { getDocksForDestination } from '@/data/cities/sf-bay/docks';
 import { haversineDistanceMi } from '@/engine/scoring';
@@ -16,7 +17,7 @@ interface TrajectoryPanelProps {
 }
 
 export function TrajectoryPanel({ originId, destinationId, onClose }: TrajectoryPanelProps) {
-  const { activity, vessel } = useAppStore();
+  const { activity, vessel, month } = useAppStore();
 
   const routeInfo = useMemo(() => {
     const origin = sfBay.destinations.find((d) => d.id === originId);
@@ -192,27 +193,66 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
             <h3 className="text-xs font-medium text-reef-teal uppercase tracking-wider">
               Docking Options
             </h3>
-            {dockList.map((dock, i) => (
-              <div key={i} className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{dock.name}</span>
-                  <span className="text-[10px] text-reef-teal">
-                    {dock.dockType.replace(/_/g, ' ')}
-                  </span>
-                </div>
-                <div className="text-xs text-[var(--muted)]">{dock.fees}</div>
-                <div className="text-xs text-[var(--muted)]">{dock.hours}</div>
-                <div className="text-xs text-[var(--muted)]">Depth: {dock.depthFt} · Max LOA: {dock.maxLoa}</div>
-                {dock.restrictions && (
-                  <div className="text-[10px] text-warning-amber">{dock.restrictions}</div>
-                )}
-                {dock.dineOptions.length > 0 && (
-                  <div className="text-[10px] text-reef-teal">
-                    Dining: {dock.dineOptions.join(', ')}
+            {dockList.map((dock, i) => {
+              const dockIcon: Record<string, string> = {
+                restaurant_dock: '\u{1F374}',
+                marina_guest: '\u2693',
+                public_guest: '\u{1F3DB}',
+                state_park: '\u{1F332}',
+                yacht_club: '\u26F5',
+              };
+              return (
+                <div key={i} className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">
+                      {dockIcon[dock.dockType] ?? ''} {dock.name}
+                    </span>
+                    <span className="text-[10px] text-reef-teal">
+                      {dock.dockType.replace(/_/g, ' ')}
+                    </span>
                   </div>
-                )}
-              </div>
-            ))}
+                  <div className="text-xs text-[var(--muted)]">{dock.fees}</div>
+                  <div className="text-xs text-[var(--muted)]">{dock.hours}</div>
+                  <div className="text-xs text-[var(--muted)]">Depth: {dock.depthFt} · Max LOA: {dock.maxLoa}</div>
+                  {dock.restrictions && (
+                    <div className="text-[10px] text-warning-amber">{dock.restrictions}</div>
+                  )}
+                  {dock.amenities && (
+                    <div className="text-[10px] text-[var(--muted)]">{dock.amenities}</div>
+                  )}
+                  {dock.dineOptions.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {dock.dineOptions.map((restaurant, j) => (
+                        <span key={j} className="text-[10px] px-2 py-0.5 rounded-full bg-reef-teal/10 text-reef-teal border border-reef-teal/20">
+                          {'\u{1F374}'} {restaurant}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {(() => {
+              const monthData = seasonalPlanning.months[month];
+              const destZone = destination.zone;
+              const zoneConditions = monthData?.zones?.[destZone];
+              if (!zoneConditions) return null;
+              return (
+                <div className="bg-compass-gold/5 border border-compass-gold/20 rounded-lg p-3 mt-2">
+                  <div className="text-[10px] font-medium text-compass-gold uppercase tracking-wider mb-1">
+                    {monthData.month} Conditions — {destZone.replace(/_/g, ' ')}
+                  </div>
+                  <p className="text-xs text-[var(--secondary)]">{zoneConditions.planningSummary}</p>
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-[10px] text-[var(--muted)]">
+                    <span>AM: {zoneConditions.morningWind}</span>
+                    <span>PM: {zoneConditions.afternoonWind}</span>
+                    <span>Waves: {zoneConditions.waveHeight}</span>
+                    <span>Water: {zoneConditions.waterTempF}&deg;F</span>
+                    <span>Fog: {zoneConditions.fogProbability}</span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
