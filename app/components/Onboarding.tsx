@@ -17,26 +17,28 @@ const steps = [
     ),
   },
   {
-    title: 'Find Your Window',
-    body: 'Drag the time slider to see how conditions change through the day. Watch the bay go from calm green to rough red as afternoon winds build.',
+    title: 'Plan Your Route',
+    body: 'Pick a destination to see distance, transit time, docking options, and hazards. Click any route on the map for full details.',
     illustration: (
-      <div className="flex items-end justify-center gap-1.5 py-6">
-        {[
-          { h: 24, color: 'bg-score-10' },
-          { h: 32, color: 'bg-score-9' },
-          { h: 40, color: 'bg-score-8' },
-          { h: 48, color: 'bg-score-7' },
-          { h: 40, color: 'bg-score-5' },
-          { h: 32, color: 'bg-score-3' },
-          { h: 24, color: 'bg-score-2' },
-          { h: 16, color: 'bg-score-1' },
-        ].map((bar, i) => (
-          <div
-            key={i}
-            className={`w-6 rounded-t ${bar.color}`}
-            style={{ height: `${bar.h * 2}px` }}
-          />
-        ))}
+      <div className="flex items-center justify-center gap-6 py-6">
+        <div className="flex flex-col items-center gap-1">
+          <div className="w-14 h-14 rounded-xl bg-reef-teal/20 border border-reef-teal/40 flex items-center justify-center text-2xl">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-reef-teal"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+          </div>
+          <span className="text-xs text-[var(--muted)]">Distance</span>
+        </div>
+        <div className="flex flex-col items-center gap-1">
+          <div className="w-14 h-14 rounded-xl bg-compass-gold/20 border border-compass-gold/40 flex items-center justify-center text-2xl">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-compass-gold"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <span className="text-xs text-[var(--muted)]">Transit</span>
+        </div>
+        <div className="flex flex-col items-center gap-1">
+          <div className="w-14 h-14 rounded-xl bg-safety-blue/20 border border-safety-blue/40 flex items-center justify-center text-2xl">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-safety-blue"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <span className="text-xs text-[var(--muted)]">Docks</span>
+        </div>
       </div>
     ),
   },
@@ -60,7 +62,7 @@ const steps = [
         </div>
         <span className="text-compass-gold text-2xl">→</span>
         <div className="flex flex-col items-center gap-1">
-          <div className="w-14 h-14 rounded-xl bg-score-10/20 border border-score-10/40 flex items-center justify-center text-2xl">
+          <div className="w-14 h-14 rounded-xl bg-reef-teal/20 border border-reef-teal/40 flex items-center justify-center text-2xl">
             🚀
           </div>
           <span className="text-xs text-[var(--muted)]">Go</span>

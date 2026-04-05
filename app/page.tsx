@@ -39,7 +39,6 @@ const NavigationControl = dynamic(
   { ssr: false }
 );
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
 // Mapbox layer styles
@@ -201,7 +200,7 @@ export default function Home() {
   const {
     activity, month, hour, vessel, homeBaseId,
     selectedOriginId,
-    setActivity, setMonth, setHour, setHomeBase,
+    setActivity, setHomeBase,
     setSelectedOrigin,
   } = useAppStore();
 
@@ -211,7 +210,6 @@ export default function Home() {
   const [hoveredDestId, setHoveredDestId] = useState<string | null>(null);
   const [selectedDestId, setSelectedDestId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [beforeYouGoOpen, setBeforeYouGoOpen] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showNauticalChart, setShowNauticalChart] = useState(false);
   const [showFerryRoutes, setShowFerryRoutes] = useState(false);
@@ -255,15 +253,6 @@ export default function Home() {
       .sort((a, b) => a.distance - b.distance);
   }, [activity, vessel, origin]);
 
-  // Format time with minutes (hour can be decimal, e.g., 9.5 = 9:30 AM)
-  const formatTime = (h: number) => {
-    const hrs = Math.floor(h);
-    const mins = Math.round((h - hrs) * 60);
-    const period = hrs < 12 ? 'AM' : 'PM';
-    const displayHrs = hrs === 0 ? 12 : hrs > 12 ? hrs - 12 : hrs;
-    return `${displayHrs}:${mins.toString().padStart(2, '0')} ${period}`;
-  };
-  const timeLabel = formatTime(hour);
   const hasMapToken = MAPBOX_TOKEN && MAPBOX_TOKEN !== 'pk.your_token_here';
 
   // Map data hooks
@@ -450,66 +439,10 @@ export default function Home() {
             {/* Vessel selector — inline preset picker + customize */}
             <BoatSelector />
 
-            {/* Month selector */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-[var(--muted)] shrink-0">Month:</span>
-              <select
-                value={month}
-                onChange={(e) => setMonth(Number(e.target.value))}
-                className="flex-1 bg-[var(--card-elevated)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--foreground)] cursor-pointer focus:border-compass-gold focus:outline-none"
-              >
-                {MONTHS.map((m, i) => (
-                  <option key={i} value={i}>{m}</option>
-                ))}
-              </select>
-            </div>
           </div>
 
           {/* Scrollable destination list */}
           <div className="flex-1 overflow-y-auto">
-            {/* Before You Go — simple collapsible safety checklist */}
-            <div className="border-b border-[var(--border)]">
-              <button
-                onClick={() => setBeforeYouGoOpen(!beforeYouGoOpen)}
-                className="w-full px-4 py-2.5 text-left flex items-center justify-between text-sm font-medium text-[var(--secondary)] hover:text-[var(--foreground)] transition-colors"
-              >
-                <span>Safety Checklist — {currentActivity.name}</span>
-                <span className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-[var(--muted)]">{currentActivity.beforeYouGo.length} items</span>
-                  <span className="text-xs text-[var(--muted)]">{beforeYouGoOpen ? '−' : '+'}</span>
-                </span>
-              </button>
-              {beforeYouGoOpen && (
-                <div className="px-4 pb-3 space-y-0">
-                  {currentActivity.beforeYouGo.map((item, i) => (
-                    <label
-                      key={i}
-                      className="flex items-center gap-2 py-2 cursor-pointer border-b border-[var(--border)] last:border-b-0 group"
-                    >
-                      <input
-                        type="checkbox"
-                        className="w-3.5 h-3.5 rounded accent-reef-teal shrink-0"
-                      />
-                      <span className="text-xs text-[var(--secondary)] group-hover:text-[var(--foreground)] transition-colors flex-1">
-                        {item.text}
-                      </span>
-                      {item.url && (
-                        <a
-                          href={item.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-safety-blue text-[10px] hover:underline shrink-0"
-                        >
-                          Link
-                        </a>
-                      )}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-
             <div className="p-2 space-y-1.5">
               {scoredRoutes.map((route, i) => {
                 const isSelected = selectedDestId === route.destinationId;
@@ -564,6 +497,12 @@ export default function Home() {
                             </div>
                           );
                         })()}
+                        {/* Draft warning */}
+                        {route.dest.minDepth !== null && route.dest.minDepth < vessel.draft + 1 && (
+                          <div className="text-[10px] text-warning-amber mt-0.5">
+                            ⚠ Shallow — {route.dest.minDepth}ft depth, your draft is {vessel.draft}ft
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -731,35 +670,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Time slider at bottom of map */}
-          <div className="absolute bottom-4 left-4 right-4 pointer-events-auto z-10">
-            <div className="bg-ocean-900/90 backdrop-blur-md rounded-xl px-4 py-3 border border-ocean-700/50 shadow-xl">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-ocean-300">Time of Day</span>
-                <span className="text-sm font-medium text-compass-gold">{timeLabel}</span>
-              </div>
-              <input
-                type="range"
-                min={5}
-                max={22}
-                step={0.25}
-                value={hour}
-                onChange={(e) => setHour(parseFloat(e.target.value))}
-                aria-label={`Time of day: ${timeLabel}`}
-                aria-valuemin={5}
-                aria-valuemax={22}
-                aria-valuenow={hour}
-                aria-valuetext={timeLabel}
-                className="w-full appearance-none bg-ocean-700/50 h-2 rounded-full cursor-pointer
-                  [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
-                  [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2
-                  [&::-webkit-slider-thumb]:border-compass-gold [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer
-                  [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full
-                  [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-compass-gold
-                  [&::-moz-range-track]:h-2 [&::-moz-range-track]:bg-ocean-700/50 [&::-moz-range-track]:rounded-full"
-              />
-            </div>
-          </div>
         </div>
         </MapErrorBoundary>
       </div>
