@@ -1,153 +1,117 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { sfBay } from '@/data/cities/sf-bay';
-import { activities, getActivity } from '@/data/activities';
-import { activityScore, vesselWaveToleranceMultiplier } from '@/engine/scoring';
-import { getTimeConditions } from '@/engine/interpolation';
+import React, { useState, useMemo } from 'react';
+import { seasonalPlanning } from '@/data/cities/sf-bay/seasonal-planning';
+import type { MonthlyPlan, ZoneConditions } from '@/data/cities/sf-bay/seasonal-planning';
+import { activities } from '@/data/activities';
 import { useAppStore } from '@/store';
 import { Header } from '../components/Header';
-import { ScoreBadge, getScoreColor } from '../components/ScoreBadge';
-import type { ActivityType, Destination, Zone } from '@/engine/types';
+import { SourceAttribution } from '../components/SourceAttribution';
+import type { ActivityType } from '@/engine/types';
 
 // ---------------------------------------------------------------------------
-// Constants
+// Zone display names (keyed to seasonal-planning zone IDs)
 // ---------------------------------------------------------------------------
 
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
-const MONTH_THEMES: Record<number, string> = {
-  0: 'Storm window sailing',
-  1: 'Late winter calm days',
-  2: 'Spring awakening',
-  3: 'Morning magic',
-  4: 'Fog and wind, but the mornings...',
-  5: 'Peak wind season begins',
-  6: 'The great divide',
-  7: 'The turn',
-  8: 'Go everywhere',
-  9: 'Second summer',
-  10: 'Last call',
-  11: 'Cozy season',
+const ZONE_NAMES: Record<string, string> = {
+  richardson: 'Richardson Bay',
+  central_bay: 'The Slot',
+  sf_shore: 'SF Waterfront',
+  east_bay: 'East Bay',
+  north_bay: 'North Bay',
+  san_pablo: 'San Pablo Bay',
+  south_bay: 'South Bay',
 };
 
-const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-
-// Departure points: destinations that have launch ramps or are common home bases
-const DEPARTURE_POINTS = sfBay.destinations.filter(
-  (d) => d.launchRamp || ['sau', 'aqp', 'fbg', 'brk', 'p39'].includes(d.id)
-);
+const ZONE_ORDER = [
+  'richardson',
+  'central_bay',
+  'sf_shore',
+  'east_bay',
+  'north_bay',
+  'san_pablo',
+  'south_bay',
+];
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Activity mapping: seasonal data uses free-text activity names;
+// map store activity IDs to match strings for highlighting.
 // ---------------------------------------------------------------------------
 
-interface MonthCardData {
-  month: number;
-  name: string;
-  theme: string;
-  avgScore: number;
-  goodDays: number;
-  bestDestination: { name: string; score: number } | null;
-  isBestMonth: boolean;
+const ACTIVITY_MATCH: Record<ActivityType, string[]> = {
+  kayak: ['kayak'],
+  sup: ['sup'],
+  powerboat_cruise: ['powerboat'],
+  casual_sail: ['sail'],
+};
+
+function activityMatchesPlan(actId: ActivityType, planActivity: string): boolean {
+  const lower = planActivity.toLowerCase();
+  return ACTIVITY_MATCH[actId].some((kw) => lower.includes(kw));
 }
 
-function computeMonthData(
-  month: number,
-  activityId: ActivityType,
-  originId: string
-): MonthCardData {
-  const act = getActivity(activityId);
-  const origin = sfBay.destinations.find((d) => d.id === originId);
-  const vessel = { loa: act.vesselType === 'powerboat' ? 24 : act.vesselType === 'sailboat' ? 30 : 14 };
-  const waveMultiplier = vesselWaveToleranceMultiplier(vessel.loa);
+// ---------------------------------------------------------------------------
+// Helpers for zone card tinting
+// ---------------------------------------------------------------------------
 
-  // Compute AM score for every reachable destination from origin
-  const reachableDestinations = sfBay.destinations.filter(
-    (d) => d.id !== originId && d.activityTags.includes(activityId)
-  );
+function fogTint(fog: string): string | undefined {
+  if (fog === 'Very High') return 'bg-blue-500/5';
+  return undefined;
+}
 
-  let totalScore = 0;
-  let destCount = 0;
-  let bestDest: { name: string; score: number } | null = null;
-
-  for (const dest of reachableDestinations) {
-    // Get zones for this route
-    const zoneIds = new Set<string>();
-    zoneIds.add(origin?.zone ?? 'richardson');
-    zoneIds.add(dest.zone);
-
-    // Check routing rules for transit zones
-    for (const rule of sfBay.routingRules) {
-      const oArea = origin?.area ?? 'marin';
-      const oZone = origin?.zone ?? 'richardson';
-      const originInFrom = rule.fromAreas.includes(oArea) || rule.fromAreas.includes(oZone);
-      const destInTo = rule.toAreas.includes(dest.area) || rule.toAreas.includes(dest.zone);
-      const originInTo = rule.toAreas.includes(oArea) || rule.toAreas.includes(oZone);
-      const destInFrom = rule.fromAreas.includes(dest.area) || rule.fromAreas.includes(dest.zone);
-      if ((originInFrom && destInTo) || (originInTo && destInFrom)) {
-        for (const tz of rule.transitZones) zoneIds.add(tz);
-      }
-    }
-
-    const zones: Zone[] = Array.from(zoneIds)
-      .map((id) => sfBay.zones.find((z) => z.id === id))
-      .filter((z): z is Zone => z !== undefined);
-
-    // Compute AM score (bottleneck rule)
-    let worstScore = 10;
-    for (const zone of zones) {
-      const cond = getTimeConditions(zone, 9, month);
-      const adjWave = cond.waveHtFt / waveMultiplier;
-      const s = activityScore(act, cond.windKts, adjWave, cond.wavePeriodS);
-      if (s < worstScore) worstScore = s;
-    }
-
-    totalScore += worstScore;
-    destCount++;
-
-    if (!bestDest || worstScore > bestDest.score) {
-      bestDest = { name: dest.name, score: worstScore };
-    }
+function windTint(afternoonWind: string): string | undefined {
+  // Extract the upper number from strings like "20-30 kt W"
+  const nums = afternoonWind.match(/\d+/g);
+  if (nums) {
+    const upper = parseInt(nums[nums.length > 1 ? 1 : 0], 10);
+    if (upper >= 20) return 'bg-amber-500/5';
   }
+  return undefined;
+}
 
-  const avgScore = destCount > 0 ? Math.round((totalScore / destCount) * 10) / 10 : 5;
+function coldTint(waterTempF: number): string | undefined {
+  if (waterTempF < 55) return 'bg-blue-400/5';
+  return undefined;
+}
 
-  // Estimate good days: % of destinations with score >= 7, applied to days in month
-  const goodDestRatio = destCount > 0
-    ? reachableDestinations.filter((dest) => {
-        const zoneIds = new Set<string>();
-        zoneIds.add(origin?.zone ?? 'richardson');
-        zoneIds.add(dest.zone);
-        const zones: Zone[] = Array.from(zoneIds)
-          .map((id) => sfBay.zones.find((z) => z.id === id))
-          .filter((z): z is Zone => z !== undefined);
-        let worst = 10;
-        for (const zone of zones) {
-          const cond = getTimeConditions(zone, 9, month);
-          const adjWave = cond.waveHtFt / waveMultiplier;
-          const s = activityScore(act, cond.windKts, adjWave, cond.wavePeriodS);
-          if (s < worst) worst = s;
-        }
-        return worst >= 7;
-      }).length / destCount
-    : 0;
+function getZoneTint(zc: ZoneConditions): string {
+  return fogTint(zc.fogProbability) ?? windTint(zc.afternoonWind) ?? coldTint(zc.waterTempF) ?? '';
+}
 
-  const goodDays = Math.round(goodDestRatio * DAYS_IN_MONTH[month]);
+// ---------------------------------------------------------------------------
+// Determine month card style based on selected activity
+// ---------------------------------------------------------------------------
 
-  return {
-    month,
-    name: MONTH_NAMES[month],
-    theme: MONTH_THEMES[month],
-    avgScore,
-    goodDays,
-    bestDestination: bestDest,
-    isBestMonth: false, // set after computing all months
-  };
+type MonthTier = 'best' | 'worst' | 'neutral';
+
+function getMonthTier(
+  monthPlan: MonthlyPlan,
+  activityId: ActivityType,
+  bestMonthNames: string[]
+): MonthTier {
+  if (bestMonthNames.includes(monthPlan.month)) return 'best';
+
+  // Check if this activity appears in worstActivities
+  const isWorst = monthPlan.worstActivities.some((wa) => {
+    const lower = wa.toLowerCase();
+    // "All" means worst for everything
+    if (lower.startsWith('all')) return true;
+    return activityMatchesPlan(activityId, wa);
+  });
+  if (isWorst) return 'worst';
+
+  return 'neutral';
+}
+
+function tierBorderClass(tier: MonthTier): string {
+  switch (tier) {
+    case 'best':
+      return 'border-reef-teal/60 ring-1 ring-reef-teal/30';
+    case 'worst':
+      return 'border-warning-amber/50 ring-1 ring-warning-amber/20';
+    case 'neutral':
+      return 'border-[var(--border)]';
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -155,277 +119,321 @@ function computeMonthData(
 // ---------------------------------------------------------------------------
 
 export default function PlannerPage() {
-  const router = useRouter();
-  const { activity: storeActivity, homeBaseId, setMonth, setActivity } = useAppStore();
-
+  const { activity: storeActivity, setActivity } = useAppStore();
   const [selectedActivity, setSelectedActivity] = useState<ActivityType>(storeActivity);
-  const [selectedOrigin, setSelectedOrigin] = useState<string>(homeBaseId);
-
-  const monthData = useMemo(() => {
-    const data = Array.from({ length: 12 }, (_, i) =>
-      computeMonthData(i, selectedActivity, selectedOrigin)
-    );
-
-    // Mark the best month
-    let bestIdx = 0;
-    for (let i = 1; i < data.length; i++) {
-      if (data[i].avgScore > data[bestIdx].avgScore) bestIdx = i;
-    }
-    data[bestIdx].isBestMonth = true;
-
-    return data;
-  }, [selectedActivity, selectedOrigin]);
-
   const [expandedMonth, setExpandedMonth] = useState<number | null>(null);
 
-  function handleMonthClick(month: number) {
-    // Toggle expansion instead of navigating away
-    setExpandedMonth(expandedMonth === month ? null : month);
+  // Determine best months for the selected activity
+  const bestMonthNames = useMemo(() => {
+    const key = selectedActivity === 'powerboat_cruise'
+      ? 'powerboat'
+      : selectedActivity === 'casual_sail'
+        ? 'sailing'
+        : selectedActivity;
+    return (seasonalPlanning.bestMonths as Record<string, string[]>)[key] ?? [];
+  }, [selectedActivity]);
+
+  const worstMonthNames = seasonalPlanning.worstMonths.months;
+
+  function handleActivityChange(actId: ActivityType) {
+    setSelectedActivity(actId);
+    setActivity(actId);
   }
 
-  function handleGoToMonth(month: number) {
-    setMonth(month);
-    setActivity(selectedActivity);
-    router.push('/');
+  function toggleMonth(index: number) {
+    setExpandedMonth(expandedMonth === index ? null : index);
   }
 
-  function getGoodDaysIndicator(goodDays: number, totalDays: number) {
-    const ratio = goodDays / totalDays;
-    if (ratio >= 0.6) return { color: 'text-reef-teal', icon: '●' };
-    if (ratio >= 0.3) return { color: 'text-compass-gold', icon: '●' };
-    return { color: 'text-danger-red', icon: '●' };
-  }
-
-  // Compute weekly risk factors for the expanded month
-  const weeklyData = useMemo(() => {
-    if (expandedMonth === null) return null;
-    const act = getActivity(selectedActivity);
-    const origin = sfBay.destinations.find(d => d.id === selectedOrigin);
-    if (!origin) return null;
-
-    // 4 weeks per month: early, mid-early, mid-late, late
-    const weeks = [
-      { label: `Week 1 (1st–7th)`, hours: [7, 9, 11, 14] },
-      { label: `Week 2 (8th–14th)`, hours: [7, 9, 11, 14] },
-      { label: `Week 3 (15th–21st)`, hours: [7, 9, 11, 14] },
-      { label: `Week 4 (22nd–${DAYS_IN_MONTH[expandedMonth]}th)`, hours: [7, 9, 11, 14] },
-    ];
-
-    return weeks.map(week => {
-      // Compute scores at different times of day
-      const timeScores = week.hours.map(h => {
-        const zone = sfBay.zones.find(z => z.id === origin.zone);
-        if (!zone) return { hour: h, score: 5, wind: 0, wave: 0 };
-        const cond = getTimeConditions(zone, h, expandedMonth);
-        const wm = vesselWaveToleranceMultiplier(act.vesselType === 'powerboat' ? 24 : act.vesselType === 'sailboat' ? 30 : 14);
-        const s = activityScore(act, cond.windKts, cond.waveHtFt / wm, cond.wavePeriodS);
-        return { hour: h, score: s, wind: cond.windKts, wave: cond.waveHtFt };
-      });
-
-      // Identify the primary risk
-      const worstTime = timeScores.reduce((w, t) => t.score < w.score ? t : w, timeScores[0]);
-      let primaryRisk = 'Conditions look good';
-      if (worstTime.wind > 15) primaryRisk = `Strong afternoon wind (${worstTime.wind}kt)`;
-      else if (worstTime.wave > 2) primaryRisk = `Rough chop (${worstTime.wave}ft waves)`;
-      else if (worstTime.wind > 10) primaryRisk = `Moderate wind (${worstTime.wind}kt)`;
-      else if (worstTime.wave > 1) primaryRisk = `Light chop (${worstTime.wave}ft)`;
-
-      const bestScore = Math.max(...timeScores.map(t => t.score));
-      const worstScore = Math.min(...timeScores.map(t => t.score));
-
-      return {
-        label: week.label,
-        bestScore,
-        worstScore,
-        amScore: timeScores.find(t => t.hour === 9)?.score ?? 5,
-        pmScore: timeScores.find(t => t.hour === 14)?.score ?? 5,
-        primaryRisk,
-        timeScores,
-      };
-    });
-  }, [expandedMonth, selectedActivity, selectedOrigin]);
+  // Selected activity display name
+  const activityName = activities.find((a) => a.id === selectedActivity)?.name ?? selectedActivity;
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <Header />
 
       <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        {/* Title */}
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">Year Planner</h1>
-          <p className="text-sm text-[var(--muted)] mt-1">
-            When should you go? See boating conditions across all 12 months.
-          </p>
+        {/* Activity selector */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
+            Activity
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {activities.map((act) => (
+              <button
+                key={act.id}
+                onClick={() => handleActivityChange(act.id)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  selectedActivity === act.id
+                    ? 'bg-compass-gold text-black'
+                    : 'bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)] border border-[var(--border)]'
+                }`}
+              >
+                {act.icon} {act.name}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Activity selector */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-              Activity
-            </label>
-            <div className="flex gap-1.5">
-              {activities.map((act) => (
-                <button
-                  key={act.id}
-                  onClick={() => setSelectedActivity(act.id)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    selectedActivity === act.id
-                      ? 'bg-compass-gold text-black'
-                      : 'bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)] border border-[var(--border)]'
-                  }`}
+        {/* Best / Worst months summary */}
+        <div className="space-y-4">
+          {/* Best months */}
+          {bestMonthNames.length > 0 && (
+            <div>
+              <h2 className="text-lg font-bold text-[var(--foreground)]">
+                Best Months for {activityName}
+              </h2>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {bestMonthNames.map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => {
+                      const idx = seasonalPlanning.months.findIndex((mp) => mp.month === m);
+                      if (idx >= 0) toggleMonth(idx);
+                    }}
+                    className="px-3 py-1 rounded-full text-sm font-medium bg-reef-teal/15 text-reef-teal border border-reef-teal/30 hover:bg-reef-teal/25 transition-colors"
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Worst months */}
+          <div>
+            <h3 className="text-sm font-semibold text-[var(--secondary)]">Worst Months</h3>
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              {worstMonthNames.map((m) => (
+                <span
+                  key={m}
+                  className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-amber/10 text-warning-amber border border-warning-amber/25"
                 >
-                  {act.icon} {act.name}
-                </button>
+                  {m}
+                </span>
               ))}
+              <span className="text-xs text-[var(--muted)] ml-1">
+                &mdash; {seasonalPlanning.worstMonths.why}
+              </span>
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-              Departing from
-            </label>
-            <select
-              value={selectedOrigin}
-              onChange={(e) => setSelectedOrigin(e.target.value)}
-              className="block w-full sm:w-56 px-3 py-1.5 rounded-lg text-sm bg-[var(--card)] text-[var(--foreground)] border border-[var(--border)] focus:outline-none focus:ring-1 focus:ring-compass-gold"
-            >
-              {DEPARTURE_POINTS.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Season pattern */}
+          <p className="text-xs text-[var(--muted)]">
+            <span className="font-medium text-[var(--secondary)]">Season:</span>{' '}
+            Opens {seasonalPlanning.seasonPatterns.opening.split(':')[0]}, closes{' '}
+            {seasonalPlanning.seasonPatterns.closing.split(':')[0]}
+          </p>
         </div>
 
-        {/* Month cards grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {monthData.map((m) => {
-            const indicator = getGoodDaysIndicator(m.goodDays, DAYS_IN_MONTH[m.month]);
+        {/* 12-month calendar grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {seasonalPlanning.months.map((mp, idx) => {
+            const tier = getMonthTier(mp, selectedActivity, bestMonthNames);
+            const isExpanded = expandedMonth === idx;
+
             return (
-              <React.Fragment key={m.month}>
-              <button
-                onClick={() => handleMonthClick(m.month)}
-                className={`relative text-left p-4 rounded-xl border transition-all hover:shadow-lg hover:scale-[1.02] ${
-                  m.isBestMonth
-                    ? 'border-compass-gold/50 bg-compass-gold/5 ring-1 ring-compass-gold/30'
-                    : 'border-[var(--border)] bg-[var(--card)] hover:border-[var(--muted)]'
-                }`}
-              >
-                {m.isBestMonth && (
-                  <div className="absolute -top-2.5 right-3 px-2 py-0.5 bg-compass-gold text-black text-[10px] font-bold rounded-full uppercase tracking-wider">
-                    Best month
-                  </div>
-                )}
-
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
-                    <h3 className="text-base font-bold text-[var(--foreground)]">
-                      {m.name}
-                    </h3>
-                    <p className="text-xs text-[var(--muted)] italic mt-0.5">
-                      &ldquo;{m.theme}&rdquo;
-                    </p>
-                  </div>
-                  <ScoreBadge score={Math.round(m.avgScore)} size="md" />
-                </div>
-
-                <div className="mt-3 space-y-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className={`text-sm ${indicator.color}`}>{indicator.icon}</span>
-                    <span className="text-sm text-[var(--secondary)]">
-                      {m.goodDays} good days
-                    </span>
-                    <span className="text-xs text-[var(--muted)]">
-                      (score 7+)
-                    </span>
-                  </div>
-
-                  {m.bestDestination && (
-                    <div className="text-xs text-[var(--muted)]">
-                      Best:{' '}
-                      <span className="text-[var(--secondary)] font-medium">
-                        {m.bestDestination.name}
-                      </span>
-                      <span className="ml-1" style={{ color: getScoreColor(m.bestDestination.score) }}>
-                        ({m.bestDestination.score}/10)
-                      </span>
+              <React.Fragment key={mp.month}>
+                {/* Month card */}
+                <button
+                  onClick={() => toggleMonth(idx)}
+                  className={`relative text-left p-4 rounded-xl border transition-all hover:shadow-lg hover:scale-[1.01] bg-[var(--card)] ${tierBorderClass(tier)} ${
+                    isExpanded ? 'ring-2 ring-reef-teal/40' : ''
+                  }`}
+                >
+                  {/* Best badge */}
+                  {tier === 'best' && (
+                    <div className="absolute -top-2.5 right-3 px-2 py-0.5 bg-reef-teal text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
+                      Best for {activityName}
                     </div>
                   )}
-                </div>
 
-                {/* Score bar */}
-                <div className="mt-3 h-1.5 rounded-full bg-[var(--border)] overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${(m.avgScore / 10) * 100}%`,
-                      backgroundColor: getScoreColor(m.avgScore),
-                    }}
-                  />
-                </div>
+                  <h3 className="text-base font-bold text-[var(--foreground)]">
+                    {mp.month}
+                  </h3>
 
-                {expandedMonth === m.month && (
-                  <div className="text-[10px] text-reef-teal mt-2 text-center font-medium">
-                    Click to collapse
+                  {/* Best activities line */}
+                  {mp.bestActivities.length > 0 && (
+                    <p className="text-xs text-reef-teal mt-1">
+                      Best for: {mp.bestActivities.join(', ')}
+                    </p>
+                  )}
+
+                  {/* Top hazard */}
+                  {mp.hazards.length > 0 && (
+                    <p className="text-xs text-warning-amber mt-1 truncate">
+                      {mp.hazards[0]}
+                    </p>
+                  )}
+
+                  {/* Season markers (collapsed) */}
+                  {mp.seasonMarkers.length > 0 && (
+                    <p className="text-[11px] text-[var(--muted)] mt-1 truncate">
+                      {mp.seasonMarkers[0]}
+                    </p>
+                  )}
+
+                  <div className="text-[10px] text-[var(--muted)] mt-2 text-right">
+                    {isExpanded ? 'Click to collapse' : 'Click to expand'}
+                  </div>
+                </button>
+
+                {/* Expanded detail — takes full row width */}
+                {isExpanded && (
+                  <div className="col-span-full border border-[var(--border)] rounded-xl bg-[var(--card-elevated)] p-4 space-y-4">
+                    {/* Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <h3 className="text-lg font-bold text-[var(--foreground)]">
+                        {mp.month}
+                      </h3>
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        {mp.seasonMarkers.map((sm, si) => (
+                          <span
+                            key={si}
+                            className="px-2 py-0.5 rounded-full bg-compass-gold/15 text-compass-gold border border-compass-gold/25 font-medium"
+                          >
+                            {sm}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Activities & hazards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {mp.bestActivities.length > 0 && (
+                        <div>
+                          <span className="text-xs font-medium text-reef-teal uppercase tracking-wider">
+                            Best Activities
+                          </span>
+                          <ul className="mt-1 space-y-0.5">
+                            {mp.bestActivities.map((ba, bi) => (
+                              <li key={bi} className="text-sm text-[var(--secondary)]">
+                                {ba}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {mp.worstActivities.length > 0 && (
+                        <div>
+                          <span className="text-xs font-medium text-warning-amber uppercase tracking-wider">
+                            Avoid
+                          </span>
+                          <ul className="mt-1 space-y-0.5">
+                            {mp.worstActivities.map((wa, wi) => (
+                              <li key={wi} className="text-sm text-[var(--secondary)]">
+                                {wa}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* All hazards */}
+                    {mp.hazards.length > 0 && (
+                      <div>
+                        <span className="text-xs font-medium text-warning-amber uppercase tracking-wider">
+                          Hazards
+                        </span>
+                        <ul className="mt-1 space-y-0.5">
+                          {mp.hazards.map((h, hi) => (
+                            <li key={hi} className="text-sm text-[var(--secondary)]">
+                              {h}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Zone conditions grid */}
+                    <div>
+                      <h4 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider mb-2">
+                        Zone Conditions
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                        {ZONE_ORDER.map((zoneId) => {
+                          const zc = mp.zones[zoneId];
+                          if (!zc) return null;
+                          const tint = getZoneTint(zc);
+
+                          return (
+                            <div
+                              key={zoneId}
+                              className={`rounded-lg border border-[var(--border)] p-3 space-y-1.5 ${tint}`}
+                            >
+                              <h5 className="text-sm font-semibold text-[var(--foreground)]">
+                                {ZONE_NAMES[zoneId] ?? zoneId}
+                              </h5>
+
+                              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                                <div>
+                                  <span className="text-[var(--muted)]">AM:</span>{' '}
+                                  <span className="text-[var(--secondary)]">{zc.morningWind}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[var(--muted)]">PM:</span>{' '}
+                                  <span className="text-[var(--secondary)]">{zc.afternoonWind}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[var(--muted)]">Waves:</span>{' '}
+                                  <span className="text-[var(--secondary)]">{zc.waveHeight}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[var(--muted)]">Water:</span>{' '}
+                                  <span className="text-[var(--secondary)]">{zc.waterTempF}&deg;F</span>
+                                </div>
+                                <div>
+                                  <span className="text-[var(--muted)]">Fog:</span>{' '}
+                                  <span className={`${
+                                    zc.fogProbability === 'Very High' ? 'text-blue-400' : 'text-[var(--secondary)]'
+                                  }`}>
+                                    {zc.fogProbability}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-[var(--muted)]">Current:</span>{' '}
+                                  <span className="text-[var(--secondary)]">{zc.currentStrength}</span>
+                                </div>
+                              </div>
+
+                              <div className="border-t border-[var(--border)] pt-1.5">
+                                <p className="text-[11px] text-[var(--muted)] leading-relaxed">
+                                  {zc.planningSummary}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Sources */}
+                    <div className="border-t border-[var(--border)] pt-3">
+                      <h4 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider mb-1">
+                        Sources
+                      </h4>
+                      <SourceAttribution sources={mp.sources} />
+                    </div>
                   </div>
                 )}
-              </button>
-
-              {/* Weekly risk breakdown — shown when month is expanded */}
-              {expandedMonth === m.month && weeklyData && (
-                <div className="col-span-full border border-[var(--border)] rounded-xl bg-[var(--card-elevated)] p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold">{m.name} — Weekly Risk Breakdown</h3>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleGoToMonth(m.month); }}
-                      className="text-xs text-reef-teal hover:underline"
-                    >
-                      View on map →
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-[var(--muted)]">Based on historical averages for {getActivity(selectedActivity).name}</p>
-
-                  <div className="space-y-2">
-                    {weeklyData.map((week, wi) => (
-                      <div key={wi} className="flex items-center gap-3 p-2 rounded-lg bg-[var(--card)] border border-[var(--border)]">
-                        <div className="w-20 shrink-0">
-                          <span className="text-xs font-medium">{week.label.split('(')[0]}</span>
-                          <span className="text-[10px] text-[var(--muted)] block">{week.label.match(/\(.*\)/)?.[0]}</span>
-                        </div>
-                        <div className="flex gap-1.5 items-center">
-                          <div className="text-center">
-                            <span className="text-[9px] text-[var(--muted)] block">AM</span>
-                            <ScoreBadge score={week.amScore} size="sm" />
-                          </div>
-                          <div className="text-center">
-                            <span className="text-[9px] text-[var(--muted)] block">PM</span>
-                            <ScoreBadge score={week.pmScore} size="sm" />
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <span className={`text-xs ${week.worstScore <= 3 ? 'text-danger-red' : week.worstScore <= 5 ? 'text-compass-gold' : 'text-[var(--muted)]'}`}>
-                            {week.primaryRisk}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </React.Fragment>
+              </React.Fragment>
             );
           })}
         </div>
 
-        {/* Legend / footer */}
+        {/* Footer */}
         <div className="text-center text-xs text-[var(--muted)] pb-6 space-y-1">
-          <p>Scores based on AM conditions (9 AM departure). Click any month to view detailed day-level conditions.</p>
+          <p>Based on historical monthly averages. Conditions vary day to day &mdash; always check the forecast.</p>
           <p>
-            <span className="text-green-500">●</span> 60%+ good days{' '}
-            <span className="ml-2 text-yellow-500">●</span> 30-60% good days{' '}
-            <span className="ml-2 text-red-400">●</span> &lt;30% good days
+            Planning tool only &mdash; verify with{' '}
+            <a href="https://www.weather.gov/mtr/" target="_blank" rel="noopener noreferrer" className="text-safety-blue hover:underline">
+              NWS
+            </a>{' '}
+            and{' '}
+            <a href="https://www.ndbc.noaa.gov/" target="_blank" rel="noopener noreferrer" className="text-safety-blue hover:underline">
+              NOAA NDBC
+            </a>{' '}
+            before departure.
           </p>
         </div>
       </main>
