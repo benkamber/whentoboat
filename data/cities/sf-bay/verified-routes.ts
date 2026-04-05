@@ -1,24 +1,14 @@
-// ============================================
 // SF Bay Verified Nautical Routes
-//
-// Research-verified routes derived from:
-// - NOAA Chart 18649 (San Francisco Bay)
-// - US Coast Pilot Vol 7 (Pacific Coast)
-// - Cruising Guide to San Francisco Bay
-//
-// These routes take priority over generated routes
-// in the route lookup system.
-//
-// Coordinates are [lng, lat] (GeoJSON order).
-// Distances are nautical miles.
-// ============================================
+// Sources: NOAA Chart 18649, US Coast Pilot Vol 7, Cruising Guide to SF Bay
+// Waypoints validated against OSM coastline (scripts/validate-waypoints.ts)
+// Only includes routes that pass land-crossing validation.
 
 export interface VerifiedRoute {
   id: string;
   name: string;
-  from: string; // destination ID
-  to: string; // destination ID
-  waypoints: [number, number][]; // [lng, lat] pairs
+  from: string;
+  to: string;
+  waypoints: [number, number][];
   distanceNm: number;
   minDepthFt: number;
   hazards: string;
@@ -28,401 +18,241 @@ export interface VerifiedRoute {
 }
 
 export const verifiedRoutes: VerifiedRoute[] = [
-  // ──────────────────────────────────────────
-  // 1. Sausalito → Angel Island (Ayala Cove)
-  // ──────────────────────────────────────────
   {
-    id: 'sau_ang',
-    name: 'Sausalito to Angel Island',
-    from: 'sau',
-    to: 'ang',
+    id: "sau_ang",
+    name: "Sausalito to Angel Island",
+    from: "sau",
+    to: "ang",
     waypoints: [
-      [-122.4823, 37.8593],
-      [-122.4583, 37.8633],
-      [-122.4417, 37.865],
-      [-122.4393, 37.8677],
+      [-122.4813, 37.8623],
+      [-122.4678, 37.8633],
+      [-122.4632, 37.8612],
+      [-122.4543, 37.8633],
+      [-122.4442, 37.865],
+      [-122.4477, 37.8583],
+      [-122.4463, 37.8565],
+      [-122.4403, 37.8521],
+      [-122.4364, 37.8511],
+      [-122.4286, 37.8523],
     ],
-    distanceNm: 2.0,
+    distanceNm: 2,
     minDepthFt: 4,
-    hazards:
-      'Raccoon Strait currents (2.5-4 kts); tidal rips at Point Stuart; Ayala Cove shoaling (4-6 ft MLLW at dock)',
+    hazards: "Raccoon Strait currents (2.5-4 kts); tidal rips at Point Stuart; Ayala Cove shoaling (4-6 ft MLLW at dock)",
     crossesTss: false,
-    bridges: 'None',
-    notes:
-      'Cross on flood, return on ebb. 5 mph no-wake near dock. Only 16 slips open (storm repairs).',
+    bridges: "None",
+    notes: "Cross on flood, return on ebb. 5 mph no-wake near dock. Only 16 slips open (storm repairs).",
   },
-
-  // ──────────────────────────────────────────
-  // 2. Sausalito → Tiburon (Corinthian YC)
-  // ──────────────────────────────────────────
   {
-    id: 'sau_tib',
-    name: 'Sausalito to Tiburon',
-    from: 'sau',
-    to: 'tib',
+    id: "sau_tib",
+    name: "Sausalito to Tiburon",
+    from: "sau",
+    to: "tib",
     waypoints: [
-      [-122.4823, 37.8593],
+      [-122.4813, 37.8623],
       [-122.4667, 37.86],
-      [-122.4583, 37.8667],
-      [-122.4517, 37.8703],
+      [-122.4639, 37.8619],
+      [-122.4624, 37.861],
+      [-122.4617, 37.8605],
+      [-122.4582, 37.8589],
+      [-122.4548, 37.8643],
+      [-122.4569, 37.8681],
+      [-122.4517, 37.8693],
     ],
-    distanceNm: 2.0,
+    distanceNm: 2,
     minDepthFt: 5,
-    hazards:
-      'Richardson Bay shoals (~5 ft avg); dense moored vessels; Hurricane Gulch afternoon westerlies',
+    hazards: "Richardson Bay shoals (~5 ft avg); dense moored vessels; Hurricane Gulch afternoon westerlies",
     crossesTss: false,
-    bridges: 'None',
-    notes:
-      '5 mph speed limit in Richardson Bay. Stay in marked channel (8-12 ft).',
+    bridges: "None",
+    notes: "5 mph speed limit in Richardson Bay. Stay in marked channel (8-12 ft).",
   },
-
-  // ──────────────────────────────────────────
-  // 3. Sausalito → SF Marina / Gas House Cove
-  // ──────────────────────────────────────────
   {
-    id: 'sau_sfm',
-    name: 'Sausalito to SF Marina',
-    from: 'sau',
-    to: 'aqp',
+    id: "sau_sfm",
+    name: "Sausalito to SF Marina",
+    from: "sau",
+    to: "aqp",
     waypoints: [
-      [-122.4823, 37.8593],
+      [-122.4813, 37.8623],
+      [-122.4746, 37.8562],
       [-122.475, 37.85],
       [-122.4583, 37.8333],
-      [-122.4417, 37.8083],
-      [-122.433, 37.808],
+      [-122.4417, 37.8113],
+      [-122.43, 37.812],
     ],
-    distanceNm: 3.0,
+    distanceNm: 3,
     minDepthFt: 6,
-    hazards:
-      'High-speed ferry traffic; kite surfers near Crissy Field; SF Marina dredging (2026)',
+    hazards: "High-speed ferry traffic; kite surfers near Crissy Field; SF Marina dredging (2026)",
     crossesTss: false,
-    bridges: 'None',
-    notes:
-      'Stays west of main shipping lanes. Aquatic Park nearby: no power vessels, 3-knot limit.',
+    bridges: "None",
+    notes: "Stays west of main shipping lanes. Aquatic Park nearby: no power vessels, 3-knot limit.",
   },
-
-  // ──────────────────────────────────────────
-  // 4. Sausalito → Pier 39 / Fisherman's Wharf
-  // ──────────────────────────────────────────
   {
-    id: 'sau_p39',
-    name: 'Sausalito to Pier 39',
-    from: 'sau',
-    to: 'p39',
+    id: "sau_p39",
+    name: "Sausalito to Pier 39",
+    from: "sau",
+    to: "p39",
     waypoints: [
-      [-122.4823, 37.8593],
+      [-122.4813, 37.8623],
+      [-122.4746, 37.8562],
       [-122.475, 37.85],
       [-122.425, 37.815],
-      [-122.42, 37.8083],
-      [-122.4083, 37.81],
+      [-122.42, 37.8143],
+      [-122.4067, 37.8131],
     ],
-    distanceNm: 3.0,
+    distanceNm: 3,
     minDepthFt: 10,
-    hazards:
-      'Central Bay shipping lanes; Alcatraz tour boats; Harding Rock (36 ft, lighted buoy); currents 3-4 kts near Alcatraz',
+    hazards: "Central Bay shipping lanes; Alcatraz tour boats; Harding Rock (36 ft, lighted buoy); currents 3-4 kts near Alcatraz",
     crossesTss: true,
-    bridges: 'None',
-    notes: 'Monitor VHF 14; cross shipping lanes at right angles.',
+    bridges: "None",
+    notes: "Monitor VHF 14; cross shipping lanes at right angles.",
   },
-
-  // ──────────────────────────────────────────
-  // 5. Sausalito → South Beach Harbor
-  // ──────────────────────────────────────────
   {
-    id: 'sau_sbh',
-    name: 'Sausalito to South Beach Harbor',
-    from: 'sau',
-    to: 'fbg',
+    id: "sau_sbh",
+    name: "Sausalito to South Beach Harbor",
+    from: "sau",
+    to: "fbg",
     waypoints: [
-      [-122.4823, 37.8593],
+      [-122.4813, 37.8623],
+      [-122.4746, 37.8562],
       [-122.475, 37.85],
       [-122.425, 37.815],
-      [-122.3917, 37.7967],
-      [-122.3833, 37.7883],
-      [-122.3833, 37.7817],
+      [-122.4073, 37.8134],
+      [-122.3897, 37.7967],
+      [-122.3813, 37.7883],
+      [-122.3822, 37.7806],
     ],
-    distanceNm: 5.0,
+    distanceNm: 5,
     minDepthFt: 8,
-    hazards:
-      'Central Bay shipping lanes; Bay Bridge pier eddies; ferry convergence at Ferry Building; 15 ft shoal off YBI',
+    hazards: "Central Bay shipping lanes; Bay Bridge pier eddies; ferry convergence at Ferry Building; 15 ft shoal off YBI",
     crossesTss: true,
-    bridges: 'Bay Bridge West Span: 220 ft MHHW',
-    notes:
-      'Pass under center of Bay Bridge West Span. Current 2-3 kts through YBI-SF constriction.',
+    bridges: "Bay Bridge West Span: 220 ft MHHW",
+    notes: "Pass under center of Bay Bridge West Span. Current 2-3 kts through YBI-SF constriction.",
   },
-
-  // ──────────────────────────────────────────
-  // 6. Sausalito → Clipper Cove / Treasure Island
-  // ──────────────────────────────────────────
   {
-    id: 'sau_clp',
-    name: 'Sausalito to Clipper Cove',
-    from: 'sau',
-    to: 'clp',
+    id: "sau_clp",
+    name: "Sausalito to Clipper Cove",
+    from: "sau",
+    to: "clp",
     waypoints: [
-      [-122.4823, 37.8593],
+      [-122.4813, 37.8623],
       [-122.425, 37.815],
-      [-122.375, 37.815],
-      [-122.367, 37.817],
-      [-122.3637, 37.8247],
+      [-122.375, 37.8145],
+      [-122.3753, 37.8147],
+      [-122.3754, 37.8134],
+      [-122.3778, 37.8166],
+      [-122.3762, 37.8146],
+      [-122.3782, 37.8172],
+      [-122.3764, 37.8149],
+      [-122.3768, 37.8131],
+      [-122.3603, 37.8198],
+      [-122.3604, 37.8248],
     ],
-    distanceNm: 6.0,
+    distanceNm: 6,
     minDepthFt: 4,
-    hazards:
-      'CRITICAL: Large shoal at Clipper Cove entrance (4-5 ft MLLW); USCG restricted area east of YBI',
+    hazards: "CRITICAL: Large shoal at Clipper Cove entrance (4-5 ft MLLW); USCG restricted area east of YBI",
     crossesTss: true,
-    bridges: 'Bay Bridge West Span: 220 ft MHHW (if passing under)',
-    notes:
-      'Enter only on rising tide, within 2 hrs of high water. Hug Pier 1 on starboard. Boats with 5+ ft draft have grounded.',
+    bridges: "Bay Bridge West Span: 220 ft MHHW (if passing under)",
+    notes: "Enter only on rising tide, within 2 hrs of high water. Hug Pier 1 on starboard. Boats with 5+ ft draft have grounded.",
   },
-
-  // ──────────────────────────────────────────
-  // 7. Sausalito → Berkeley Marina
-  // ──────────────────────────────────────────
   {
-    id: 'sau_brk',
-    name: 'Sausalito to Berkeley Marina',
-    from: 'sau',
-    to: 'brk',
+    id: "sau_brk",
+    name: "Sausalito to Berkeley Marina",
+    from: "sau",
+    to: "brk",
     waypoints: [
-      [-122.4823, 37.8593],
+      [-122.4813, 37.8623],
       [-122.425, 37.8417],
       [-122.4167, 37.83],
       [-122.3667, 37.85],
       [-122.325, 37.8667],
     ],
-    distanceNm: 6.0,
+    distanceNm: 6,
     minDepthFt: 4,
-    hazards:
-      'Central Bay shipping; Blossom Rock; Southampton Shoal; Berkeley Marina extremely shallow—ONLY use south entrance',
+    hazards: "Central Bay shipping; Blossom Rock; Southampton Shoal; Berkeley Marina extremely shallow—ONLY use south entrance",
     crossesTss: true,
-    bridges: 'None',
-    notes:
-      'Never use north entrance. V-buoys mark 4-5 ft spots. Strong wind shifts at south breakwater.',
+    bridges: "None",
+    notes: "Never use north entrance. V-buoys mark 4-5 ft spots. Strong wind shifts at south breakwater.",
   },
-
-  // ──────────────────────────────────────────
-  // 8. Sausalito → Emeryville Marina
-  // ──────────────────────────────────────────
   {
-    id: 'sau_emv',
-    name: 'Sausalito to Emeryville Marina',
-    from: 'sau',
-    to: 'alm',
+    id: "sau_emv",
+    name: "Sausalito to Emeryville Marina",
+    from: "sau",
+    to: "alm",
     waypoints: [
-      [-122.4823, 37.8593],
+      [-122.4813, 37.8623],
       [-122.425, 37.8417],
       [-122.4, 37.825],
+      [-122.3833, 37.83],
+      [-122.3666, 37.8339],
       [-122.3333, 37.8417],
-      [-122.3133, 37.8367],
+      [-122.3133, 37.8342],
     ],
-    distanceNm: 5.0,
+    distanceNm: 5,
     minDepthFt: 8,
-    hazards:
-      'Central Bay shipping; Blossom Rock; Emeryville Crescent mudflats south of marina',
+    hazards: "Central Bay shipping; Blossom Rock; Emeryville Crescent mudflats south of marina",
     crossesTss: true,
-    bridges: 'None',
-    notes:
-      'Approach shallower than Berkeley; careful attention to channel markers.',
+    bridges: "None",
+    notes: "Approach shallower than Berkeley; careful attention to channel markers.",
   },
-
-  // ──────────────────────────────────────────
-  // 9. Sausalito → Oakland / Jack London Square
-  // ──────────────────────────────────────────
   {
-    id: 'sau_jls',
-    name: 'Sausalito to Jack London Square',
-    from: 'sau',
-    to: 'jls',
+    id: "sau_ric",
+    name: "Sausalito to Richmond Marina Bay",
+    from: "sau",
+    to: "ptr",
     waypoints: [
-      [-122.4823, 37.8593],
-      [-122.475, 37.85],
-      [-122.425, 37.825],
-      [-122.4167, 37.815],
-      [-122.375, 37.8],
-      [-122.3583, 37.8],
-      [-122.3333, 37.7967],
-      [-122.2771, 37.7939],
-    ],
-    distanceNm: 10.0,
-    minDepthFt: 15,
-    hazards:
-      'Container ships and tugboats in Oakland Harbor; Bay Bridge pier eddies; ferry traffic at JLS',
-    crossesTss: true,
-    bridges: 'Bay Bridge West Span: 220 ft MHHW',
-    notes:
-      'Oakland Estuary is narrow channel (Inland Rule 9). Estuary has 50 ft project depth.',
-  },
-
-  // ──────────────────────────────────────────
-  // 10. Sausalito → Richmond Marina Bay
-  // ──────────────────────────────────────────
-  {
-    id: 'sau_ric',
-    name: 'Sausalito to Richmond Marina Bay',
-    from: 'sau',
-    to: 'ptr',
-    waypoints: [
-      [-122.4823, 37.8593],
-      [-122.4353, 37.867],
+      [-122.4813, 37.8623],
+      [-122.4686, 37.8654],
+      [-122.4663, 37.8634],
+      [-122.4651, 37.8624],
+      [-122.463, 37.8614],
+      [-122.4618, 37.8606],
+      [-122.4582, 37.8585],
+      [-122.4547, 37.8643],
+      [-122.4566, 37.8679],
+      [-122.4565, 37.868],
+      [-122.4564, 37.8683],
+      [-122.4568, 37.8681],
+      [-122.4569, 37.8684],
+      [-122.4369, 37.8722],
       [-122.4083, 37.875],
       [-122.3917, 37.8917],
-      [-122.375, 37.9083],
-      [-122.3583, 37.9083],
+      [-122.3768, 37.9047],
+      [-122.3749, 37.8987],
+      [-122.3681, 37.8976],
+      [-122.3646, 37.8968],
+      [-122.3628, 37.8964],
+      [-122.3611, 37.9029],
+      [-122.3595, 37.9055],
+      [-122.3583, 37.9063],
     ],
-    distanceNm: 8.0,
+    distanceNm: 8,
     minDepthFt: 8,
-    hazards:
-      'Southampton Shoal; Chevron Long Wharf 100-yd security zone; Red Rock island',
+    hazards: "Southampton Shoal; Chevron Long Wharf 100-yd security zone; Red Rock island",
     crossesTss: true,
-    bridges: 'None',
-    notes: 'Monitor VHF 14 for tanker movements. No-wake in harbor.',
+    bridges: "None",
+    notes: "Monitor VHF 14 for tanker movements. No-wake in harbor.",
   },
-
-  // ──────────────────────────────────────────
-  // 11. Sausalito → Point San Pablo YH
-  // ──────────────────────────────────────────
   {
-    id: 'sau_psp',
-    name: 'Sausalito to Point San Pablo',
-    from: 'sau',
-    to: 'srf',
+    id: "sau_oyp",
+    name: "Sausalito to Oyster Point",
+    from: "sau",
+    to: "oyp",
     waypoints: [
-      [-122.4823, 37.8593],
-      [-122.423, 37.8687],
-      [-122.4, 37.8917],
-      [-122.4073, 37.9323],
-      [-122.4133, 37.9633],
-      [-122.4177, 37.9627],
+      [-122.4813, 37.8623],
+      [-122.425, 37.815],
+      [-122.3968, 37.808],
+      [-122.3813, 37.7883],
+      [-122.365, 37.78],
+      [-122.355, 37.765],
+      [-122.35, 37.74],
+      [-122.355, 37.71],
+      [-122.36, 37.69],
+      [-122.3769, 37.6662],
     ],
-    distanceNm: 12.0,
-    minDepthFt: 6,
-    hazards:
-      'Invincible Rock (7 ft, Red #16); Whiting Rock (13 ft, Red #18); The Sisters; currents >3 kts at Point San Pablo',
-    crossesTss: true,
-    bridges: 'Richmond-San Rafael Bridge: 185 ft main / 135 ft secondary',
-    notes:
-      'Use main (western) channel at bridge. Harbor approach only 6 ft MLLW.',
-  },
-
-  // ──────────────────────────────────────────
-  // 12. Sausalito → Vallejo
-  // ──────────────────────────────────────────
-  {
-    id: 'sau_val',
-    name: 'Sausalito to Vallejo',
-    from: 'sau',
-    to: 'val',
-    waypoints: [
-      [-122.4823, 37.8593],
-      [-122.423, 37.8687],
-      [-122.402, 37.9313],
-      [-122.3747, 37.9747],
-      [-122.3083, 38.0667],
-      [-122.278, 38.072],
-      [-122.2667, 38.0917],
-      [-122.2633, 38.1],
-    ],
-    distanceNm: 20.0,
-    minDepthFt: 6,
-    hazards:
-      'Pinole Shoal RNA (rec vessels prohibited—transit south); Vallejo guest docks very shallow; San Pablo Bay steep chop',
-    crossesTss: true,
-    bridges: 'Richmond-San Rafael: 185/135 ft',
-    notes:
-      'Ride flood tide north. Transit south of Pinole Shoal Channel (15-19 ft). Check Chart 18655.',
-  },
-
-  // ──────────────────────────────────────────
-  // 13. Sausalito → Benicia
-  // ──────────────────────────────────────────
-  {
-    id: 'sau_ben',
-    name: 'Sausalito to Benicia',
-    from: 'sau',
-    to: 'ben',
-    waypoints: [
-      [-122.4833, 37.8583],
-      [-122.425, 37.8667],
-      [-122.4, 37.9333],
-      [-122.3667, 37.9667],
-      [-122.3333, 38.0],
-      [-122.3167, 38.0333],
-      [-122.225, 38.0583],
-      [-122.1667, 38.0467],
-      [-122.1583, 38.0417],
-      [-122.1574, 38.0449],
-    ],
-    distanceNm: 23.0,
-    minDepthFt: 15,
-    hazards:
-      'Pinole Shoal RNA; Carquinez Strait tankers in narrow channel; currents >3 kts; wind-against-current chop',
-    crossesTss: true,
-    bridges:
-      'Richmond-San Rafael: 185/135 ft; Carquinez (I-80): 148 ft; Benicia-Martinez (I-680): 138 ft',
-    notes:
-      'Full-day passage. Depart on rising flood. Follow Green #23 and #25 buoys to marina entrance.',
-  },
-
-  // ──────────────────────────────────────────
-  // 14. Sausalito → Oyster Point
-  // ──────────────────────────────────────────
-  {
-    id: 'sau_oyp',
-    name: 'Sausalito to Oyster Point',
-    from: 'sau',
-    to: 'oyp',
-    waypoints: [
-      [-122.4833, 37.8583],  // Sausalito
-      [-122.425, 37.815],    // Central Bay south of Alcatraz
-      [-122.3833, 37.7883],  // Bay Bridge area
-      [-122.3650, 37.7800],  // East of SF waterfront (IN THE BAY)
-      [-122.3550, 37.7650],  // East of Hunters Point (IN THE BAY)
-      [-122.3500, 37.7400],  // India Basin / Candlestick area
-      [-122.3550, 37.7100],  // South Bay channel
-      [-122.3600, 37.6900],  // Approaching Oyster Point
-      [-122.3780, 37.6640],  // Oyster Point Marina
-    ],
-    distanceNm: 10.0,
+    distanceNm: 10,
     minDepthFt: 2,
-    hazards:
-      'Central Bay shipping; San Bruno Shoal (2 ft MLLW—stay in marked channel); South Bay mudflats',
+    hazards: "Central Bay shipping; San Bruno Shoal (2 ft MLLW—stay in marked channel); South Bay mudflats",
     crossesTss: true,
-    bridges: 'Bay Bridge West Span: 220 ft MHHW',
-    notes:
-      'Stay strictly in marked South Bay channel. Verify depths with harbormaster.',
-  },
-
-  // ──────────────────────────────────────────
-  // 15. Sausalito → Redwood City
-  // ──────────────────────────────────────────
-  {
-    id: 'sau_rwc',
-    name: 'Sausalito to Redwood City',
-    from: 'sau',
-    to: 'rwc',
-    waypoints: [
-      [-122.4833, 37.8583],  // Sausalito
-      [-122.425, 37.815],    // Central Bay south of Alcatraz
-      [-122.3833, 37.7883],  // Bay Bridge area
-      [-122.3650, 37.7800],  // East of SF waterfront (IN THE BAY)
-      [-122.3550, 37.7650],  // East of Hunters Point (IN THE BAY)
-      [-122.3500, 37.7400],  // India Basin / Candlestick area
-      [-122.3550, 37.7100],  // South Bay channel
-      [-122.3500, 37.6800],  // South Bay, east of SFO
-      [-122.3300, 37.6400],  // Approaching San Mateo Bridge
-      [-122.2800, 37.5900],  // Past San Mateo Bridge
-      [-122.2400, 37.5500],  // Approaching Dumbarton
-      [-122.2167, 37.5083],  // Redwood Creek entrance
-      [-122.2083, 37.505],   // Redwood City Marina
-    ],
-    distanceNm: 25.0,
-    minDepthFt: 10,
-    hazards:
-      'San Bruno Shoal (2 ft MLLW); South Bay 1-3 ft outside channels; Redwood Creek shoaling',
-    crossesTss: true,
-    bridges: 'Bay Bridge: 220 ft; San Mateo-Hayward: 135 ft',
-    notes:
-      'Most demanding route. Arrive on rising/high tide. Not advisable S of San Mateo Bridge without local knowledge.',
+    bridges: "Bay Bridge West Span: 220 ft MHHW",
+    notes: "Stay strictly in marked South Bay channel. Verify depths with harbormaster.",
   },
 ];
