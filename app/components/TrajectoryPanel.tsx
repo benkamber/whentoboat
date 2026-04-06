@@ -184,6 +184,11 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
                 </div>
               )}
             </div>
+            {verified.minDepthFt < vessel.draft + 2 && (
+              <div className="bg-warning-amber/10 border border-warning-amber/30 rounded-lg p-2 text-xs text-warning-amber mt-2">
+                ⚠ Route min depth ({verified.minDepthFt} ft) is tight for your {vessel.draft} ft draft. Check tide tables.
+              </div>
+            )}
           </div>
         )}
 

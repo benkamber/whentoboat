@@ -14,6 +14,7 @@ import { BoatSelector } from './components/BoatSelector';
 import { MapErrorBoundary } from './components/MapErrorBoundary';
 import { Onboarding } from './components/Onboarding';
 import { getDocksForDestination } from '@/data/cities/sf-bay/docks';
+import { parseMinDepthFt } from '@/lib/depth-parse';
 import type { Destination } from '@/engine/types';
 
 // Dynamically import react-map-gl to avoid SSR issues with mapbox-gl
@@ -213,6 +214,7 @@ export default function Home() {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showNauticalChart, setShowNauticalChart] = useState(false);
   const [showFerryRoutes, setShowFerryRoutes] = useState(false);
+  const [hideShallow, setHideShallow] = useState(false);
   const ferryGeoJSON = useMemo(() => ferryRoutesGeoJSON(), []);
 
   const mapRef = useRef<any>(null);
@@ -439,6 +441,24 @@ export default function Home() {
             {/* Vessel selector — inline preset picker + customize */}
             <BoatSelector />
 
+            {vessel.draft > 1 && (
+              <label className="flex items-center gap-2 px-1 text-xs text-[var(--muted)] cursor-pointer select-none">
+                <input type="checkbox" checked={hideShallow} onChange={(e) => setHideShallow(e.target.checked)} className="rounded accent-reef-teal" />
+                Hide too-shallow for {vessel.draft}ft draft
+              </label>
+            )}
+            {hideShallow && (
+              <div className="text-[10px] text-warning-amber px-2">
+                {scoredRoutes.filter(r => {
+                  if (r.dest.minDepth !== null && r.dest.minDepth < vessel.draft + 1) return true;
+                  return getDocksForDestination(r.destinationId).some(d => {
+                    const p = parseMinDepthFt(d.depthFt);
+                    return p !== null && p < vessel.draft + 1;
+                  });
+                }).length} hidden (too shallow)
+              </div>
+            )}
+
           </div>
 
           {/* Scrollable destination list */}
@@ -447,6 +467,17 @@ export default function Home() {
               {scoredRoutes.map((route, i) => {
                 const isSelected = selectedDestId === route.destinationId;
                 const isHovered = hoveredDestId === route.destinationId;
+
+                const isTooShallow = (() => {
+                  if (route.dest.minDepth !== null && route.dest.minDepth < vessel.draft + 1) return true;
+                  const dockList = getDocksForDestination(route.destinationId);
+                  return dockList.some(d => {
+                    const parsed = parseMinDepthFt(d.depthFt);
+                    return parsed !== null && parsed < vessel.draft + 1;
+                  });
+                })();
+
+                if (hideShallow && isTooShallow) return null;
 
                 return (
                   <div
@@ -459,6 +490,7 @@ export default function Home() {
                     onMouseLeave={() => handleCardHover(null)}
                     className={`
                       rounded-lg p-3 cursor-pointer transition-all border
+                      ${isTooShallow ? 'opacity-40' : ''}
                       ${isSelected
                         ? 'border-reef-teal bg-reef-teal/10 shadow-md shadow-reef-teal/10'
                         : isHovered
