@@ -400,7 +400,17 @@ export default function VesselsPage() {
                     </button>
                     <button
                       onClick={() => {
-                        if (confirm(`Delete ${vessel.name}?`)) deleteVessel(vessel.id!);
+                        const customCount = savedVessels.length;
+                        const msg = customCount === 1
+                          ? `"${vessel.name}" is your only custom vessel. Deleting it will revert to preset defaults. Continue?`
+                          : `Delete "${vessel.name}"?`;
+                        if (confirm(msg)) {
+                          deleteVessel(vessel.id!);
+                          if (activeVessel.id === vessel.id) {
+                            const preset = presets.find(p => p.type === vessel.type);
+                            if (preset) selectVessel(preset);
+                          }
+                        }
                       }}
                       className="px-3 py-1.5 rounded-lg text-xs font-medium text-danger-red/70 hover:text-danger-red transition-colors"
                     >
