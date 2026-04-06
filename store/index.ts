@@ -104,6 +104,12 @@ export const useAppStore = create<AppState>()(
         vessel: state.vessel,
         darkMode: state.darkMode,
       }),
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.warn('Failed to restore preferences — resetting to defaults');
+          try { localStorage.removeItem('whentoboat-prefs'); } catch {}
+        }
+      },
     }
   )
 );

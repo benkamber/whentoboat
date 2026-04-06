@@ -46,7 +46,7 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
       : null;
 
     // Round trip fuel: (distance * 2) / cruiseSpeed * GPH
-    const fuelGallons = vessel.gph
+    const fuelGallons = vessel.gph && vessel.cruiseSpeed > 0
       ? Math.round((distanceMi * 2 / vessel.cruiseSpeed) * vessel.gph * 10) / 10
       : null;
 

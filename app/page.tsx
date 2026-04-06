@@ -72,7 +72,7 @@ export default function Home() {
         const revKey = `${dest.id}-${origin.id}`;
         const matrixDist = sfBay.distances[key] ?? sfBay.distances[revKey];
         const distance = matrixDist ?? Math.round(haversineDistanceMi(origin.lat, origin.lng, dest.lat, dest.lng) * 10) / 10;
-        const transitMinutes = Math.round((distance / vessel.cruiseSpeed) * 60);
+        const transitMinutes = vessel.cruiseSpeed > 0 ? Math.round((distance / vessel.cruiseSpeed) * 60) : 0;
 
         return {
           dest,

@@ -92,7 +92,7 @@ export function useRouteGeoJSON(
 
       // Distance is in statute miles from the water route
       const distanceMi = waterRoute.distance;
-      const transitMinutes = Math.round((distanceMi / vessel.cruiseSpeed) * 60);
+      const transitMinutes = vessel.cruiseSpeed > 0 ? Math.round((distanceMi / vessel.cruiseSpeed) * 60) : 0;
 
       features.push({
         type: 'Feature',

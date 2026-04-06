@@ -212,7 +212,7 @@ export function Sidebar({
                     )}
                     {/* Fuel range warning */}
                     {vessel.gph && vessel.fuelCapacity && (() => {
-                      const fuelRT = (route.distance * 2 / vessel.cruiseSpeed) * vessel.gph;
+                      const fuelRT = vessel.cruiseSpeed > 0 ? (route.distance * 2 / vessel.cruiseSpeed) * vessel.gph : 0;
                       if (fuelRT > vessel.fuelCapacity * 0.8) {
                         return (
                           <div className="text-[10px] text-danger-red mt-0.5">
