@@ -210,6 +210,24 @@ export function Sidebar({
                         ⚠ Shallow — {route.dest.minDepth}ft depth, your draft is {vessel.draft}ft
                       </div>
                     )}
+                    {/* Fuel range warning */}
+                    {vessel.gph && vessel.fuelCapacity && (() => {
+                      const fuelRT = (route.distance * 2 / vessel.cruiseSpeed) * vessel.gph;
+                      if (fuelRT > vessel.fuelCapacity * 0.8) {
+                        return (
+                          <div className="text-[10px] text-danger-red mt-0.5">
+                            ⚠ {Math.round(fuelRT)} gal RT — exceeds 80% of {vessel.fuelCapacity} gal tank
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                    {/* Endurance warning for human-powered vessels */}
+                    {vessel.maxEnduranceHours && route.transitMinutes > vessel.maxEnduranceHours * 60 * 0.4 && (
+                      <div className="text-[10px] text-warning-amber mt-0.5">
+                        ⚠ {route.transitMinutes} min one-way — {Math.round(route.transitMinutes / 60 * 10) / 10} hrs of your {vessel.maxEnduranceHours} hr endurance
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

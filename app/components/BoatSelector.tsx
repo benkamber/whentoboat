@@ -100,6 +100,7 @@ export function BoatSelector({
         fuelCapacity: [0, 1000],
         gph: [0, 100],
         draft: [0, 30],         // 0ft SUP to 30ft deep keel
+        mastHeight: [10, 200],
       };
       const [min, max] = limits[field] ?? [0, Infinity];
       value = Math.max(min, Math.min(max, value));
@@ -259,6 +260,19 @@ export function BoatSelector({
               />
             </div>
           </div>
+
+          {/* Mast height — sailboats only */}
+          {customVessel.type === 'sailboat' && (
+            <div className="space-y-1">
+              <label className="text-xs text-[var(--muted)]">Mast height (feet)</label>
+              <input
+                type="number"
+                value={customVessel.mastHeight ?? ''}
+                onChange={(e) => handleCustomChange('mastHeight', e.target.value ? parseFloat(e.target.value) : null)}
+                className="w-full bg-[var(--card-elevated)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:border-compass-gold focus:outline-none"
+              />
+            </div>
+          )}
 
           {/* Impact preview */}
           {impactPreview.length > 0 && (

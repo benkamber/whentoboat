@@ -53,6 +53,7 @@ export interface VesselProfile {
   displacement?: number; // displacement in lbs
   engineType?: string; // e.g., "Mercury 200XL", "paddle", "sail"
   hullType?: string; // e.g., "deep-v", "flat-bottom", "displacement", "planing"
+  mastHeight?: number; // feet — air draft / mast height for bridge clearance
   keelType?: string; // sailboat: "fin", "full", "centerboard", "daggerboard"
   sailArea?: number; // sailboat: total sail area in sq ft
   passengers?: number; // max passengers

@@ -8,6 +8,7 @@ import { seasonalPlanning } from '@/data/cities/sf-bay/seasonal-planning';
 import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
 import { getDocksForDestination } from '@/data/cities/sf-bay/docks';
 import { haversineDistanceMi } from '@/engine/scoring';
+import { parseMinBridgeClearanceFt } from '@/lib/bridge-parse';
 import type { Source } from '@/engine/types';
 
 interface TrajectoryPanelProps {
@@ -138,6 +139,13 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
           </div>
         </div>
 
+        {/* Fuel range warning */}
+        {fuelGallons !== null && vessel.fuelCapacity && fuelGallons > vessel.fuelCapacity * 0.8 && (
+          <div className="bg-danger-red/10 border border-danger-red/30 rounded-lg p-2 text-xs text-danger-red">
+            ⚠ Round trip requires {fuelGallons} gal — {Math.round(fuelGallons / vessel.fuelCapacity * 100)}% of your {vessel.fuelCapacity} gal tank. Refuel before departure or plan a fuel stop.
+          </div>
+        )}
+
         {/* No verified route warning */}
         {!verified && (
           <div className="bg-warning-amber/10 border border-warning-amber/30 rounded-lg p-3 text-sm text-warning-amber">
@@ -189,6 +197,18 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
                 ⚠ Route min depth ({verified.minDepthFt} ft) is tight for your {vessel.draft} ft draft. Check tide tables.
               </div>
             )}
+            {vessel.mastHeight && (() => {
+              const minClearance = parseMinBridgeClearanceFt(verified.bridges);
+              if (minClearance === null) return null;
+              if (minClearance < vessel.mastHeight + 5) {
+                return (
+                  <div className="bg-danger-red/10 border border-danger-red/30 rounded-lg p-2 text-xs text-danger-red mt-1">
+                    ⚠ Bridge clearance ({minClearance} ft) may be insufficient for your {vessel.mastHeight} ft mast. Check tide height — clearance varies with tide.
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
         )}
 

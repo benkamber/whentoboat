@@ -55,6 +55,7 @@ export const vesselPresets: VesselProfile[] = [
     beam: 8,
     displacement: 5000,
     hullType: 'monohull',
+    mastHeight: 45,
     keelType: 'fin',
     sailArea: 375,
     engineType: 'Yanmar 1GM10 diesel',
