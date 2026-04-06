@@ -9,7 +9,7 @@ import type { ActivityType, VesselProfile } from '@/engine/types';
 
 /**
  * Generate GeoJSON for destination markers.
- * Static version — all destinations shown in fixed teal, no scoring.
+ * Color-coded by distance from origin: green (close) -> teal -> amber -> gray (far).
  */
 export function useDestinationGeoJSON(
   activity: ActivityType,
@@ -24,6 +24,18 @@ export function useDestinationGeoJSON(
       : sfBay.destinations[0];
 
     const features = sfBay.destinations.map((dest) => {
+      // Compute distance from origin for color coding
+      const distKey = `${origin?.id}-${dest.id}`;
+      const revKey = `${dest.id}-${origin?.id}`;
+      const dist = sfBay.distances[distKey] ?? sfBay.distances[revKey] ??
+        (origin ? haversineDistanceMi(origin.lat, origin.lng, dest.lat, dest.lng) : 999);
+
+      const color = dest.id === origin?.id ? '#14b8a6' :
+        dist < 3 ? '#10b981' :
+        dist < 8 ? '#14b8a6' :
+        dist < 15 ? '#f59e0b' :
+        '#6b7280';
+
       return {
         type: 'Feature' as const,
         geometry: {
@@ -34,7 +46,7 @@ export function useDestinationGeoJSON(
           id: dest.id,
           name: dest.name,
           code: dest.code,
-          color: dest.id === origin?.id ? '#14b8a6' : '#14b8a6',
+          color,
           isOrigin: dest.id === origin?.id,
         },
       };
@@ -91,6 +103,8 @@ export function useRouteGeoJSON(
             (r.to === origin.id && r.from === dest.id)
           );
           if (vr?.crossesTss) continue;
+          // No verified route to check — conservatively assume TSS crossing for human-powered craft
+          if (!vr) continue;
         }
 
         pairs.push([origin.id, dest.id]);
@@ -102,16 +116,25 @@ export function useRouteGeoJSON(
       const toDest = sfBay.destinations.find((d) => d.id === toId);
       if (!fromDest || !toDest) continue;
 
-      // Use validated water route waypoints
+      // Use validated water route waypoints, or fall back to straight-line approximation
       const waterRoute = getWaterRoute(fromId, toId, vessel.type);
-      if (!waterRoute) continue;
-      const coordinates = waterRoute.waypoints.map(wp => [wp[0], wp[1]]);
+      let coordinates: number[][];
+      let distanceMi: number;
+      let isApproximate = false;
+
+      if (waterRoute) {
+        coordinates = waterRoute.waypoints.map(wp => [wp[0], wp[1]]);
+        distanceMi = waterRoute.distance;
+      } else {
+        // Straight-line approximate connection
+        coordinates = [[fromDest.lng, fromDest.lat], [toDest.lng, toDest.lat]];
+        distanceMi = Math.round(haversineDistanceMi(fromDest.lat, fromDest.lng, toDest.lat, toDest.lng) * 10) / 10;
+        isApproximate = true;
+      }
 
       const isSelected = selectedDestinationId === toId;
       const hasSelection = !!selectedDestinationId;
 
-      // Distance is in statute miles from the water route
-      const distanceMi = waterRoute.distance;
       const transitMinutes = vessel.cruiseSpeed > 0 ? Math.round((distanceMi / vessel.cruiseSpeed) * 60) : 0;
 
       features.push({
@@ -125,9 +148,10 @@ export function useRouteGeoJSON(
           toId,
           fromName: fromDest.name,
           toName: toDest.name,
-          color: isSelected ? '#f59e0b' : '#22d3ee',
-          opacity: hasSelection ? (isSelected ? 0.9 : 0.12) : 0.5,
-          lineWidth: isSelected ? 4 : 2,
+          color: isApproximate ? '#6b7280' : (isSelected ? '#f59e0b' : '#22d3ee'),
+          opacity: isApproximate ? 0.25 : (hasSelection ? (isSelected ? 0.9 : 0.12) : 0.5),
+          lineWidth: isApproximate ? 1 : (isSelected ? 4 : 2),
+          isApproximate,
           distance: Math.round(distanceMi * 10) / 10,
           transitMinutes,
         },

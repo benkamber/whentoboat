@@ -6,6 +6,7 @@ import { sfBay } from '@/data/cities/sf-bay';
 import { MapErrorBoundary } from './MapErrorBoundary';
 import {
   routeLineLayer,
+  approxRouteLineLayer,
   routeHitLayer,
   destinationCircleLayer,
   originCircleLayer,
@@ -198,6 +199,7 @@ export function MapContainer({
               {/* Route lines */}
               <Source id="routes" type="geojson" data={routesGeoJSON}>
                 <Layer {...routeLineLayer} />
+                <Layer {...approxRouteLineLayer} />
                 <Layer {...routeHitLayer} />
               </Source>
 

@@ -4,6 +4,7 @@
 export const routeLineLayer = {
   id: 'route-lines',
   type: 'line' as const,
+  filter: ['!=', ['get', 'isApproximate'], true] as any,
   layout: {
     'line-join': 'round' as const,
     'line-cap': 'butt' as const,
@@ -13,6 +14,22 @@ export const routeLineLayer = {
     'line-width': ['get', 'lineWidth'] as any,
     'line-opacity': ['get', 'opacity'] as any,
     'line-dasharray': [2, 2] as any,
+  },
+};
+
+export const approxRouteLineLayer = {
+  id: 'approx-route-lines',
+  type: 'line' as const,
+  filter: ['==', ['get', 'isApproximate'], true] as any,
+  layout: {
+    'line-join': 'round' as const,
+    'line-cap': 'butt' as const,
+  },
+  paint: {
+    'line-color': ['get', 'color'] as any,
+    'line-width': ['get', 'lineWidth'] as any,
+    'line-opacity': ['get', 'opacity'] as any,
+    'line-dasharray': [1, 4] as any,
   },
 };
 
@@ -26,14 +43,14 @@ export const routeHitLayer = {
   },
 };
 
-// Non-origin destination circles
+// Non-origin destination circles — color driven by distance from origin
 export const destinationCircleLayer = {
   id: 'destination-circles',
   type: 'circle' as const,
   filter: ['!', ['get', 'isOrigin']] as any,
   paint: {
     'circle-radius': 7,
-    'circle-color': '#14b8a6' as any,
+    'circle-color': ['get', 'color'] as any,
     'circle-stroke-width': 2,
     'circle-stroke-color': '#0a1628',
     'circle-opacity': 0.9,
