@@ -287,7 +287,7 @@ export function BoatSelector({
           )}
 
           {/* Reset + manage */}
-          <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center justify-between pt-2">
             <button
               onClick={() => {
                 const preset = vesselPresets.find(v => v.type === vessel.type);
@@ -296,9 +296,9 @@ export function BoatSelector({
                   setVessel(preset);
                 }
               }}
-              className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+              className="text-xs font-medium text-warning-amber hover:text-[var(--foreground)] transition-colors px-2 py-1 rounded border border-warning-amber/30 hover:border-warning-amber/60"
             >
-              Reset to preset
+              Reset to preset defaults
             </button>
             <a
               href="/vessels"

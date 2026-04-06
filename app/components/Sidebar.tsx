@@ -6,6 +6,7 @@ import { activities, getActivity } from '@/data/activities';
 import { BoatSelector } from './BoatSelector';
 import { getDocksForDestination } from '@/data/cities/sf-bay/docks';
 import { parseMinDepthFt } from '@/lib/depth-parse';
+import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
 import type { ActivityType, VesselProfile } from '@/engine/types';
 import type { Destination } from '@/engine/types';
 
@@ -176,7 +177,10 @@ export function Sidebar({
                       {route.dest.name}
                     </h3>
                     <div className="text-[11px] text-[var(--muted)]">
-                      {route.distance < 0.5 ? '< 1' : route.distance} mi · {route.transitMinutes} min
+                      {route.distance < 0.5 ? '< 1' : route.distance} mi · {(activity === 'kayak' || activity === 'sup')
+                        ? `${route.transitMinutes}–${Math.round(route.transitMinutes * 1.8)} min (conditions dependent)`
+                        : `${route.transitMinutes} min`
+                      }
                     </div>
                     {/* Dock info */}
                     {(() => {
@@ -228,6 +232,21 @@ export function Sidebar({
                         ⚠ {route.transitMinutes} min one-way — {Math.round(route.transitMinutes / 60 * 10) / 10} hrs of your {vessel.maxEnduranceHours} hr endurance
                       </div>
                     )}
+                    {/* TSS crossing warning for human-powered craft */}
+                    {(activity === 'kayak' || activity === 'sup') && (() => {
+                      const vr = verifiedRoutes.find(r =>
+                        (r.from === homeBaseId && r.to === route.destinationId) ||
+                        (r.to === homeBaseId && r.from === route.destinationId)
+                      );
+                      if (vr?.crossesTss) {
+                        return (
+                          <div className="text-[10px] text-danger-red font-medium mt-0.5 bg-danger-red/10 rounded px-1.5 py-0.5">
+                            ⚠ Crosses shipping lanes — advanced paddlers only, check conditions
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                 </div>
               </div>

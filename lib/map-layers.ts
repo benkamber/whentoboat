@@ -9,9 +9,9 @@ export const routeLineLayer = {
     'line-cap': 'butt' as const,
   },
   paint: {
-    'line-color': '#22d3ee' as any,
-    'line-width': 2 as any,
-    'line-opacity': 0.5 as any,
+    'line-color': ['get', 'color'] as any,
+    'line-width': ['get', 'lineWidth'] as any,
+    'line-opacity': ['get', 'opacity'] as any,
     'line-dasharray': [2, 2] as any,
   },
 };
