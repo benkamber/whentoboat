@@ -256,10 +256,10 @@ export function Sidebar({
           {destinations.length === 0 && (
             <div className="text-center py-8 px-4 space-y-3">
               <p className="text-sm text-[var(--muted)]">
-                No destinations for {currentActivity.name.toLowerCase()} from {origin.name}
+                No destinations within {currentActivity.name.toLowerCase()} range from {origin.name}
               </p>
               <p className="text-xs text-[var(--secondary)]">
-                Try a different activity or change your departure point.
+                Try a different departure point or switch to a different activity.
               </p>
               <div className="flex gap-2 justify-center flex-wrap">
                 {activities.filter(a => a.id !== activity).slice(0, 2).map(a => (

@@ -4,6 +4,8 @@ import { useRef, useCallback, useState, useMemo, useEffect } from 'react';
 import { sfBay } from '@/data/cities/sf-bay';
 import { useAppStore } from '@/store';
 import { haversineDistanceMi } from '@/engine/scoring';
+import { getActivity } from '@/data/activities';
+import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
 import { useDestinationGeoJSON, useRouteGeoJSON, useHazardGeoJSON } from '@/hooks/useMapData';
 import { ferryRoutesGeoJSON } from '@/data/geo/sf-bay-ferry-routes';
 import { Header } from './components/Header';
@@ -65,6 +67,8 @@ export default function Home() {
 
   // Destinations sorted by distance — static planning tool, no scoring
   const scoredRoutes = useMemo((): SimplifiedRoute[] => {
+    const currentActivity = getActivity(activity);
+
     return sfBay.destinations
       .filter((d) => d.id !== origin.id && d.activityTags.includes(activity))
       .map((dest) => {
@@ -80,6 +84,23 @@ export default function Home() {
           transitMinutes,
           destinationId: dest.id,
         };
+      })
+      .filter((route) => {
+        // Enforce max range for human-powered craft
+        if (currentActivity.maxRangeRoundTripMi !== null) {
+          if (route.distance * 2 > currentActivity.maxRangeRoundTripMi) return false;
+        }
+
+        // Activities that cannot cross shipping lanes (kayak, SUP)
+        if (!currentActivity.requiresOpenWaterCrossing) {
+          const vr = verifiedRoutes.find(r =>
+            (r.from === origin.id && r.to === route.destinationId) ||
+            (r.to === origin.id && r.from === route.destinationId)
+          );
+          if (vr?.crossesTss) return false;
+        }
+
+        return true;
       })
       .sort((a, b) => a.distance - b.distance);
   }, [activity, vessel, origin]);

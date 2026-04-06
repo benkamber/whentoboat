@@ -2,6 +2,9 @@ import { useMemo } from 'react';
 import { sfBay } from '@/data/cities/sf-bay';
 import { getWaterRoute } from '@/data/cities/sf-bay/water-routes';
 import { hazards } from '@/data/cities/sf-bay/hazards';
+import { getActivity } from '@/data/activities';
+import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
+import { haversineDistanceMi } from '@/engine/scoring';
 import type { ActivityType, VesselProfile } from '@/engine/types';
 
 /**
@@ -64,6 +67,7 @@ export function useRouteGeoJSON(
 
     // Only show route lines from the selected origin
     const pairs: [string, string][] = [];
+    const currentActivity = getActivity(activity);
 
     if (origin) {
       for (const dest of sfBay.destinations) {
@@ -71,9 +75,25 @@ export function useRouteGeoJSON(
         if (!dest.activityTags.includes(activity)) continue;
         const key = `${origin.id}-${dest.id}`;
         const revKey = `${dest.id}-${origin.id}`;
-        if (sfBay.distances[key] !== undefined || sfBay.distances[revKey] !== undefined) {
-          pairs.push([origin.id, dest.id]);
+        if (sfBay.distances[key] === undefined && sfBay.distances[revKey] === undefined) continue;
+
+        // Enforce max range for human-powered craft
+        if (currentActivity.maxRangeRoundTripMi !== null) {
+          const matrixDist = sfBay.distances[key] ?? sfBay.distances[revKey];
+          const distance = matrixDist ?? Math.round(haversineDistanceMi(origin.lat, origin.lng, dest.lat, dest.lng) * 10) / 10;
+          if (distance * 2 > currentActivity.maxRangeRoundTripMi) continue;
         }
+
+        // Activities that cannot cross shipping lanes (kayak, SUP)
+        if (!currentActivity.requiresOpenWaterCrossing) {
+          const vr = verifiedRoutes.find(r =>
+            (r.from === origin.id && r.to === dest.id) ||
+            (r.to === origin.id && r.from === dest.id)
+          );
+          if (vr?.crossesTss) continue;
+        }
+
+        pairs.push([origin.id, dest.id]);
       }
     }
 

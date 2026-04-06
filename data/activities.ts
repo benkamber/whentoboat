@@ -5,16 +5,16 @@ export const activities: ActivityProfile[] = [
     id: 'kayak',
     name: 'Kayak',
     description:
-      'Sea kayaking in sheltered or moderate waters. Can handle light chop and short open-water crossings.',
+      'Sea kayaking in sheltered or moderate waters. Near-shore routes only — does not cross shipping lanes or open Central Bay.',
     icon: '🛶',
     idealWindRange: [0, 6],
     maxWind: 12,
     maxWave: 1.5,
     vesselType: 'kayak',
     preferredZoneTypes: ['sheltered', 'protected'],
-    maxShoreDistanceM: null, // can cross open water
+    maxShoreDistanceM: null, // near-shore eddy-hopping, not open crossings
     maxRangeRoundTripMi: 10,
-    requiresOpenWaterCrossing: true, // kayaks can handle crossings
+    requiresOpenWaterCrossing: false, // kayaks should NOT cross Central Bay TSS
     beforeYouGo: [
       {
         text: 'Wear a PFD at all times',
