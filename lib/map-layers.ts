@@ -139,3 +139,40 @@ export const ferryLabelLayer = {
     'text-halo-width': 1,
   },
 };
+
+// Navigation hazard markers
+export const hazardCircleLayer = {
+  id: 'hazard-markers',
+  type: 'circle' as const,
+  paint: {
+    'circle-radius': 6,
+    'circle-color': [
+      'match', ['get', 'severity'],
+      'critical', '#dc2626',
+      'warning', '#f59e0b',
+      'caution', '#d4a853',
+      '#f59e0b', // default
+    ] as any,
+    'circle-stroke-width': 2,
+    'circle-stroke-color': '#0a1628',
+    'circle-opacity': 0.9,
+  },
+};
+
+export const hazardLabelLayer = {
+  id: 'hazard-labels',
+  type: 'symbol' as const,
+  layout: {
+    'text-field': ['get', 'name'] as any,
+    'text-size': 9,
+    'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+    'text-anchor': 'top' as const,
+    'text-offset': [0, 1.0] as any,
+    'text-allow-overlap': false,
+  },
+  paint: {
+    'text-color': '#f59e0b',
+    'text-halo-color': '#0a1628',
+    'text-halo-width': 1,
+  },
+};

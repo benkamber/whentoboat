@@ -4,7 +4,7 @@ import { useRef, useCallback, useState, useMemo, useEffect } from 'react';
 import { sfBay } from '@/data/cities/sf-bay';
 import { useAppStore } from '@/store';
 import { haversineDistanceMi } from '@/engine/scoring';
-import { useDestinationGeoJSON, useRouteGeoJSON } from '@/hooks/useMapData';
+import { useDestinationGeoJSON, useRouteGeoJSON, useHazardGeoJSON } from '@/hooks/useMapData';
 import { ferryRoutesGeoJSON } from '@/data/geo/sf-bay-ferry-routes';
 import { Header } from './components/Header';
 import { TrajectoryPanel } from './components/TrajectoryPanel';
@@ -18,7 +18,7 @@ const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 interface PopupInfo {
   lng: number;
   lat: number;
-  type: 'destination' | 'route';
+  type: 'destination' | 'route' | 'hazard';
   name: string;
   detail: string;
 }
@@ -46,6 +46,7 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNauticalChart, setShowNauticalChart] = useState(false);
   const [showFerryRoutes, setShowFerryRoutes] = useState(false);
+  const [showHazards, setShowHazards] = useState(false);
   const [hideShallow, setHideShallow] = useState(false);
   const ferryGeoJSON = useMemo(() => ferryRoutesGeoJSON(), []);
 
@@ -88,6 +89,7 @@ export default function Home() {
   // Map data hooks
   const destinationsGeoJSON = useDestinationGeoJSON(activity, month, hour, vessel, homeBaseId);
   const routesGeoJSON = useRouteGeoJSON(activity, month, hour, vessel, homeBaseId, selectedDestId);
+  const hazardsGeoJSON = useHazardGeoJSON();
 
   // --- Map callbacks ---
 
@@ -165,6 +167,15 @@ export default function Home() {
           name: `${feature.properties?.fromName} -> ${feature.properties?.toName}`,
           detail: `${feature.properties?.distance} mi | ${feature.properties?.transitMinutes} min`,
         });
+      } else if (layerId === 'hazard-markers') {
+        const props = feature.properties;
+        setPopup({
+          lng: e.lngLat.lng,
+          lat: e.lngLat.lat,
+          type: 'hazard',
+          name: props?.name,
+          detail: props?.description,
+        });
       }
     }
   }, [homeBaseId]);
@@ -231,10 +242,13 @@ export default function Home() {
           destinationsGeoJSON={destinationsGeoJSON}
           routesGeoJSON={routesGeoJSON}
           ferryGeoJSON={ferryGeoJSON}
+          hazardsGeoJSON={hazardsGeoJSON}
           showNauticalChart={showNauticalChart}
           setShowNauticalChart={setShowNauticalChart}
           showFerryRoutes={showFerryRoutes}
           setShowFerryRoutes={setShowFerryRoutes}
+          showHazards={showHazards}
+          setShowHazards={setShowHazards}
           onMapLoad={onMapLoad}
           onMapClick={onMapClick}
           onMouseEnter={onMouseEnter}

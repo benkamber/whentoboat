@@ -14,6 +14,8 @@ import {
   originNameLayer,
   ferryLineLayer,
   ferryLabelLayer,
+  hazardCircleLayer,
+  hazardLabelLayer,
 } from '@/lib/map-layers';
 
 // Dynamically import react-map-gl to avoid SSR issues with mapbox-gl
@@ -42,7 +44,7 @@ const NavigationControl = dynamic(
 interface PopupInfo {
   lng: number;
   lat: number;
-  type: 'destination' | 'route';
+  type: 'destination' | 'route' | 'hazard';
   name: string;
   detail: string;
 }
@@ -52,10 +54,13 @@ interface MapContainerProps {
   destinationsGeoJSON: any;
   routesGeoJSON: any;
   ferryGeoJSON: any;
+  hazardsGeoJSON: any;
   showNauticalChart: boolean;
   setShowNauticalChart: (v: boolean) => void;
   showFerryRoutes: boolean;
   setShowFerryRoutes: (v: boolean) => void;
+  showHazards: boolean;
+  setShowHazards: (v: boolean) => void;
   onMapLoad: () => void;
   onMapClick: (e: any) => void;
   onMouseEnter: () => void;
@@ -72,10 +77,13 @@ export function MapContainer({
   destinationsGeoJSON,
   routesGeoJSON,
   ferryGeoJSON,
+  hazardsGeoJSON,
   showNauticalChart,
   setShowNauticalChart,
   showFerryRoutes,
   setShowFerryRoutes,
+  showHazards,
+  setShowHazards,
   onMapLoad,
   onMapClick,
   onMouseEnter,
@@ -105,7 +113,7 @@ export function MapContainer({
               }}
               style={{ width: '100%', height: '100%' }}
               mapStyle="mapbox://styles/mapbox/dark-v11"
-              interactiveLayerIds={['destination-circles', 'destination-labels', 'origin-circle', 'route-lines-hit']}
+              interactiveLayerIds={['destination-circles', 'destination-labels', 'origin-circle', 'route-lines-hit', 'hazard-markers']}
               onClick={onMapClick}
               onMouseEnter={onMouseEnter}
               onMouseLeave={onMouseLeave}
@@ -140,6 +148,17 @@ export function MapContainer({
                 >
                   {showFerryRoutes ? 'Ferries ON' : 'Ferries'}
                 </button>
+                <button
+                  onClick={() => setShowHazards(!showHazards)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-md transition-colors shadow-lg ${
+                    showHazards
+                      ? 'bg-[#f59e0b] text-ocean-900 border border-[#f59e0b]'
+                      : 'bg-ocean-900/80 text-ocean-200 border border-ocean-700/50 hover:bg-ocean-800/80'
+                  }`}
+                  title={showHazards ? 'Hide navigation hazards' : 'Show navigation hazards (rocks, shoals, bars)'}
+                >
+                  {showHazards ? 'Hazards ON' : 'Hazards'}
+                </button>
               </div>
 
               {/* NOAA nautical chart overlay */}
@@ -165,6 +184,14 @@ export function MapContainer({
                 <Source id="ferry-routes" type="geojson" data={ferryGeoJSON}>
                   <Layer {...ferryLineLayer} />
                   <Layer {...ferryLabelLayer} />
+                </Source>
+              )}
+
+              {/* Navigation hazards overlay */}
+              {showHazards && (
+                <Source id="hazards" type="geojson" data={hazardsGeoJSON}>
+                  <Layer {...hazardCircleLayer} />
+                  <Layer {...hazardLabelLayer} />
                 </Source>
               )}
 
@@ -196,6 +223,9 @@ export function MapContainer({
                   className="[&_.mapboxgl-popup-content]:!bg-ocean-900 [&_.mapboxgl-popup-content]:!text-ocean-50 [&_.mapboxgl-popup-content]:!rounded-lg [&_.mapboxgl-popup-content]:!p-3 [&_.mapboxgl-popup-content]:!shadow-xl [&_.mapboxgl-popup-tip]:!border-t-ocean-900"
                 >
                   <div className="space-y-1">
+                    {popup.type === 'hazard' && (
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[#f59e0b]">Navigation Hazard</span>
+                    )}
                     <span className="font-medium text-sm">{popup.name}</span>
                     <p className="text-xs text-ocean-300">{popup.detail}</p>
                   </div>

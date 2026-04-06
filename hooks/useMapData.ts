@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { sfBay } from '@/data/cities/sf-bay';
 import { getWaterRoute } from '@/data/cities/sf-bay/water-routes';
+import { hazards } from '@/data/cities/sf-bay/hazards';
 import type { ActivityType, VesselProfile } from '@/engine/types';
 
 /**
@@ -118,4 +119,25 @@ export function useRouteGeoJSON(
       features,
     };
   }, [activity, month, hour, vessel, selectedOriginId, selectedDestinationId]);
+}
+
+/**
+ * Generate GeoJSON for navigation hazard markers.
+ * Static data from NOAA charts and Coast Pilot.
+ */
+export function useHazardGeoJSON() {
+  return useMemo(() => ({
+    type: 'FeatureCollection' as const,
+    features: hazards.map(h => ({
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: [h.lng, h.lat] },
+      properties: {
+        id: h.id,
+        name: h.name,
+        description: h.description,
+        severity: h.severity,
+        depthFt: h.depthFt ?? null,
+      },
+    })),
+  }), []);
 }
