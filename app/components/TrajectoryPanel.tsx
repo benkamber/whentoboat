@@ -9,6 +9,7 @@ import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
 import { getDocksForDestination } from '@/data/cities/sf-bay/docks';
 import { haversineDistanceMi } from '@/engine/scoring';
 import { parseMinBridgeClearanceFt } from '@/lib/bridge-parse';
+import { getCurrentTimingForRoute } from '@/data/cities/sf-bay/current-timing';
 import type { Source } from '@/engine/types';
 
 interface TrajectoryPanelProps {
@@ -75,6 +76,8 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
 
   const { origin, destination, verified, distanceMi, transitMinutes, fuelGallons, dockList, beforeYouGo, verifyLinks } = routeInfo;
 
+  const currentAdvice = verified ? getCurrentTimingForRoute(verified.hazards) : [];
+
   // Collect all sources for attribution
   const allSources = useMemo(() => {
     const seen = new Set<string>();
@@ -98,8 +101,13 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
       dock.sources?.forEach(addSource);
     });
 
+    // Current timing sources
+    currentAdvice.forEach(advice => {
+      advice.sources?.forEach(addSource);
+    });
+
     return sources;
-  }, [verified, dockList]);
+  }, [verified, dockList, currentAdvice]);
 
   return (
     <div className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-[var(--background)] border-l border-[var(--border)] overflow-y-auto z-50 shadow-2xl">
@@ -209,6 +217,31 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
               }
               return null;
             })()}
+          </div>
+        )}
+
+        {/* Current Timing */}
+        {currentAdvice.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-xs font-medium text-safety-blue uppercase tracking-wider">
+              Current Timing
+            </h3>
+            {currentAdvice.map((advice, i) => (
+              <div key={i} className="bg-safety-blue/5 border border-safety-blue/20 rounded-lg p-3 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-[var(--foreground)]">{advice.zoneName}</span>
+                  <a href={advice.noaaStationUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-safety-blue hover:underline">
+                    NOAA Predictions →
+                  </a>
+                </div>
+                <div className="flex gap-3 text-[10px] text-[var(--muted)]">
+                  <span>Max ebb: {advice.maxEbbKts}</span>
+                  <span>Max flood: {advice.maxFloodKts}</span>
+                </div>
+                <p className="text-xs text-[var(--secondary)]">{advice.crossingAdvice}</p>
+                <p className="text-[10px] text-[var(--muted)] italic">{advice.slackAdvice}</p>
+              </div>
+            ))}
           </div>
         )}
 
