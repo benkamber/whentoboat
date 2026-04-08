@@ -5,11 +5,11 @@ export function SourceAttribution({ sources }: { sources: Source[] }) {
   if (sources.length === 0) return null;
   return (
     <div className="space-y-1">
-      <p className="text-[10px] text-[var(--muted)]">
+      <p className="text-2xs text-[var(--muted)] leading-relaxed">
         Verify all information before departure.
       </p>
       {sources.map((src, i) => (
-        <div key={i} className="text-[11px]">
+        <div key={i} className="text-2xs">
           {src.url ? (
             <a href={src.url} target="_blank" rel="noopener noreferrer" className="text-safety-blue hover:underline">
               {src.name}

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Header } from '../components/Header';
 import { useVesselManager, vesselTemplates } from '@/hooks/useVesselManager';
 import type { VesselProfile, VesselType } from '@/engine/types';
@@ -116,7 +117,7 @@ function VesselForm({
             />
           </div>
           <div>
-            <label className="text-xs text-[var(--muted)] block mb-1">Fuel Burn (GPH) <span className="text-[var(--muted)]">(optional)</span></label>
+            <label className="text-xs text-[var(--muted)] block mb-1">Fuel burn (gal/hr) <span className="text-[var(--muted)]">(optional)</span></label>
             <input
               type="number"
               value={vessel.gph ?? 0}
@@ -213,7 +214,7 @@ function VesselForm({
 
       {/* Impact preview */}
       <div className="bg-[var(--card-elevated)] rounded-lg p-3 space-y-1">
-        <span className="text-[10px] text-compass-gold uppercase tracking-wider font-medium">Impact</span>
+        <span className="text-2xs text-compass-gold uppercase tracking-wider font-medium">Impact</span>
         <div className="grid grid-cols-2 gap-2 text-xs text-[var(--muted)]">
           <div>Wave tolerance: {(1 + (vessel.loa - 20) * 0.025).toFixed(2)}x</div>
           <div>Draft clearance: {vessel.draft}ft needed</div>
@@ -253,10 +254,22 @@ function VesselForm({
   );
 }
 
-export default function VesselsPage() {
+function VesselsPageInner() {
   const { savedVessels, presets, activeVessel, saveVessel, deleteVessel, selectVessel } = useVesselManager();
   const [editing, setEditing] = useState<VesselProfile | null>(null);
   const [showTypeSelector, setShowTypeSelector] = useState(false);
+
+  // Honor ?edit={vesselId} deep-links from BoatSelector. We watch the param
+  // and the loaded savedVessels list — savedVessels populates async after
+  // the localStorage hydration runs in useVesselManager.
+  const searchParams = useSearchParams();
+  const editIdParam = searchParams.get('edit');
+  useEffect(() => {
+    if (!editIdParam) return;
+    if (editing) return; // Don't override an in-progress edit
+    const target = savedVessels.find((v) => v.id === editIdParam);
+    if (target) setEditing({ ...target });
+  }, [editIdParam, savedVessels, editing]);
 
   const handleNewVessel = (type: VesselType) => {
     const template = vesselTemplates[type];
@@ -369,16 +382,16 @@ export default function VesselsPage() {
                         <p className="text-xs text-[var(--muted)]">
                           {vessel.loa}ft · {vessel.cruiseSpeed}mph · {vessel.draft}ft draft
                           {vessel.fuelCapacity ? ` · ${vessel.fuelCapacity}gal` : ''}
-                          {vessel.gph ? ` · ${vessel.gph}GPH` : ''}
+                          {vessel.gph ? ` · ${vessel.gph} gal/hr` : ''}
                           {vessel.keelType ? ` · ${vessel.keelType} keel` : ''}
                         </p>
                         {vessel.engineType && (
-                          <p className="text-[10px] text-[var(--muted)]">{vessel.engineType}</p>
+                          <p className="text-2xs text-[var(--muted)]">{vessel.engineType}</p>
                         )}
                       </div>
                     </div>
                     {isActive && (
-                      <span className="text-[9px] bg-reef-teal/20 text-reef-teal px-1.5 py-0.5 rounded font-medium uppercase">
+                      <span className="text-2xs bg-reef-teal/20 text-reef-teal px-1.5 py-0.5 rounded font-medium uppercase">
                         Active
                       </span>
                     )}
@@ -449,7 +462,7 @@ export default function VesselsPage() {
                     <span className="text-lg">{typeInfo?.icon}</span>
                     <span className="text-sm font-medium">{vessel.name}</span>
                   </div>
-                  <p className="text-[10px] text-[var(--muted)] mt-1">
+                  <p className="text-2xs text-[var(--muted)] mt-1">
                     {vessel.loa}ft · {vessel.cruiseSpeed}mph · {vessel.draft}ft draft
                   </p>
                 </button>
@@ -459,5 +472,14 @@ export default function VesselsPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function VesselsPage() {
+  // useSearchParams must live inside a Suspense boundary in Next.js 16.
+  return (
+    <Suspense fallback={null}>
+      <VesselsPageInner />
+    </Suspense>
   );
 }

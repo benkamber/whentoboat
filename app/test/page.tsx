@@ -1,5 +1,6 @@
 'use client';
 
+import { notFound } from 'next/navigation';
 import { sfBay } from '@/data/cities/sf-bay';
 import { activities, getActivity } from '@/data/activities';
 import { vesselPresets, getVesselPreset } from '@/data/vessels';
@@ -28,6 +29,13 @@ function ScoreBadge({ score }: { score: number }) {
 }
 
 export default function TestPage() {
+  // Dev-only playground — production users get a 404. The check uses
+  // process.env.NODE_ENV which Next.js inlines at build time, so the
+  // condition is dead-code-eliminated in production builds.
+  if (process.env.NODE_ENV === 'production') {
+    notFound();
+  }
+
   const { activity, month, hour, vessel, setActivity, setMonth, setHour, setVesselPreset } = useAppStore();
 
   const currentActivity = getActivity(activity);

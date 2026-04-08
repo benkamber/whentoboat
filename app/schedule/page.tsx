@@ -308,7 +308,7 @@ export default function SchedulePage() {
                         <span className="text-xs font-mono text-[var(--muted)]">
                           {entry.destinationCode}
                         </span>
-                        <span className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded border ${status.classes}`}>
+                        <span className={`text-2xs font-bold tracking-wider px-2 py-0.5 rounded border ${status.classes}`}>
                           {status.label}
                         </span>
                       </div>
@@ -396,7 +396,7 @@ export default function SchedulePage() {
                     {entry.zonesTraversed.map((z) => (
                       <span
                         key={z}
-                        className="px-2 py-0.5 rounded text-[10px] bg-ocean-800/50 text-ocean-200 border border-ocean-700/40"
+                        className="px-2 py-0.5 rounded text-2xs bg-ocean-800/50 text-ocean-200 border border-ocean-700/40"
                       >
                         {z}
                       </span>

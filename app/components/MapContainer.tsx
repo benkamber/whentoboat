@@ -1,6 +1,6 @@
 'use client';
 
-import { type MutableRefObject } from 'react';
+import { type MutableRefObject, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { sfBay } from '@/data/cities/sf-bay';
 import { MapErrorBoundary } from './MapErrorBoundary';
@@ -95,6 +95,12 @@ export function MapContainer({
   hasMapToken,
   mapboxToken,
 }: MapContainerProps) {
+  // Tracks runtime Mapbox failures (CDN unreachable, tile fetch errors,
+  // invalid token, user behind a firewall blocking api.mapbox.com).
+  // The sidebar destination ranking still works without the map, so we
+  // surface a non-blocking banner rather than killing the whole UI.
+  const [mapError, setMapError] = useState(false);
+
   return (
     <MapErrorBoundary>
       <div className="flex-1 relative">
@@ -104,6 +110,14 @@ export function MapContainer({
               rel="stylesheet"
               href="https://api.mapbox.com/mapbox-gl-js/v3.1.2/mapbox-gl.css"
             />
+            {mapError && (
+              <div
+                className="absolute top-3 left-3 right-3 z-30 bg-warning-amber/15 border border-warning-amber/40 text-warning-amber rounded-lg px-3 py-2 text-xs sm:text-sm shadow-lg"
+                role="alert"
+              >
+                Map provider unavailable — destination ranking and trip details still work in the sidebar.
+              </div>
+            )}
             <MapGL
               ref={mapRef}
               mapboxAccessToken={mapboxToken}
@@ -119,7 +133,14 @@ export function MapContainer({
               onMouseEnter={onMouseEnter}
               onMouseLeave={onMouseLeave}
               onMouseMove={onMouseMove}
-              onLoad={onMapLoad}
+              onLoad={() => {
+                setMapError(false);
+                onMapLoad();
+              }}
+              onError={(e) => {
+                console.warn('Mapbox runtime error:', e?.error?.message ?? e);
+                setMapError(true);
+              }}
               cursor={cursor}
             >
               <NavigationControl position="bottom-right" />
@@ -160,6 +181,28 @@ export function MapContainer({
                 >
                   {showHazards ? 'Hazards ON' : 'Hazards'}
                 </button>
+              </div>
+
+              {/* Route comfort color legend — explains what the route line colors mean */}
+              <div
+                className="absolute bottom-4 left-3 z-10 bg-ocean-900/85 backdrop-blur-md border border-ocean-700/50 rounded-lg px-3 py-2 text-2xs text-ocean-100 space-y-1 shadow-lg pointer-events-none"
+                aria-label="Route color legend"
+              >
+                <div className="text-2xs font-semibold uppercase tracking-wider text-ocean-300 mb-1">
+                  Route comfort
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-block w-4 h-0.5 bg-[#10b981]" aria-hidden="true" />
+                  Comfortable
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-block w-4 h-0.5 bg-[#f59e0b]" aria-hidden="true" />
+                  Marginal
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-block w-4 h-0.5 bg-[#ef4444]" aria-hidden="true" />
+                  Challenging
+                </div>
               </div>
 
               {/* NOAA nautical chart overlay */}
@@ -226,7 +269,7 @@ export function MapContainer({
                 >
                   <div className="space-y-1">
                     {popup.type === 'hazard' && (
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[#f59e0b]">Navigation Hazard</span>
+                      <span className="text-2xs font-semibold uppercase tracking-wider text-[#f59e0b]">Navigation Hazard</span>
                     )}
                     <span className="font-medium text-sm">{popup.name}</span>
                     <p className="text-xs text-ocean-300">{popup.detail}</p>

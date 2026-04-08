@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAppStore } from '@/store';
 import { vesselPresets } from '@/data/vessels';
 import { sfBay } from '@/data/cities/sf-bay';
+import { track } from '@/lib/analytics';
+import { useVesselManager } from '@/hooks/useVesselManager';
 import type { VesselProfile, VesselType } from '@/engine/types';
 
 const VESSEL_ICONS: Record<VesselType, string> = {
@@ -13,12 +15,15 @@ const VESSEL_ICONS: Record<VesselType, string> = {
   sailboat: '⛵',
 };
 
-const VESSEL_SPECS: Record<VesselType, string> = {
-  kayak: '16ft · 4 mph · paddle',
-  sup: '11ft · 3 mph · paddle',
-  powerboat: '21ft · 30 mph · 66 gal',
-  sailboat: '25ft · 6 mph · 4.5ft draft',
-};
+function vesselSpecLine(v: VesselProfile): string {
+  if (v.fuelCapacity != null) {
+    return `${v.loa}ft · ${v.cruiseSpeed} mph · ${v.fuelCapacity} gal`;
+  }
+  if (v.draft >= 1) {
+    return `${v.loa}ft · ${v.cruiseSpeed} mph · ${v.draft}ft draft`;
+  }
+  return `${v.loa}ft · ${v.cruiseSpeed} mph · paddle`;
+}
 
 function isHumanPowered(vessel: VesselProfile): boolean {
   return vessel.fuelCapacity === null;
@@ -31,10 +36,18 @@ export function BoatSelector({
   collapsed?: boolean;
   onToggle?: () => void;
 }) {
-  const { vessel, setVessel, setVesselPreset } = useAppStore();
+  const { vessel, setVessel } = useAppStore();
+  const { savedVessels, selectVessel } = useVesselManager();
   const [internalCollapsed, setInternalCollapsed] = useState(true);
   const [showCustomize, setShowCustomize] = useState(false);
   const [customVessel, setCustomVessel] = useState<VesselProfile>(vessel);
+
+  // Keep local customVessel in sync when vessel changes from outside
+  // (e.g., user picks a different activity which auto-swaps the preset,
+  // or the user selects a different saved boat from the My Boats list).
+  useEffect(() => {
+    setCustomVessel(vessel);
+  }, [vessel]);
 
   const collapsed = controlledCollapsed ?? internalCollapsed;
   const toggle = onToggle ?? (() => setInternalCollapsed((c) => !c));
@@ -84,13 +97,6 @@ export function BoatSelector({
     return items;
   }, [customVessel]);
 
-  const handlePresetSelect = (type: string) => {
-    setVesselPreset(type);
-    const preset = vesselPresets.find((v) => v.type === type);
-    if (preset) setCustomVessel(preset);
-    setShowCustomize(false);
-  };
-
   const handleCustomChange = (field: keyof VesselProfile, value: string | number | null) => {
     // Validate numeric fields to prevent nonsensical values
     if (typeof value === 'number') {
@@ -105,6 +111,10 @@ export function BoatSelector({
       const [min, max] = limits[field] ?? [0, Infinity];
       value = Math.max(min, Math.min(max, value));
     }
+    track('vessel_customized', {
+      field: String(field),
+      vessel_type: customVessel.type,
+    });
     const updated = { ...customVessel, [field]: value };
     setCustomVessel(updated);
     setVessel(updated);
@@ -117,68 +127,116 @@ export function BoatSelector({
         className="w-full bg-[var(--card)] border border-[var(--border)] rounded-lg px-4 py-3 text-left hover:border-reef-teal transition-colors flex items-center justify-between group"
       >
         <div className="flex items-center gap-3">
-          <span className="text-xl">{VESSEL_ICONS[vessel.type]}</span>
+          <span className="text-xl" aria-hidden="true">{VESSEL_ICONS[vessel.type]}</span>
           <div>
             <span className="text-sm font-medium text-[var(--foreground)]">
               {vessel.name}
             </span>
             <span className="text-xs text-[var(--muted)] ml-2">
-              {VESSEL_SPECS[vessel.type]}
+              {vesselSpecLine(vessel)}
             </span>
           </div>
         </div>
-        <span className="text-xs text-reef-teal group-hover:underline">Change vessel</span>
+        <span className="text-xs text-reef-teal group-hover:underline">Customize</span>
       </button>
     );
   }
 
   return (
     <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden">
-      {/* Header */}
+      {/* Header — vessel is determined by selected activity */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
-        <h3 className="text-sm font-semibold text-[var(--foreground)]">Select Vessel</h3>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-lg shrink-0" aria-hidden="true">{VESSEL_ICONS[vessel.type]}</span>
+          <h3 className="text-sm font-semibold text-[var(--foreground)] truncate">
+            {vessel.name}
+          </h3>
+        </div>
         <button
           onClick={toggle}
-          className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+          aria-label="Close boat details"
+          className="shrink-0 ml-2 p-1 rounded-md text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card-elevated)] transition-colors"
         >
-          Collapse
+          <svg width="14" height="14" viewBox="0 0 14 14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round">
+            <path d="M3 3L11 11M11 3L3 11" />
+          </svg>
         </button>
       </div>
 
-      {/* Preset cards */}
-      <div className="grid grid-cols-2 gap-2 p-4">
-        {vesselPresets.map((preset) => (
-          <button
-            key={preset.type}
-            onClick={() => handlePresetSelect(preset.type)}
-            className={`rounded-lg p-3 text-left transition-all border ${
-              vessel.type === preset.type
-                ? 'border-reef-teal bg-reef-teal/10'
-                : 'border-[var(--border)] bg-[var(--card-elevated)] hover:border-[var(--muted)]'
-            }`}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-lg">{VESSEL_ICONS[preset.type]}</span>
-              <span className="text-sm font-medium">{preset.name}</span>
+      <div className="px-4 py-4 space-y-3">
+
+        {/* My Boats — quick switch list (only when user has saved boats) */}
+        {savedVessels.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-2xs font-medium text-[var(--muted)] uppercase tracking-wider">
+              My Boats
             </div>
-            <div className="text-xs text-[var(--muted)]">{VESSEL_SPECS[preset.type]}</div>
-          </button>
-        ))}
-      </div>
+            {savedVessels.map((v) => {
+              const isActive = vessel.id === v.id;
+              return (
+                <div
+                  key={v.id}
+                  className={`flex items-center gap-2 p-2 rounded-lg border transition-colors ${
+                    isActive
+                      ? 'border-reef-teal bg-reef-teal/10'
+                      : 'border-[var(--border)] hover:border-reef-teal/50'
+                  }`}
+                >
+                  <span className="text-lg shrink-0" aria-hidden="true">{VESSEL_ICONS[v.type]}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{v.name}</div>
+                    <div className="text-2xs text-[var(--muted)]">{vesselSpecLine(v)}</div>
+                  </div>
+                  {!isActive && (
+                    <button
+                      onClick={() => selectVessel(v)}
+                      aria-label={`Use ${v.name}`}
+                      className="text-xs font-medium text-reef-teal hover:underline shrink-0"
+                    >
+                      Use
+                    </button>
+                  )}
+                  <a
+                    href={`/vessels?edit=${v.id}`}
+                    aria-label={`Edit ${v.name}`}
+                    className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] shrink-0"
+                  >
+                    Edit
+                  </a>
+                </div>
+              );
+            })}
+            <a
+              href="/vessels"
+              className="block text-center text-xs text-reef-teal hover:underline py-1"
+            >
+              + Add a new boat · Manage all
+            </a>
+          </div>
+        )}
 
-      {/* Customize toggle */}
-      <div className="px-4 pb-2">
-        <button
-          onClick={() => setShowCustomize((c) => !c)}
-          className="text-xs text-reef-teal hover:underline"
-        >
-          {showCustomize ? 'Hide customization' : 'Customize'}
-        </button>
-      </div>
-
-      {/* Custom override panel */}
-      {showCustomize && (
-        <div className="px-4 pb-4 space-y-3 border-t border-[var(--border)] pt-3">
+        {/* Customize disclosure — hidden by default, this is the power-user surface */}
+        {!showCustomize ? (
+          <div className="flex items-center justify-between text-xs">
+            <button
+              onClick={() => setShowCustomize(true)}
+              className="text-reef-teal hover:underline"
+            >
+              {savedVessels.length > 0
+                ? `Tweak this ${vessel.type === 'sup' ? 'SUP' : vessel.type} for one trip`
+                : `Customize this ${vessel.type === 'sup' ? 'SUP' : vessel.type}`}
+            </button>
+            {savedVessels.length === 0 && (
+              <a
+                href="/vessels"
+                className="text-[var(--muted)] hover:text-[var(--foreground)]"
+              >
+                Save my boat →
+              </a>
+            )}
+          </div>
+        ) : (
+          <>
           {/* Vessel name */}
           <div className="space-y-1">
             <label className="text-xs text-[var(--muted)]">Vessel name</label>
@@ -191,9 +249,9 @@ export function BoatSelector({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            {/* LOA */}
+            {/* Length */}
             <div className="space-y-1">
-              <label className="text-xs text-[var(--muted)]">LOA (feet)</label>
+              <label className="text-xs text-[var(--muted)]">Length (feet)</label>
               <input
                 type="number"
                 value={customVessel.loa}
@@ -232,9 +290,9 @@ export function BoatSelector({
               />
             </div>
 
-            {/* GPH at cruise */}
+            {/* Fuel burn at cruise */}
             <div className="space-y-1">
-              <label className="text-xs text-[var(--muted)]">GPH at cruise</label>
+              <label className="text-xs text-[var(--muted)]">Fuel burn (gal/hr at cruise)</label>
               <input
                 type="number"
                 value={customVessel.gph ?? ''}
@@ -300,15 +358,16 @@ export function BoatSelector({
             >
               Reset to preset defaults
             </button>
-            <a
-              href="/vessels"
-              className="text-xs text-reef-teal hover:underline"
+            <button
+              onClick={() => setShowCustomize(false)}
+              className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
             >
-              Manage saved boats
-            </a>
+              Hide
+            </button>
           </div>
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

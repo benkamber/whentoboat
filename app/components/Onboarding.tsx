@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAppStore } from '@/store';
+import { getNearestLaunchRamp } from '@/lib/geolocation';
+import { track } from '@/lib/analytics';
 
 const steps = [
   {
@@ -73,9 +76,12 @@ const steps = [
 ];
 
 export function Onboarding() {
+  const homeBaseId = useAppStore((s) => s.homeBaseId);
+  const setHomeBase = useAppStore((s) => s.setHomeBase);
+
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0);
-  const [dontShowAgain, setDontShowAgain] = useState(true);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
 
   useEffect(() => {
@@ -88,6 +94,28 @@ export function Onboarding() {
       // localStorage unavailable
     }
   }, []);
+
+  // First-visit only: try to default the origin to the user's nearest
+  // launch ramp via geolocation. Skipped if the user has already moved
+  // off the persisted default ('sau') in a previous session.
+  useEffect(() => {
+    if (!visible) return;
+    if (homeBaseId !== 'sau') return; // Respect user's prior choice
+
+    let cancelled = false;
+    getNearestLaunchRamp().then((id) => {
+      if (cancelled) return;
+      if (id && id !== 'sau') {
+        track('origin_selected', { origin_id: id, source: 'geolocation' });
+        setHomeBase(id);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Run once when the modal first becomes visible.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   const dismiss = () => {
     if (dontShowAgain) {
@@ -174,15 +202,6 @@ export function Onboarding() {
           </button>
 
           <div className="flex gap-2">
-            {step > 0 && (
-              <button
-                onClick={() => goToStep(step - 1)}
-                className="px-4 py-2 text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)] rounded-lg border border-[var(--border)] hover:bg-[var(--card-elevated)] transition-colors"
-              >
-                Back
-              </button>
-            )}
-
             {isLast ? (
               <button
                 onClick={dismiss}

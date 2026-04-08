@@ -134,7 +134,7 @@ export default async function SharePage({
             {/* Footer */}
             <div className="px-6 py-3 bg-[var(--card-elevated)] border-t border-[var(--border)] flex items-center justify-between">
               <span className="text-xs font-bold text-compass-gold">WhenToBoat</span>
-              <span className="text-[10px] text-[var(--muted)]">Plan smarter. Boat safer.</span>
+              <span className="text-2xs text-[var(--muted)]">Plan smarter. Boat safer.</span>
             </div>
           </div>
 

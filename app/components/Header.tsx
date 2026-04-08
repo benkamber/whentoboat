@@ -2,10 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAppStore } from '@/store';
 
 export function Header() {
-  const { darkMode, toggleDarkMode } = useAppStore();
   const pathname = usePathname();
 
   return (
@@ -25,15 +23,7 @@ export function Header() {
       <nav className="flex items-center gap-0.5">
         <NavLink href="/" label="Home" active={pathname === '/'} />
         <NavLink href="/planner" label="Plan" active={pathname === '/planner'} />
-        <NavLink href="/dine" label="Dine" active={pathname === '/dine'} />
-        <NavLink href="/vessels" label="Boats" active={pathname === '/vessels'} />
-        <button
-          onClick={toggleDarkMode}
-          className="ml-3 p-2 rounded-lg text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card-elevated)] transition-colors"
-          aria-label="Toggle dark mode"
-        >
-          {darkMode ? '☀️' : '🌙'}
-        </button>
+        <NavLink href="/vessels" label="My Boats" active={pathname === '/vessels'} />
       </nav>
     </header>
   );

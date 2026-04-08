@@ -140,7 +140,7 @@ export default async function DestinationPage({
         <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
           <InfoCard label="Dock Info" value={dest.dockInfo} />
           {dest.minDepth !== null && (
-            <InfoCard label="Min Depth (MLLW)" value={`${dest.minDepth} ft`} />
+            <InfoCard label="Depth at lowest tide" value={`${dest.minDepth} ft`} />
           )}
           {zone && (
             <InfoCard label="Zone Characteristics" value={zone.characteristics} />

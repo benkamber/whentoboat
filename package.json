@@ -4,14 +4,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 3000",
+    "prebuild": "npm run validate:waypoints && npm run validate:ferry",
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint",
     "fetch-land": "npx tsx scripts/fetch-land-polygons.ts",
-    "validate-routes": "npx tsx scripts/validate-routes.ts",
-    "fix-routes": "npx tsx scripts/fix-routes.ts"
+    "validate:waypoints": "npx tsx scripts/validate-waypoints.ts",
+    "validate:ferry": "npx tsx scripts/validate-ferry-routes.ts",
+    "fix:ferry": "npx tsx scripts/fix-ferry-routes.ts"
   },
   "dependencies": {
     "@turf/turf": "^7.3.4",

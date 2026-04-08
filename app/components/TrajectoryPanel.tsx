@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef, useCallback, useState, useEffect } from 'react';
 import { sfBay } from '@/data/cities/sf-bay';
 import { getActivity } from '@/data/activities';
 import { useAppStore } from '@/store';
@@ -10,7 +10,18 @@ import { getDocksForDestination } from '@/data/cities/sf-bay/docks';
 import { haversineDistanceMi } from '@/engine/scoring';
 import { parseMinBridgeClearanceFt } from '@/lib/bridge-parse';
 import { getCurrentTimingForRoute } from '@/data/cities/sf-bay/current-timing';
+import { track } from '@/lib/analytics';
+import { routeComfort, type ComfortTier } from '@/lib/route-comfort';
+import { Term } from './Term';
 import type { Source } from '@/engine/types';
+
+type TabId = 'route' | 'conditions' | 'checklist';
+
+const VERDICT: Record<ComfortTier, { emoji: string; label: string; tone: string }> = {
+  comfortable: { emoji: '✅', label: 'Comfortable trip',           tone: 'text-emerald-400' },
+  marginal:    { emoji: '⚠️', label: 'Marginal — watch conditions', tone: 'text-amber-400'   },
+  challenging: { emoji: '🛑', label: 'Challenging — expert only',   tone: 'text-red-400'     },
+};
 
 interface TrajectoryPanelProps {
   originId: string;
@@ -19,7 +30,43 @@ interface TrajectoryPanelProps {
 }
 
 export function TrajectoryPanel({ originId, destinationId, onClose }: TrajectoryPanelProps) {
-  const { activity, vessel, month } = useAppStore();
+  const { activity, vessel, month, hour } = useAppStore();
+
+  // Default tab is Checklist — that's the highest-value exit (the user's
+  // pre-departure prep), so it's the right thing to surface first.
+  const [activeTab, setActiveTab] = useState<TabId>('checklist');
+  // Reset to Checklist whenever the user opens a new destination.
+  useEffect(() => {
+    setActiveTab('checklist');
+  }, [destinationId]);
+
+  // One feedback submission per panel-open.
+  const [feedback, setFeedback] = useState<'up' | 'down' | null>(null);
+  useEffect(() => {
+    setFeedback(null);
+  }, [destinationId]);
+
+  // Fire trusted_plan_confirmed at most once per panel-open. Resets when
+  // the destinationId changes (i.e., user opens a new trajectory).
+  const trustedFired = useRef<string | null>(null);
+  const markTrusted = useCallback((via: 'source_click' | 'checklist_tick') => {
+    if (trustedFired.current === destinationId) return;
+    trustedFired.current = destinationId;
+    track('trusted_plan_confirmed', {
+      destination_id: destinationId,
+      via,
+      activity,
+    });
+  }, [destinationId, activity]);
+
+  const trackSourceClick = useCallback((source_name: string, source_type: string) => {
+    track('source_link_clicked', {
+      source_name,
+      source_type,
+      destination_id: destinationId,
+    });
+    markTrusted('source_click');
+  }, [destinationId, markTrusted]);
 
   const routeInfo = useMemo(() => {
     const origin = sfBay.destinations.find((d) => d.id === originId);
@@ -59,6 +106,10 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
     // Verify links from city
     const verifyLinks = sfBay.verifyLinks;
 
+    // Comfort verdict — same logic as the sidebar/map color tier so the
+    // user sees a consistent reading of "is this a good trip for me".
+    const comfort = routeComfort(distanceMi, vessel, act, dest.minDepth);
+
     return {
       origin,
       destination: dest,
@@ -69,12 +120,46 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
       dockList,
       beforeYouGo,
       verifyLinks,
+      comfort,
     };
   }, [originId, destinationId, activity, vessel]);
 
   if (!routeInfo) return null;
 
-  const { origin, destination, verified, distanceMi, transitMinutes, fuelGallons, dockList, beforeYouGo, verifyLinks } = routeInfo;
+  const { origin, destination, verified, distanceMi, transitMinutes, fuelGallons, dockList, beforeYouGo, verifyLinks, comfort } = routeInfo;
+  const verdict = VERDICT[comfort];
+
+  // Top warning: pick the highest-severity message that applies, in order
+  // of importance, so the verdict line tells the user what to actually worry
+  // about (rather than dumping every advisory).
+  const topWarning: string | null = (() => {
+    if (fuelGallons !== null && vessel.fuelCapacity && fuelGallons > vessel.fuelCapacity * 0.8) {
+      return 'fuel margin too tight';
+    }
+    if (verified?.crossesTss && (activity === 'kayak' || activity === 'sup')) {
+      return 'crosses ship traffic';
+    }
+    if (verified && verified.minDepthFt < vessel.draft + 2) {
+      return 'shallow for your draft';
+    }
+    if (vessel.maxEnduranceHours && transitMinutes !== null && transitMinutes > vessel.maxEnduranceHours * 60 * 0.4) {
+      return 'long for your endurance';
+    }
+    return null;
+  })();
+
+  const shareHref = `/share?activity=${activity}&dest=${destinationId}&origin=${originId}&month=${month}&hour=${hour}`;
+
+  const submitFeedback = (rating: 'up' | 'down') => {
+    if (feedback) return;
+    setFeedback(rating);
+    track('feedback_submitted', {
+      destination_id: destinationId,
+      rating,
+      activity,
+      comfort_tier: comfort,
+    });
+  };
 
   const currentAdvice = verified ? getCurrentTimingForRoute(verified.hazards) : [];
 
@@ -110,42 +195,209 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
   }, [verified, dockList, currentAdvice]);
 
   return (
-    <div className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-[var(--background)] border-l border-[var(--border)] overflow-y-auto z-50 shadow-2xl">
-      {/* Sticky header */}
-      <div className="sticky top-0 bg-[var(--background)] border-b border-[var(--border)] p-4 z-10">
-        <div className="flex items-center justify-between mb-2">
-          <button onClick={onClose} className="text-[var(--muted)] hover:text-[var(--foreground)] text-sm">
+    <div className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-[var(--background)] border-l border-[var(--border)] overflow-y-auto z-50 shadow-2xl flex flex-col">
+      {/* Sticky header — verdict line + close + share + tab strip */}
+      <div className="sticky top-0 bg-[var(--background)] border-b border-[var(--border)] z-10 shrink-0">
+        {/* Top row: close + route name + share */}
+        <div className="flex items-center justify-between gap-2 px-4 pt-4">
+          <button
+            onClick={onClose}
+            aria-label="Close trip details"
+            className="text-[var(--muted)] hover:text-[var(--foreground)] text-sm shrink-0"
+          >
             ✕ Close
           </button>
-          <span className="text-xs text-[var(--muted)]">Route Details</span>
-        </div>
-        <div className="min-w-0">
-          <h2 className="text-sm font-bold truncate">
+          <h2 className="text-sm font-semibold truncate flex-1 text-center px-2">
             {origin.name} → {destination.name}
           </h2>
-          <p className="text-xs text-[var(--muted)]">
+          <a
+            href={shareHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => trackSourceClick('share', 'share')}
+            className="text-xs text-safety-blue hover:underline shrink-0"
+          >
+            Share →
+          </a>
+        </div>
+
+        {/* Verdict block */}
+        <div className="px-4 pt-3 pb-3">
+          <div className={`flex items-center gap-2 text-base font-semibold ${verdict.tone}`}>
+            <span aria-hidden="true">{verdict.emoji}</span>
+            <span>{verdict.label}</span>
+          </div>
+          <div className="text-sm text-[var(--secondary)] mt-1">
             {distanceMi} mi
-            {transitMinutes !== null && ` · ${transitMinutes} min`}
+            {transitMinutes !== null && ` · ${transitMinutes} min one-way`}
             {fuelGallons !== null && ` · ${fuelGallons} gal RT`}
-          </p>
+            {topWarning && (
+              <span className="text-warning-amber"> · {topWarning}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Tab strip */}
+        <div className="flex border-t border-[var(--border)]" role="tablist">
+          {(['checklist', 'route', 'conditions'] as const).map((tabId) => {
+            const labels: Record<TabId, string> = {
+              checklist: 'Checklist',
+              route: 'Route',
+              conditions: 'Conditions',
+            };
+            const isActive = activeTab === tabId;
+            return (
+              <button
+                key={tabId}
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setActiveTab(tabId)}
+                className={`flex-1 py-2.5 text-xs font-medium transition-colors border-b-2 ${
+                  isActive
+                    ? 'border-reef-teal text-reef-teal bg-reef-teal/5'
+                    : 'border-transparent text-[var(--muted)] hover:text-[var(--foreground)]'
+                }`}
+              >
+                {labels[tabId]}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div className="p-4 space-y-6">
-        {/* Vessel specs */}
-        <div className="bg-[var(--card-elevated)] rounded-lg p-2.5">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-[var(--muted)] uppercase tracking-wider">Vessel</span>
-            <span className="text-xs font-medium">{vessel.name}</span>
-          </div>
-          <div className="flex gap-3 mt-1 text-[10px] text-[var(--muted)]">
-            <span>{vessel.loa}ft</span>
-            <span>{vessel.cruiseSpeed}mph</span>
-            {vessel.fuelCapacity && <span>{vessel.fuelCapacity}gal tank</span>}
-            {vessel.gph && <span>{vessel.gph}GPH</span>}
-            <span>{vessel.draft}ft draft</span>
+      <div className="p-4 space-y-6 flex-1">
+
+        {/* ───────────────── CHECKLIST TAB ───────────────── */}
+        {activeTab === 'checklist' && (
+          <>
+
+        {/* Before You Go */}
+        <div className="space-y-2">
+          <h3 className="text-xs font-medium text-reef-teal uppercase tracking-wider">
+            Before You Go
+          </h3>
+          <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2">
+            {beforeYouGo.map((item, i) => (
+              <label key={i} className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 accent-reef-teal"
+                  onChange={(e) => {
+                    track('checklist_item_toggled', {
+                      item: item.text.slice(0, 60),
+                      checked: e.target.checked,
+                      destination_id: destinationId,
+                    });
+                    if (e.target.checked) markTrusted('checklist_tick');
+                  }}
+                />
+                <span className="text-sm text-[var(--secondary)]">
+                  {item.text}
+                  {item.url && (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => trackSourceClick(item.text.slice(0, 60), 'before_you_go')}
+                      className="text-safety-blue ml-1 hover:underline"
+                    >→</a>
+                  )}
+                </span>
+              </label>
+            ))}
           </div>
         </div>
+
+        {/* Verify links */}
+        <div className="space-y-2">
+          <h3 className="text-xs font-medium text-reef-teal uppercase tracking-wider">
+            Verify Conditions
+          </h3>
+          <p className="text-xs text-warning-amber">
+            Planning tool only — always verify with authoritative sources before departure.
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {verifyLinks.map((link, i) => (
+              <a
+                key={i}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackSourceClick(link.label, 'verify_conditions')}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[var(--card)] text-xs text-safety-blue hover:underline border border-[var(--border)]"
+              >
+                {link.label} →
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* Sources collapsed */}
+        {allSources.length > 0 && (
+          <details className="group">
+            <summary className="cursor-pointer text-xs font-medium text-[var(--muted)] uppercase tracking-wider hover:text-[var(--foreground)]">
+              Sources ({allSources.length})
+            </summary>
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-1.5 mt-2">
+              <p className="text-2xs text-[var(--muted)] mb-2 leading-relaxed">
+                Verify all information before departure. Data may have changed since last verified.
+              </p>
+              {allSources.map((src, i) => (
+                <div key={i} className="text-2xs">
+                  {src.url ? (
+                    <a
+                      href={src.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => trackSourceClick(src.name, 'attribution')}
+                      className="text-safety-blue hover:underline"
+                    >
+                      {src.name}
+                    </a>
+                  ) : (
+                    <span className="text-[var(--secondary)]">{src.name}</span>
+                  )}
+                  {src.section && <span className="text-[var(--muted)] ml-1">({src.section})</span>}
+                  <span className="text-[var(--muted)] ml-1">· Verified {src.date}</span>
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+
+        {/* Feedback chip */}
+        <div className="border-t border-[var(--border)] pt-4">
+          {feedback === null ? (
+            <div className="flex items-center justify-center gap-3 text-xs text-[var(--muted)]">
+              <span>Was this helpful?</span>
+              <button
+                onClick={() => submitFeedback('up')}
+                aria-label="Mark as helpful"
+                className="text-base hover:scale-110 transition-transform"
+              >
+                <span aria-hidden="true">👍</span>
+              </button>
+              <button
+                onClick={() => submitFeedback('down')}
+                aria-label="Mark as not helpful"
+                className="text-base hover:scale-110 transition-transform"
+              >
+                <span aria-hidden="true">👎</span>
+              </button>
+            </div>
+          ) : (
+            <div className="text-center text-xs text-reef-teal">
+              Thanks for the feedback.
+            </div>
+          )}
+        </div>
+
+          </>
+        )}
+
+        {/* ───────────────── ROUTE TAB ───────────────── */}
+        {activeTab === 'route' && (
+          <>
 
         {/* Fuel range warning */}
         {fuelGallons !== null && vessel.fuelCapacity && fuelGallons > vessel.fuelCapacity * 0.8 && (
@@ -181,11 +433,15 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
             </h3>
             <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[var(--muted)]">Min depth</span>
-                <span className="font-medium">{verified.minDepthFt} ft MLLW</span>
+                <span className="text-[var(--muted)]">
+                  Depth <Term id="mllw">at lowest tide</Term>
+                </span>
+                <span className="font-medium">{verified.minDepthFt} ft</span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[var(--muted)]">TSS crossing</span>
+                <span className="text-[var(--muted)]">
+                  Crosses <Term id="tss">shipping lane</Term>
+                </span>
                 <span className={`font-medium ${verified.crossesTss ? 'text-warning-amber' : ''}`}>
                   {verified.crossesTss ? 'Yes — use caution' : 'No'}
                 </span>
@@ -230,20 +486,33 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
               <div key={i} className="bg-safety-blue/5 border border-safety-blue/20 rounded-lg p-3 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-[var(--foreground)]">{advice.zoneName}</span>
-                  <a href={advice.noaaStationUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-safety-blue hover:underline">
+                  <a
+                    href={advice.noaaStationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => trackSourceClick('NOAA Predictions', 'noaa_currents')}
+                    className="text-2xs text-safety-blue hover:underline"
+                  >
                     NOAA Predictions →
                   </a>
                 </div>
-                <div className="flex gap-3 text-[10px] text-[var(--muted)]">
+                <div className="flex gap-3 text-2xs text-[var(--muted)]">
                   <span>Max ebb: {advice.maxEbbKts}</span>
                   <span>Max flood: {advice.maxFloodKts}</span>
                 </div>
                 <p className="text-xs text-[var(--secondary)]">{advice.crossingAdvice}</p>
-                <p className="text-[10px] text-[var(--muted)] italic">{advice.slackAdvice}</p>
+                <p className="text-2xs text-[var(--muted)] italic">{advice.slackAdvice}</p>
               </div>
             ))}
           </div>
         )}
+
+          </>
+        )}
+
+        {/* ───────────────── CONDITIONS TAB ───────────────── */}
+        {activeTab === 'conditions' && (
+          <>
 
         {/* Docking Options */}
         {dockList.length > 0 && (
@@ -265,23 +534,23 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
                     <span className="text-sm font-medium">
                       {dockIcon[dock.dockType] ?? ''} {dock.name}
                     </span>
-                    <span className="text-[10px] text-reef-teal">
+                    <span className="text-2xs text-reef-teal">
                       {dock.dockType.replace(/_/g, ' ')}
                     </span>
                   </div>
                   <div className="text-xs text-[var(--muted)]">{dock.fees}</div>
                   <div className="text-xs text-[var(--muted)]">{dock.hours}</div>
-                  <div className="text-xs text-[var(--muted)]">Depth: {dock.depthFt} · Max LOA: {dock.maxLoa}</div>
+                  <div className="text-xs text-[var(--muted)]">Depth: {dock.depthFt} · Max boat length: {dock.maxLoa}</div>
                   {dock.restrictions && (
-                    <div className="text-[10px] text-warning-amber">{dock.restrictions}</div>
+                    <div className="text-safety text-warning-amber">{dock.restrictions}</div>
                   )}
                   {dock.amenities && (
-                    <div className="text-[10px] text-[var(--muted)]">{dock.amenities}</div>
+                    <div className="text-2xs text-[var(--muted)]">{dock.amenities}</div>
                   )}
                   {dock.dineOptions.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {dock.dineOptions.map((restaurant, j) => (
-                        <span key={j} className="text-[10px] px-2 py-0.5 rounded-full bg-reef-teal/10 text-reef-teal border border-reef-teal/20">
+                        <span key={j} className="text-2xs px-2 py-0.5 rounded-full bg-reef-teal/10 text-reef-teal border border-reef-teal/20">
                           {'\u{1F374}'} {restaurant}
                         </span>
                       ))}
@@ -297,11 +566,11 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
               if (!zoneConditions) return null;
               return (
                 <div className="bg-compass-gold/5 border border-compass-gold/20 rounded-lg p-3 mt-2">
-                  <div className="text-[10px] font-medium text-compass-gold uppercase tracking-wider mb-1">
+                  <div className="text-2xs font-medium text-compass-gold uppercase tracking-wider mb-1">
                     {monthData.month} Conditions — {destZone.replace(/_/g, ' ')}
                   </div>
                   <p className="text-xs text-[var(--secondary)]">{zoneConditions.planningSummary}</p>
-                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-[10px] text-[var(--muted)]">
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-2xs text-[var(--muted)]">
                     <span>AM: {zoneConditions.morningWind}</span>
                     <span>PM: {zoneConditions.afternoonWind}</span>
                     <span>Waves: {zoneConditions.waveHeight}</span>
@@ -311,76 +580,6 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
                 </div>
               );
             })()}
-          </div>
-        )}
-
-        {/* Before You Go */}
-        <div className="space-y-2">
-          <h3 className="text-xs font-medium text-reef-teal uppercase tracking-wider">
-            Before You Go
-          </h3>
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-2">
-            {beforeYouGo.map((item, i) => (
-              <label key={i} className="flex items-start gap-2 cursor-pointer">
-                <input type="checkbox" className="mt-0.5 accent-reef-teal" />
-                <span className="text-sm text-[var(--secondary)]">
-                  {item.text}
-                  {item.url && (
-                    <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-safety-blue ml-1 hover:underline">→</a>
-                  )}
-                </span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Verify links */}
-        <div className="space-y-2">
-          <h3 className="text-xs font-medium text-reef-teal uppercase tracking-wider">
-            Verify Conditions
-          </h3>
-          <p className="text-xs text-warning-amber">
-            Planning tool only — always verify with authoritative sources before departure.
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {verifyLinks.map((link, i) => (
-              <a
-                key={i}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[var(--card)] text-xs text-safety-blue hover:underline border border-[var(--border)]"
-              >
-                {link.label} →
-              </a>
-            ))}
-          </div>
-        </div>
-
-        {/* Sources — every data point is attributed */}
-        {allSources.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-              Sources
-            </h3>
-            <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-1.5">
-              <p className="text-[10px] text-[var(--muted)] mb-2">
-                Verify all information before departure. Data may have changed since last verified.
-              </p>
-              {allSources.map((src, i) => (
-                <div key={i} className="text-[11px]">
-                  {src.url ? (
-                    <a href={src.url} target="_blank" rel="noopener noreferrer" className="text-safety-blue hover:underline">
-                      {src.name}
-                    </a>
-                  ) : (
-                    <span className="text-[var(--secondary)]">{src.name}</span>
-                  )}
-                  {src.section && <span className="text-[var(--muted)] ml-1">({src.section})</span>}
-                  <span className="text-[var(--muted)] ml-1">· Verified {src.date}</span>
-                </div>
-              ))}
-            </div>
           </div>
         )}
 
@@ -406,6 +605,7 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => trackSourceClick(link.name, 'rental')}
                     className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-reef-teal/10 text-xs text-reef-teal hover:bg-reef-teal/20 transition-colors border border-reef-teal/20"
                   >
                     {link.name}
@@ -417,8 +617,11 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
           )}
         </div>
 
-        {/* Data source footer */}
-        <p className="text-[10px] text-[var(--muted)] text-center pb-4">
+          </>
+        )}
+
+        {/* Data source footer — visible across all tabs */}
+        <p className="text-2xs text-[var(--muted)] text-center pb-4 leading-relaxed">
           Route data from NOAA charts and US Coast Pilot. Not a real-time forecast.
         </p>
       </div>

@@ -1,4 +1,5 @@
 import { Header } from '../components/Header';
+import { ClearDataButton } from './ClearDataButton';
 
 export const metadata = {
   title: 'Privacy Policy — WhenToBoat',
@@ -62,25 +63,40 @@ export default function PrivacyPage() {
           <p>
             To remember your preferences between visits, WhenToBoat stores a small amount of data in your browser&apos;s localStorage. This data never leaves your device — it is not sent to our servers or anyone else.
           </p>
-          <p>Here is exactly what is stored:</p>
-          <ul className="list-disc pl-6 space-y-1">
-            <li><strong>Your activity choice</strong> — kayak, SUP, powerboat, or sailing</li>
-            <li><strong>Time preferences</strong> — which month and hour you last viewed</li>
-            <li><strong>Home base</strong> — your chosen launch point (e.g., Sausalito)</li>
-            <li><strong>Vessel profile</strong> — boat type, speed, draft, and other characteristics</li>
-            <li><strong>Saved spots</strong> — destination IDs you bookmarked for quick access</li>
-            <li><strong>Custom vessels</strong> — any vessel profiles you created</li>
-            <li><strong>Dark mode preference</strong></li>
-            <li><strong>Disclaimer accepted</strong> — whether you have accepted the safety disclaimer</li>
-            <li><strong>Onboarding completed</strong> — whether you have seen the intro walkthrough</li>
+          <p>Here are the exact keys we write, and what each contains:</p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>
+              <code className="text-xs bg-[var(--card-elevated)] px-1.5 py-0.5 rounded text-compass-gold">whentoboat-prefs</code>
+              {' '}— your activity, month, hour, home base, and active vessel.
+            </li>
+            <li>
+              <code className="text-xs bg-[var(--card-elevated)] px-1.5 py-0.5 rounded text-compass-gold">whentoboat-vessels</code>
+              {' '}— any custom boats you created on the My Boats page.
+            </li>
+            <li>
+              <code className="text-xs bg-[var(--card-elevated)] px-1.5 py-0.5 rounded text-compass-gold">whentoboat-onboarded</code>
+              {' '}— a flag that records you completed the intro walkthrough so it doesn&apos;t reappear.
+            </li>
+            <li>
+              <code className="text-xs bg-[var(--card-elevated)] px-1.5 py-0.5 rounded text-compass-gold">whentoboat-disclaimer-accepted</code>
+              {' '}— a flag that records you accepted the safety disclaimer.
+            </li>
           </ul>
           <p>
-            None of this is personal information. It is all functional data about how you want the app to behave.
+            None of this is personal information. It is all functional data about how you want the app to behave. The app honors your OS theme preference (dark or light) directly — no setting is stored.
           </p>
 
           {/* --- How to Clear Your Data --- */}
           <h2 className="text-lg font-semibold text-[var(--foreground)]">How to Clear Your Data</h2>
-          <p>Since everything is stored in your browser, you have full control:</p>
+          <p>
+            Click the button below to wipe every key listed above in one shot. The page will reload and you will see the app in its fresh-install state.
+          </p>
+          <div className="py-2">
+            <ClearDataButton />
+          </div>
+          <p>
+            Or, if you prefer, you can clear it manually through your browser:
+          </p>
           <ul className="list-disc pl-6 space-y-2">
             <li>
               <strong>Chrome:</strong> Settings &rarr; Privacy and security &rarr; Clear browsing data &rarr; check &ldquo;Cookies and other site data&rdquo; (this includes localStorage)
@@ -95,9 +111,6 @@ export default function PrivacyPage() {
               <strong>Any browser:</strong> Open DevTools (F12) &rarr; Application tab &rarr; Local Storage &rarr; right-click whentoboat.com &rarr; Clear
             </li>
           </ul>
-          <p>
-            Clearing your data resets the app to its default state. You will see the safety disclaimer and onboarding again.
-          </p>
 
           {/* --- Third-Party Data Sources --- */}
           <h2 className="text-lg font-semibold text-[var(--foreground)]">Third-Party Data Sources</h2>

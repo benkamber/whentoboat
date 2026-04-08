@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ActivityType, VesselProfile, TrajectoryAnalysis } from '@/engine/types';
+import type { ActivityType, VesselProfile } from '@/engine/types';
 import { vesselPresets } from '@/data/vessels';
 
 // ============================================
@@ -28,15 +28,7 @@ interface AppState {
 
   // Trajectory (ephemeral — not persisted)
   selectedOriginId: string | null;
-  selectedDestinationId: string | null;
-  trajectoryAnalysis: TrajectoryAnalysis | null;
   setSelectedOrigin: (id: string | null) => void;
-  setSelectedDestination: (id: string | null) => void;
-  setTrajectoryAnalysis: (t: TrajectoryAnalysis | null) => void;
-
-  // UI
-  darkMode: boolean;
-  toggleDarkMode: () => void;
 }
 
 const defaultVessel = vesselPresets.find((v) => v.type === 'kayak') ?? vesselPresets[0];
@@ -76,22 +68,7 @@ export const useAppStore = create<AppState>()(
 
       // Trajectory (ephemeral)
       selectedOriginId: null,
-      selectedDestinationId: null,
-      trajectoryAnalysis: null,
       setSelectedOrigin: (id) => set({ selectedOriginId: id }),
-      setSelectedDestination: (id) => set({ selectedDestinationId: id }),
-      setTrajectoryAnalysis: (t) => set({ trajectoryAnalysis: t }),
-
-      // UI
-      darkMode: true,
-      toggleDarkMode: () =>
-        set((state) => {
-          const next = !state.darkMode;
-          if (typeof document !== 'undefined') {
-            document.documentElement.classList.toggle('dark', next);
-          }
-          return { darkMode: next };
-        }),
     }),
     {
       name: 'whentoboat-prefs',
@@ -102,7 +79,6 @@ export const useAppStore = create<AppState>()(
         hour: state.hour,
         homeBaseId: state.homeBaseId,
         vessel: state.vessel,
-        darkMode: state.darkMode,
       }),
       onRehydrateStorage: () => (state, error) => {
         if (error) {

@@ -51,31 +51,109 @@ function activityMatchesPlan(actId: ActivityType, planActivity: string): boolean
 }
 
 // ---------------------------------------------------------------------------
-// Helpers for zone card tinting
+// Helpers for zone card tinting — values are parsed from free-text strings
+// and mapped to severity tiers so users can eyeball comfort at a glance.
 // ---------------------------------------------------------------------------
 
-function fogTint(fog: string): string | undefined {
-  if (fog === 'Very High') return 'bg-blue-500/5';
-  return undefined;
+type Severity = 'calm' | 'mild' | 'moderate' | 'fresh' | 'rough';
+
+// Tailwind text colors per severity (ordered from safe → dangerous)
+const SEVERITY_TEXT: Record<Severity, string> = {
+  calm:     'text-emerald-400',
+  mild:     'text-teal-300',
+  moderate: 'text-[var(--secondary)]',
+  fresh:    'text-amber-400',
+  rough:    'text-red-400',
+};
+
+// Card background tint by severity — intentionally faint so text pops
+const SEVERITY_TINT: Record<Severity, string> = {
+  calm:     'bg-emerald-500/5 border-emerald-500/20',
+  mild:     'bg-teal-500/5 border-teal-500/20',
+  moderate: 'bg-[var(--card)] border-[var(--border)]',
+  fresh:    'bg-amber-500/10 border-amber-500/30',
+  rough:    'bg-red-500/10 border-red-500/30',
+};
+
+// Severity ordering for comparison
+const SEVERITY_RANK: Record<Severity, number> = {
+  calm: 0, mild: 1, moderate: 2, fresh: 3, rough: 4,
+};
+
+function worseOf(a: Severity, b: Severity): Severity {
+  return SEVERITY_RANK[a] >= SEVERITY_RANK[b] ? a : b;
 }
 
-function windTint(afternoonWind: string): string | undefined {
-  // Extract the upper number from strings like "20-30 kt W"
-  const nums = afternoonWind.match(/\d+/g);
-  if (nums) {
-    const upper = parseInt(nums[nums.length > 1 ? 1 : 0], 10);
-    if (upper >= 20) return 'bg-amber-500/5';
-  }
-  return undefined;
+/** Extract the upper end of a numeric range from strings like "8-12 kt W" or "< 1 ft" or "0-5 kt variable". */
+function upperNumber(s: string): number | null {
+  const nums = s.match(/\d+(\.\d+)?/g);
+  if (!nums || nums.length === 0) return null;
+  return parseFloat(nums[nums.length > 1 ? 1 : 0]);
 }
 
-function coldTint(waterTempF: number): string | undefined {
-  if (waterTempF < 55) return 'bg-blue-400/5';
-  return undefined;
+function windSeverity(wind: string): Severity {
+  const upper = upperNumber(wind);
+  if (upper == null) return 'moderate';
+  if (upper <= 6) return 'calm';
+  if (upper <= 12) return 'mild';
+  if (upper <= 18) return 'moderate';
+  if (upper <= 25) return 'fresh';
+  return 'rough';
 }
 
-function getZoneTint(zc: ZoneConditions): string {
-  return fogTint(zc.fogProbability) ?? windTint(zc.afternoonWind) ?? coldTint(zc.waterTempF) ?? '';
+function waveSeverity(wave: string): Severity {
+  // Handles "< 1 ft", "1-2 ft", "2-4 ft @ 9-14s swell"
+  if (/^\s*<\s*1/.test(wave)) return 'calm';
+  const upper = upperNumber(wave);
+  if (upper == null) return 'moderate';
+  if (upper <= 1) return 'calm';
+  if (upper <= 2) return 'mild';
+  if (upper <= 3) return 'moderate';
+  if (upper <= 5) return 'fresh';
+  return 'rough';
+}
+
+function tempSeverity(tempF: number): Severity {
+  // Cold water is dangerous for immersion. Warmer = safer.
+  if (tempF < 50) return 'rough';
+  if (tempF < 55) return 'fresh';
+  if (tempF < 60) return 'moderate';
+  if (tempF < 65) return 'mild';
+  return 'calm';
+}
+
+function fogSeverity(fog: string): Severity {
+  const f = fog.trim().toLowerCase();
+  if (f === 'low') return 'calm';
+  if (f === 'medium') return 'mild';
+  if (f === 'high') return 'fresh';
+  if (f === 'very high') return 'rough';
+  return 'moderate';
+}
+
+function currentSeverity(current: string): Severity {
+  // Handles "Golden Gate: 5.5 kt", "Raccoon: 3 kt", "Carquinez: 5 kt (freshet)"
+  const upper = upperNumber(current);
+  if (upper == null) return 'moderate';
+  if (upper < 1) return 'calm';
+  if (upper < 2) return 'mild';
+  if (upper < 3) return 'moderate';
+  if (upper < 4) return 'fresh';
+  return 'rough';
+}
+
+/**
+ * Overall card severity = worst of the individual signals.
+ * Morning wind isn't factored in because it's almost always calm on the Bay.
+ */
+function overallSeverity(zc: ZoneConditions): Severity {
+  return [
+    windSeverity(zc.afternoonWind),
+    waveSeverity(zc.waveHeight),
+    tempSeverity(zc.waterTempF),
+    fogSeverity(zc.fogProbability),
+    currentSeverity(zc.currentStrength),
+  ].reduce<Severity>((acc, s) => worseOf(acc, s), 'calm');
 }
 
 // ---------------------------------------------------------------------------
@@ -242,7 +320,7 @@ export default function PlannerPage() {
                 >
                   {/* Best badge */}
                   {tier === 'best' && (
-                    <div className="absolute -top-2.5 right-3 px-2 py-0.5 bg-reef-teal text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
+                    <div className="absolute -top-2.5 right-3 px-2 py-0.5 bg-reef-teal text-white text-2xs font-bold rounded-full uppercase tracking-wider">
                       Best for {activityName}
                     </div>
                   )}
@@ -267,12 +345,12 @@ export default function PlannerPage() {
 
                   {/* Season markers (collapsed) */}
                   {mp.seasonMarkers.length > 0 && (
-                    <p className="text-[11px] text-[var(--muted)] mt-1 truncate">
+                    <p className="text-2xs text-[var(--muted)] mt-1 truncate">
                       {mp.seasonMarkers[0]}
                     </p>
                   )}
 
-                  <div className="text-[10px] text-[var(--muted)] mt-2 text-right">
+                  <div className="text-2xs text-[var(--muted)] mt-2 text-right">
                     {isExpanded ? 'Click to collapse' : 'Click to expand'}
                   </div>
                 </button>
@@ -354,12 +432,19 @@ export default function PlannerPage() {
                         {ZONE_ORDER.map((zoneId) => {
                           const zc = mp.zones[zoneId];
                           if (!zc) return null;
-                          const tint = getZoneTint(zc);
+
+                          const amSev = windSeverity(zc.morningWind);
+                          const pmSev = windSeverity(zc.afternoonWind);
+                          const waveSev = waveSeverity(zc.waveHeight);
+                          const tempSev = tempSeverity(zc.waterTempF);
+                          const fogSev = fogSeverity(zc.fogProbability);
+                          const currSev = currentSeverity(zc.currentStrength);
+                          const cardSev = overallSeverity(zc);
 
                           return (
                             <div
                               key={zoneId}
-                              className={`rounded-lg border border-[var(--border)] p-3 space-y-1.5 ${tint}`}
+                              className={`rounded-lg border p-3 space-y-1.5 ${SEVERITY_TINT[cardSev]}`}
                             >
                               <h5 className="text-sm font-semibold text-[var(--foreground)]">
                                 {ZONE_NAMES[zoneId] ?? zoneId}
@@ -368,36 +453,32 @@ export default function PlannerPage() {
                               <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                                 <div>
                                   <span className="text-[var(--muted)]">AM:</span>{' '}
-                                  <span className="text-[var(--secondary)]">{zc.morningWind}</span>
+                                  <span className={SEVERITY_TEXT[amSev]}>{zc.morningWind}</span>
                                 </div>
                                 <div>
                                   <span className="text-[var(--muted)]">PM:</span>{' '}
-                                  <span className="text-[var(--secondary)]">{zc.afternoonWind}</span>
+                                  <span className={SEVERITY_TEXT[pmSev]}>{zc.afternoonWind}</span>
                                 </div>
                                 <div>
                                   <span className="text-[var(--muted)]">Waves:</span>{' '}
-                                  <span className="text-[var(--secondary)]">{zc.waveHeight}</span>
+                                  <span className={SEVERITY_TEXT[waveSev]}>{zc.waveHeight}</span>
                                 </div>
                                 <div>
                                   <span className="text-[var(--muted)]">Water:</span>{' '}
-                                  <span className="text-[var(--secondary)]">{zc.waterTempF}&deg;F</span>
+                                  <span className={SEVERITY_TEXT[tempSev]}>{zc.waterTempF}&deg;F</span>
                                 </div>
                                 <div>
                                   <span className="text-[var(--muted)]">Fog:</span>{' '}
-                                  <span className={`${
-                                    zc.fogProbability === 'Very High' ? 'text-blue-400' : 'text-[var(--secondary)]'
-                                  }`}>
-                                    {zc.fogProbability}
-                                  </span>
+                                  <span className={SEVERITY_TEXT[fogSev]}>{zc.fogProbability}</span>
                                 </div>
                                 <div>
                                   <span className="text-[var(--muted)]">Current:</span>{' '}
-                                  <span className="text-[var(--secondary)]">{zc.currentStrength}</span>
+                                  <span className={SEVERITY_TEXT[currSev]}>{zc.currentStrength}</span>
                                 </div>
                               </div>
 
-                              <div className="border-t border-[var(--border)] pt-1.5">
-                                <p className="text-[11px] text-[var(--muted)] leading-relaxed">
+                              <div className="border-t border-[var(--border)]/50 pt-1.5">
+                                <p className="text-2xs text-[var(--muted)] leading-relaxed">
                                   {zc.planningSummary}
                                 </p>
                               </div>

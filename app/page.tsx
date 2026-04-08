@@ -8,6 +8,8 @@ import { getActivity } from '@/data/activities';
 import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
 import { useDestinationGeoJSON, useRouteGeoJSON, useHazardGeoJSON } from '@/hooks/useMapData';
 import { ferryRoutesGeoJSON } from '@/data/geo/sf-bay-ferry-routes';
+import { routeComfort, type ComfortTier } from '@/lib/route-comfort';
+import { track } from '@/lib/analytics';
 import { Header } from './components/Header';
 import { TrajectoryPanel } from './components/TrajectoryPanel';
 import { Onboarding } from './components/Onboarding';
@@ -30,6 +32,9 @@ interface SimplifiedRoute {
   distance: number;
   transitMinutes: number;
   destinationId: string;
+  comfort: ComfortTier;
+  crossesTss: boolean;
+  isValidatedRoute: boolean;
 }
 
 export default function Home() {
@@ -54,7 +59,12 @@ export default function Home() {
 
   const mapRef = useRef<any>(null);
 
-  const origin = sfBay.destinations.find((d) => d.id === homeBaseId) ?? sfBay.destinations[0];
+  // Resolve the saved origin against the current city data. If a stale
+  // localStorage value points at a destination that no longer exists
+  // (e.g., we removed a slug between deploys), we silently fall through
+  // to the first destination here AND fire the recovery effect below.
+  const resolvedOrigin = sfBay.destinations.find((d) => d.id === homeBaseId);
+  const origin = resolvedOrigin ?? sfBay.destinations[0];
 
   // Sync selectedOriginId with homeBaseId
   useEffect(() => {
@@ -64,6 +74,19 @@ export default function Home() {
     // Only run when homeBaseId changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [homeBaseId]);
+
+  // Recover from stale homeBaseId — if the persisted value points at a
+  // destination that no longer exists in the city data, reset it to the
+  // canonical default rather than letting it limp along on the silent
+  // fallback to destinations[0]. Tracked so we can measure how often
+  // schema drift hits real users.
+  useEffect(() => {
+    if (!resolvedOrigin && homeBaseId) {
+      console.warn(`Stale homeBaseId "${homeBaseId}" — resetting to default`);
+      track('origin_selected', { origin_id: 'sau', source: 'recovery' });
+      setHomeBase('sau');
+    }
+  }, [resolvedOrigin, homeBaseId, setHomeBase]);
 
   // Destinations sorted by distance — static planning tool, no scoring
   const scoredRoutes = useMemo((): SimplifiedRoute[] => {
@@ -78,11 +101,19 @@ export default function Home() {
         const distance = matrixDist ?? Math.round(haversineDistanceMi(origin.lat, origin.lng, dest.lat, dest.lng) * 10) / 10;
         const transitMinutes = vessel.cruiseSpeed > 0 ? Math.round((distance / vessel.cruiseSpeed) * 60) : 0;
 
+        const vr = verifiedRoutes.find(r =>
+          (r.from === origin.id && r.to === dest.id) ||
+          (r.to === origin.id && r.from === dest.id)
+        );
+
         return {
           dest,
           distance,
           transitMinutes,
           destinationId: dest.id,
+          comfort: routeComfort(distance, vessel, currentActivity, dest.minDepth),
+          crossesTss: vr?.crossesTss ?? false,
+          isValidatedRoute: !!vr,
         };
       })
       .filter((route) => {
@@ -133,6 +164,7 @@ export default function Home() {
       if (layerId === 'destination-circles' || layerId === 'destination-labels' || layerId === 'origin-circle') {
         const id = feature.properties?.id;
         if (id && id !== homeBaseId) {
+          track('origin_selected', { origin_id: id, source: 'map' });
           setHomeBase(id);
           setSelectedDestId(null);
           setTrajectoryRoute(null);
@@ -142,6 +174,21 @@ export default function Home() {
         const fromId = feature.properties?.fromId;
         const toId = feature.properties?.toId;
         if (fromId && toId) {
+          const route = scoredRoutes.find(r => r.destinationId === toId);
+          if (route) {
+            track('destination_opened', {
+              destination_id: toId,
+              destination_name: route.dest.name,
+              distance_mi: route.distance,
+              transit_min: route.transitMinutes,
+              comfort_tier: route.comfort,
+              crosses_tss: route.crossesTss,
+              is_validated_route: route.isValidatedRoute,
+              activity,
+              origin_id: fromId,
+              source: 'map',
+            });
+          }
           setTrajectoryRoute({ originId: fromId, destId: toId });
           setSelectedDestId(toId);
           setPopup(null);
@@ -152,7 +199,7 @@ export default function Home() {
       setPopup(null);
       setTrajectoryRoute(null);
     }
-  }, [homeBaseId, setHomeBase]);
+  }, [homeBaseId, setHomeBase, scoredRoutes, activity]);
 
   const onMouseEnter = useCallback(() => setCursor('pointer'), []);
   const onMouseLeave = useCallback(() => {
@@ -204,6 +251,30 @@ export default function Home() {
   // --- Sidebar card interactions ---
 
   const handleCardClick = useCallback((destId: string) => {
+    const route = scoredRoutes.find(r => r.destinationId === destId);
+    if (route) {
+      const fuelRT = vessel.gph && vessel.cruiseSpeed > 0
+        ? (route.distance * 2 / vessel.cruiseSpeed) * vessel.gph
+        : null;
+      const hasFuelWarning = !!(fuelRT && vessel.fuelCapacity && fuelRT > vessel.fuelCapacity * 0.8);
+      const hasDepthWarning = !!(route.dest.minDepth !== null && route.dest.minDepth < vessel.draft + 1);
+
+      track('destination_opened', {
+        destination_id: destId,
+        destination_name: route.dest.name,
+        distance_mi: route.distance,
+        transit_min: route.transitMinutes,
+        comfort_tier: route.comfort,
+        crosses_tss: route.crossesTss,
+        is_validated_route: route.isValidatedRoute,
+        has_fuel_warning: hasFuelWarning,
+        has_depth_warning: hasDepthWarning,
+        activity,
+        origin_id: homeBaseId,
+        source: 'sidebar',
+      });
+    }
+
     setSelectedDestId(destId);
     setTrajectoryRoute({ originId: homeBaseId, destId });
 
@@ -222,7 +293,7 @@ export default function Home() {
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
       setSidebarOpen(false);
     }
-  }, [homeBaseId]);
+  }, [homeBaseId, scoredRoutes, vessel, activity]);
 
   const handleCardHover = useCallback((destId: string | null) => {
     setHoveredDestId(destId);

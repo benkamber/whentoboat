@@ -5,6 +5,7 @@ import { hazards } from '@/data/cities/sf-bay/hazards';
 import { getActivity } from '@/data/activities';
 import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
 import { haversineDistanceMi } from '@/engine/scoring';
+import { routeComfort, COMFORT_COLORS } from '@/lib/route-comfort';
 import type { ActivityType, VesselProfile } from '@/engine/types';
 
 /**
@@ -137,6 +138,11 @@ export function useRouteGeoJSON(
 
       const transitMinutes = vessel.cruiseSpeed > 0 ? Math.round((distanceMi / vessel.cruiseSpeed) * 60) : 0;
 
+      // Comfort-tier color lets users eyeball plausibility at a glance,
+      // especially for approximate routes with no validated waypoints.
+      const tier = routeComfort(distanceMi, vessel, currentActivity, toDest.minDepth);
+      const tierColor = COMFORT_COLORS[tier];
+
       features.push({
         type: 'Feature',
         geometry: {
@@ -148,10 +154,13 @@ export function useRouteGeoJSON(
           toId,
           fromName: fromDest.name,
           toName: toDest.name,
-          color: isApproximate ? '#6b7280' : (isSelected ? '#f59e0b' : '#22d3ee'),
-          opacity: isApproximate ? 0.25 : (hasSelection ? (isSelected ? 0.9 : 0.12) : 0.5),
-          lineWidth: isApproximate ? 1 : (isSelected ? 4 : 2),
+          color: isSelected ? '#f59e0b' : tierColor,
+          opacity: isApproximate
+            ? (hasSelection ? (isSelected ? 0.85 : 0.2) : 0.45)
+            : (hasSelection ? (isSelected ? 0.9 : 0.18) : 0.7),
+          lineWidth: isApproximate ? 1.5 : (isSelected ? 4 : 2.5),
           isApproximate,
+          comfort: tier,
           distance: Math.round(distanceMi * 10) / 10,
           transitMinutes,
         },
