@@ -17,6 +17,8 @@ import {
   ferryLabelLayer,
   hazardCircleLayer,
   hazardLabelLayer,
+  eventCircleLayer,
+  eventLabelLayer,
 } from '@/lib/map-layers';
 
 // Dynamically import react-map-gl to avoid SSR issues with mapbox-gl
@@ -56,12 +58,15 @@ interface MapContainerProps {
   routesGeoJSON: any;
   ferryGeoJSON: any;
   hazardsGeoJSON: any;
+  eventsGeoJSON: any;
   showNauticalChart: boolean;
   setShowNauticalChart: (v: boolean) => void;
   showFerryRoutes: boolean;
   setShowFerryRoutes: (v: boolean) => void;
   showHazards: boolean;
   setShowHazards: (v: boolean) => void;
+  showEvents: boolean;
+  setShowEvents: (v: boolean) => void;
   onMapLoad: () => void;
   onMapClick: (e: any) => void;
   onMouseEnter: () => void;
@@ -79,12 +84,15 @@ export function MapContainer({
   routesGeoJSON,
   ferryGeoJSON,
   hazardsGeoJSON,
+  eventsGeoJSON,
   showNauticalChart,
   setShowNauticalChart,
   showFerryRoutes,
   setShowFerryRoutes,
   showHazards,
   setShowHazards,
+  showEvents,
+  setShowEvents,
   onMapLoad,
   onMapClick,
   onMouseEnter,
@@ -181,6 +189,17 @@ export function MapContainer({
                 >
                   {showHazards ? 'Hazards ON' : 'Hazards'}
                 </button>
+                <button
+                  onClick={() => setShowEvents(!showEvents)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-md transition-colors shadow-lg ${
+                    showEvents
+                      ? 'bg-compass-gold text-ocean-900 border border-compass-gold'
+                      : 'bg-ocean-900/80 text-ocean-200 border border-ocean-700/50 hover:bg-ocean-800/80'
+                  }`}
+                  title={showEvents ? 'Hide Bay events' : 'Show Bay events this month (regattas, parades, swims)'}
+                >
+                  {showEvents ? 'Events ON' : 'Events'}
+                </button>
               </div>
 
               {/* Route comfort color legend — explains what the route line colors mean */}
@@ -236,6 +255,14 @@ export function MapContainer({
                 <Source id="hazards" type="geojson" data={hazardsGeoJSON}>
                   <Layer {...hazardCircleLayer} />
                   <Layer {...hazardLabelLayer} />
+                </Source>
+              )}
+
+              {/* Bay events overlay */}
+              {showEvents && (
+                <Source id="events" type="geojson" data={eventsGeoJSON}>
+                  <Layer {...eventCircleLayer} />
+                  <Layer {...eventLabelLayer} />
                 </Source>
               )}
 

@@ -57,15 +57,15 @@ export const destinationCircleLayer = {
   },
 };
 
-// Origin (home base) — larger with distinct white border
+// Origin (home base) — bold, large, unmistakable
 export const originCircleLayer = {
   id: 'origin-circle',
   type: 'circle' as const,
   filter: ['get', 'isOrigin'] as any,
   paint: {
-    'circle-radius': 12,
+    'circle-radius': 16,
     'circle-color': ['get', 'color'] as any,
-    'circle-stroke-width': 3,
+    'circle-stroke-width': 4,
     'circle-stroke-color': '#ffffff',
     'circle-opacity': 1,
   },
@@ -77,11 +77,11 @@ export const originRingLayer = {
   type: 'circle' as const,
   filter: ['get', 'isOrigin'] as any,
   paint: {
-    'circle-radius': 18,
+    'circle-radius': 24,
     'circle-color': 'transparent',
-    'circle-stroke-width': 2,
-    'circle-stroke-color': '#ffffff',
-    'circle-opacity': 0.3,
+    'circle-stroke-width': 3,
+    'circle-stroke-color': '#3b82f6',
+    'circle-opacity': 0.4,
   },
 };
 
@@ -189,6 +189,37 @@ export const hazardLabelLayer = {
   },
   paint: {
     'text-color': '#f59e0b',
+    'text-halo-color': '#0a1628',
+    'text-halo-width': 1,
+  },
+};
+
+// Bay event markers — colored by sentiment (avoid=red, caution=amber, fun=green)
+export const eventCircleLayer = {
+  id: 'event-markers',
+  type: 'circle' as const,
+  paint: {
+    'circle-radius': 8,
+    'circle-color': ['get', 'color'] as any,
+    'circle-stroke-width': 2,
+    'circle-stroke-color': '#0a1628',
+    'circle-opacity': 0.85,
+  },
+};
+
+export const eventLabelLayer = {
+  id: 'event-labels',
+  type: 'symbol' as const,
+  layout: {
+    'text-field': ['get', 'name'] as any,
+    'text-size': 9,
+    'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+    'text-anchor': 'top' as const,
+    'text-offset': [0, 1.2] as any,
+    'text-allow-overlap': false,
+  },
+  paint: {
+    'text-color': ['get', 'color'] as any,
     'text-halo-color': '#0a1628',
     'text-halo-width': 1,
   },

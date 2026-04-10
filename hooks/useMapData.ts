@@ -4,6 +4,7 @@ import { getWaterRoute } from '@/data/cities/sf-bay/water-routes';
 import { hazards } from '@/data/cities/sf-bay/hazards';
 import { getActivity } from '@/data/activities';
 import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
+import { getEventsForTrip } from '@/lib/event-relevance';
 import { haversineDistanceMi } from '@/engine/scoring';
 import { routeComfort, COMFORT_COLORS } from '@/lib/route-comfort';
 import type { ActivityType, VesselProfile } from '@/engine/types';
@@ -31,7 +32,7 @@ export function useDestinationGeoJSON(
       const dist = sfBay.distances[distKey] ?? sfBay.distances[revKey] ??
         (origin ? haversineDistanceMi(origin.lat, origin.lng, dest.lat, dest.lng) : 999);
 
-      const color = dest.id === origin?.id ? '#14b8a6' :
+      const color = dest.id === origin?.id ? '#3b82f6' :
         dist < 3 ? '#10b981' :
         dist < 8 ? '#14b8a6' :
         dist < 15 ? '#f59e0b' :
@@ -127,9 +128,13 @@ export function useRouteGeoJSON(
         coordinates = waterRoute.waypoints.map(wp => [wp[0], wp[1]]);
         distanceMi = waterRoute.distance;
       } else {
-        // Straight-line approximate connection
+        // Straight-line approximate connection — only for short distances
+        // where the line is unlikely to cross land. Long-range routes without
+        // validated waypoints would draw through peninsulas and headlands.
+        const straightDist = Math.round(haversineDistanceMi(fromDest.lat, fromDest.lng, toDest.lat, toDest.lng) * 10) / 10;
+        if (straightDist > 10) continue; // Skip — would draw through land
         coordinates = [[fromDest.lng, fromDest.lat], [toDest.lng, toDest.lat]];
-        distanceMi = Math.round(haversineDistanceMi(fromDest.lat, fromDest.lng, toDest.lat, toDest.lng) * 10) / 10;
+        distanceMi = straightDist;
         isApproximate = true;
       }
 
@@ -193,4 +198,38 @@ export function useHazardGeoJSON() {
       },
     })),
   }), []);
+}
+
+/**
+ * Generate GeoJSON for Bay events with lat/lng.
+ * Color-coded by sentiment: red (avoid), amber (caution), green (fun).
+ */
+export function useEventGeoJSON(month: number, activity: ActivityType) {
+  return useMemo(() => {
+    const events = getEventsForTrip(month + 1, activity)
+      .filter(e => e.lat != null && e.lng != null && e.sentiment !== 'neutral');
+
+    const SENTIMENT_COLORS: Record<string, string> = {
+      avoid: '#ef4444',
+      caution: '#f59e0b',
+      fun: '#10b981',
+    };
+
+    return {
+      type: 'FeatureCollection' as const,
+      features: events.map(e => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [e.lng!, e.lat!] },
+        properties: {
+          id: e.id,
+          name: e.name,
+          sentiment: e.sentiment,
+          reason: e.reason,
+          schedule: e.schedule,
+          color: SENTIMENT_COLORS[e.sentiment] ?? '#6b7280',
+          restrictedZone: e.restrictedZone,
+        },
+      })),
+    };
+  }, [month, activity]);
 }

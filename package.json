@@ -16,6 +16,7 @@
     "fix:ferry": "npx tsx scripts/fix-ferry-routes.ts"
   },
   "dependencies": {
+    "@serwist/next": "^9.5.7",
     "@turf/turf": "^7.3.4",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
@@ -26,6 +27,7 @@
     "react-dom": "19.2.4",
     "react-map-gl": "^8.1.0",
     "recharts": "^3.8.0",
+    "serwist": "^9.5.7",
     "zustand": "^5.0.12"
   },
   "devDependencies": {

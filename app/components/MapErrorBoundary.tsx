@@ -36,17 +36,20 @@ export class MapErrorBoundary extends React.Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      const msg = this.state.error?.message ?? '';
+      const isTokenError = /401|403|access token|not authorized/i.test(msg);
       return (
         <div className="flex-1 flex items-center justify-center bg-ocean-950 text-ocean-300 p-8">
           <div className="text-center max-w-md space-y-3">
             <div className="text-4xl">🗺️</div>
             <h2 className="text-lg font-bold text-[var(--foreground)]">Map unavailable</h2>
             <p className="text-sm">
-              The map could not be loaded. Scores and destination recommendations
-              in the sidebar are still accurate and up-to-date.
+              {isTokenError
+                ? 'The Mapbox access token is missing or invalid. Set NEXT_PUBLIC_MAPBOX_TOKEN in your environment.'
+                : 'The map could not be loaded. Scores and destination recommendations in the sidebar are still accurate and up-to-date.'}
             </p>
             <p className="text-xs text-[var(--muted)]">
-              {this.state.error?.message ?? 'Unknown error'}
+              {msg || 'Unknown error'}
             </p>
             <button
               onClick={() => this.setState({ hasError: false, error: null })}

@@ -6,9 +6,10 @@ import { useAppStore } from '@/store';
 import { haversineDistanceMi } from '@/engine/scoring';
 import { getActivity } from '@/data/activities';
 import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
-import { useDestinationGeoJSON, useRouteGeoJSON, useHazardGeoJSON } from '@/hooks/useMapData';
+import { useDestinationGeoJSON, useRouteGeoJSON, useHazardGeoJSON, useEventGeoJSON } from '@/hooks/useMapData';
 import { ferryRoutesGeoJSON } from '@/data/geo/sf-bay-ferry-routes';
 import { routeComfort, type ComfortTier } from '@/lib/route-comfort';
+import { routeDifficulty, type DifficultyRating } from '@/lib/route-difficulty';
 import { track } from '@/lib/analytics';
 import { Header } from './components/Header';
 import { TrajectoryPanel } from './components/TrajectoryPanel';
@@ -33,6 +34,7 @@ interface SimplifiedRoute {
   transitMinutes: number;
   destinationId: string;
   comfort: ComfortTier;
+  difficulty: DifficultyRating;
   crossesTss: boolean;
   isValidatedRoute: boolean;
 }
@@ -54,6 +56,7 @@ export default function Home() {
   const [showNauticalChart, setShowNauticalChart] = useState(false);
   const [showFerryRoutes, setShowFerryRoutes] = useState(false);
   const [showHazards, setShowHazards] = useState(false);
+  const [showEvents, setShowEvents] = useState(false);
   const [hideShallow, setHideShallow] = useState(false);
   const ferryGeoJSON = useMemo(() => ferryRoutesGeoJSON(), []);
 
@@ -88,6 +91,17 @@ export default function Home() {
     }
   }, [resolvedOrigin, homeBaseId, setHomeBase]);
 
+  // Fly map to origin when it changes
+  useEffect(() => {
+    if (!mapRef.current || !resolvedOrigin) return;
+    const isOcean = resolvedOrigin.zone.startsWith('ocean');
+    mapRef.current.flyTo({
+      center: [resolvedOrigin.lng, resolvedOrigin.lat],
+      zoom: isOcean ? 8 : sfBay.defaultZoom,
+      duration: 800,
+    });
+  }, [homeBaseId, resolvedOrigin]);
+
   // Destinations sorted by distance — static planning tool, no scoring
   const scoredRoutes = useMemo((): SimplifiedRoute[] => {
     const currentActivity = getActivity(activity);
@@ -112,6 +126,7 @@ export default function Home() {
           transitMinutes,
           destinationId: dest.id,
           comfort: routeComfort(distance, vessel, currentActivity, dest.minDepth),
+          difficulty: routeDifficulty(distance, dest.id, vessel, currentActivity, month, hour),
           crossesTss: vr?.crossesTss ?? false,
           isValidatedRoute: !!vr,
         };
@@ -142,6 +157,7 @@ export default function Home() {
   const destinationsGeoJSON = useDestinationGeoJSON(activity, month, hour, vessel, homeBaseId);
   const routesGeoJSON = useRouteGeoJSON(activity, month, hour, vessel, homeBaseId, selectedDestId);
   const hazardsGeoJSON = useHazardGeoJSON();
+  const eventsGeoJSON = useEventGeoJSON(month, activity);
 
   // --- Map callbacks ---
 
@@ -303,7 +319,7 @@ export default function Home() {
     <div className="h-screen flex flex-col overflow-hidden">
       <Header />
 
-      <div className="flex-1 flex flex-col md:flex-row relative overflow-hidden">
+      <div id="main-content" className="flex-1 flex flex-col md:flex-row relative overflow-hidden">
         {/* Mobile: toggle button for sidebar */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -335,12 +351,15 @@ export default function Home() {
           routesGeoJSON={routesGeoJSON}
           ferryGeoJSON={ferryGeoJSON}
           hazardsGeoJSON={hazardsGeoJSON}
+          eventsGeoJSON={eventsGeoJSON}
           showNauticalChart={showNauticalChart}
           setShowNauticalChart={setShowNauticalChart}
           showFerryRoutes={showFerryRoutes}
           setShowFerryRoutes={setShowFerryRoutes}
           showHazards={showHazards}
           setShowHazards={setShowHazards}
+          showEvents={showEvents}
+          setShowEvents={setShowEvents}
           onMapLoad={onMapLoad}
           onMapClick={onMapClick}
           onMouseEnter={onMouseEnter}

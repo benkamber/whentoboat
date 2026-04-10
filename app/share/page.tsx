@@ -4,6 +4,7 @@ import { vesselPresets } from '@/data/vessels';
 import { routeComfort } from '@/engine/scoring';
 import { Header } from '../components/Header';
 import { ScoreBadge, getScoreLabel } from '../components/ScoreBadge';
+import { ShareActions } from './ShareActions';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import type { ActivityType } from '@/engine/types';
@@ -27,6 +28,8 @@ export async function generateMetadata({
   const title = `${act.name} to ${dest?.name ?? 'the Bay'} — WhenToBoat`;
   const description = `Best boating conditions from ${origin?.name ?? 'SF Bay'} on ${date}. Plan your trip with live forecast data.`;
 
+  const ogImageUrl = `/api/og?activity=${activity}&dest=${destId}&origin=${originId}&hour=${params.hour ?? '9'}`;
+
   return {
     title,
     description,
@@ -35,11 +38,13 @@ export async function generateMetadata({
       description,
       siteName: 'WhenToBoat',
       type: 'website',
+      images: [{ url: ogImageUrl, width: 1200, height: 630 }],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
+      images: [ogImageUrl],
     },
   };
 }
@@ -150,6 +155,13 @@ export default async function SharePage({
               Free boating planner for SF Bay &middot; No account required
             </p>
           </div>
+
+          {/* Share actions */}
+          <ShareActions
+            url={`https://whentoboat.com/share?activity=${activity}&dest=${destId}&origin=${originId}&month=${month}&hour=${hour}`}
+            title={`${act.name} to ${dest?.name ?? 'SF Bay'} — WhenToBoat`}
+            description={`Plan your ${act.name.toLowerCase()} trip from ${origin?.name ?? 'SF Bay'} to ${dest?.name ?? 'the Bay'}. ${distance} mi, ${transitMinutes} min one-way.`}
+          />
         </div>
       </main>
     </div>

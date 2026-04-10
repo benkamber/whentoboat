@@ -12,7 +12,7 @@ export default function PrivacyPage() {
       <Header />
       <main className="flex-1 max-w-2xl mx-auto px-4 py-10 space-y-8">
         <h1 className="text-3xl font-bold text-compass-gold">Privacy Policy</h1>
-        <p className="text-sm text-[var(--muted)]">Last updated: March 2026</p>
+        <p className="text-sm text-[var(--muted)]">Last updated: April 2026</p>
 
         <div className="bg-reef-teal/10 border border-reef-teal/30 rounded-xl p-4 text-sm text-[var(--secondary)]">
           <strong className="text-reef-teal">The short version:</strong>{' '}
@@ -49,7 +49,7 @@ export default function PrivacyPage() {
           <ul className="list-disc pl-6 space-y-1">
             <li>No accounts or sign-ups</li>
             <li>No email addresses</li>
-            <li>No GPS or device location (we never ask for your location — the app uses hardcoded coordinates for SF Bay)</li>
+            <li>No GPS tracking — on your first visit, we may ask your browser for your location once to pick the nearest launch ramp. This location is never stored, sent to our servers, or shared with anyone. If you decline, the app works fine with a default starting point (Sausalito).</li>
             <li>No cookies set by WhenToBoat</li>
             <li>No advertising or ad trackers</li>
             <li>No social media tracking pixels</li>
@@ -76,6 +76,10 @@ export default function PrivacyPage() {
             <li>
               <code className="text-xs bg-[var(--card-elevated)] px-1.5 py-0.5 rounded text-compass-gold">whentoboat-onboarded</code>
               {' '}— a flag that records you completed the intro walkthrough so it doesn&apos;t reappear.
+            </li>
+            <li>
+              <code className="text-xs bg-[var(--card-elevated)] px-1.5 py-0.5 rounded text-compass-gold">whentoboat-prefs</code>{' '}
+              also stores any routes you bookmark (origin and destination IDs only — no personal data).
             </li>
             <li>
               <code className="text-xs bg-[var(--card-elevated)] px-1.5 py-0.5 rounded text-compass-gold">whentoboat-disclaimer-accepted</code>

@@ -8,12 +8,37 @@ import { seasonalPlanning } from '@/data/cities/sf-bay/seasonal-planning';
 import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
 import { getDocksForDestination } from '@/data/cities/sf-bay/docks';
 import { haversineDistanceMi } from '@/engine/scoring';
+import { analyzeTrajectory } from '@/engine/trajectory';
 import { parseMinBridgeClearanceFt } from '@/lib/bridge-parse';
 import { getCurrentTimingForRoute } from '@/data/cities/sf-bay/current-timing';
 import { track } from '@/lib/analytics';
 import { routeComfort, type ComfortTier } from '@/lib/route-comfort';
+import { getEventsForTrip } from '@/lib/event-relevance';
 import { Term } from './Term';
 import type { Source } from '@/engine/types';
+
+function BookmarkButton({ originId, destinationId }: { originId: string; destinationId: string }) {
+  const { savedRoutes, saveRoute, removeSavedRoute, activity } = useAppStore();
+  const isSaved = savedRoutes.some(r => r.originId === originId && r.destinationId === destinationId);
+
+  return (
+    <button
+      onClick={() => {
+        if (isSaved) {
+          removeSavedRoute(originId, destinationId);
+        } else {
+          saveRoute(originId, destinationId, activity);
+          track('route_saved', { origin_id: originId, destination_id: destinationId, activity });
+        }
+      }}
+      aria-label={isSaved ? 'Remove from saved routes' : 'Save this route'}
+      title={isSaved ? 'Remove bookmark' : 'Bookmark this route'}
+      className={`text-sm transition-transform hover:scale-110 ${isSaved ? 'text-compass-gold' : 'text-[var(--muted)] hover:text-compass-gold'}`}
+    >
+      {isSaved ? '★' : '☆'}
+    </button>
+  );
+}
 
 type TabId = 'route' | 'conditions' | 'checklist';
 
@@ -163,6 +188,18 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
 
   const currentAdvice = verified ? getCurrentTimingForRoute(verified.hazards) : [];
 
+  // Departure window advisor — uses full trajectory engine
+  const trajectory = useMemo(() => {
+    if (!routeInfo) return null;
+    const act = getActivity(activity);
+    return analyzeTrajectory(routeInfo.origin, routeInfo.destination, month, hour, act, vessel, sfBay);
+  }, [routeInfo, activity, month, hour, vessel]);
+
+  // Events relevant to this trip's month + activity
+  const tripEvents = useMemo(() => {
+    return getEventsForTrip(month + 1, activity).filter(e => e.sentiment !== 'neutral');
+  }, [month, activity]);
+
   // Collect all sources for attribution
   const allSources = useMemo(() => {
     const seen = new Set<string>();
@@ -195,10 +232,10 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
   }, [verified, dockList, currentAdvice]);
 
   return (
-    <div className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-[var(--background)] border-l border-[var(--border)] overflow-y-auto z-50 shadow-2xl flex flex-col">
+    <div className="fixed right-0 top-0 bottom-0 w-full sm:w-[340px] md:w-[400px] lg:w-[420px] bg-[var(--background)] border-l border-[var(--border)] overflow-y-auto z-50 shadow-2xl flex flex-col">
       {/* Sticky header — verdict line + close + share + tab strip */}
       <div className="sticky top-0 bg-[var(--background)] border-b border-[var(--border)] z-10 shrink-0">
-        {/* Top row: close + route name + share */}
+        {/* Top row: close + route name + bookmark + share */}
         <div className="flex items-center justify-between gap-2 px-4 pt-4">
           <button
             onClick={onClose}
@@ -210,15 +247,18 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
           <h2 className="text-sm font-semibold truncate flex-1 text-center px-2">
             {origin.name} → {destination.name}
           </h2>
-          <a
-            href={shareHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => trackSourceClick('share', 'share')}
-            className="text-xs text-safety-blue hover:underline shrink-0"
-          >
-            Share →
-          </a>
+          <div className="flex items-center gap-2 shrink-0">
+            <BookmarkButton originId={originId} destinationId={destinationId} />
+            <a
+              href={shareHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackSourceClick('share', 'share')}
+              className="text-xs text-safety-blue hover:underline"
+            >
+              Share →
+            </a>
+          </div>
         </div>
 
         {/* Verdict block */}
@@ -507,6 +547,63 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
           </div>
         )}
 
+        {/* Departure Windows */}
+        {trajectory && (
+          <div className="space-y-2">
+            <h3 className="text-xs font-medium text-reef-teal uppercase tracking-wider">
+              Departure Windows
+            </h3>
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <span className="text-2xs text-[var(--muted)]">Best departure</span>
+                  <p className="text-sm font-semibold text-reef-teal">{trajectory.departureWindow.label}</p>
+                </div>
+                <div>
+                  <span className="text-2xs text-[var(--muted)]">Best return</span>
+                  <p className="text-sm font-semibold text-compass-gold">{trajectory.returnWindow.label}</p>
+                </div>
+              </div>
+
+              {/* Mini hourly scores */}
+              <div className="flex gap-px items-end h-12">
+                {trajectory.hourlyProfile.map((h) => {
+                  const height = Math.max(8, (h.score / 10) * 100);
+                  const color = h.score >= 7 ? '#10b981' : h.score >= 5 ? '#f59e0b' : '#ef4444';
+                  return (
+                    <div
+                      key={h.hour}
+                      className="flex-1 rounded-t-sm"
+                      style={{ height: `${height}%`, backgroundColor: color, opacity: 0.8 }}
+                      title={`${h.hour}:00 — Score ${h.score}/10`}
+                    />
+                  );
+                })}
+              </div>
+              <div className="flex justify-between text-2xs text-[var(--muted)]">
+                <span>5 AM</span>
+                <span>Noon</span>
+                <span>10 PM</span>
+              </div>
+
+              {/* Warnings */}
+              {trajectory.warnings.length > 0 && (
+                <div className="border-t border-[var(--border)] pt-2 space-y-1">
+                  {trajectory.warnings.slice(0, 2).map((w, i) => (
+                    <p key={i} className="text-2xs text-warning-amber">{w}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+            <p className="text-2xs text-[var(--muted)] italic">
+              Based on historical weather patterns and{' '}
+              <a href="https://tidesandcurrents.noaa.gov/" target="_blank" rel="noopener noreferrer" className="text-safety-blue hover:underline">
+                NOAA tidal predictions
+              </a>. Not a real-time assessment. Always verify before departure.
+            </p>
+          </div>
+        )}
+
           </>
         )}
 
@@ -580,6 +677,59 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
                 </div>
               );
             })()}
+          </div>
+        )}
+
+        {/* Bay Events this month */}
+        {tripEvents.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-xs font-medium text-compass-gold uppercase tracking-wider">
+              Bay Events This Month
+            </h3>
+            {tripEvents.filter(e => e.sentiment === 'avoid').map(event => (
+              <div key={event.id} className="bg-danger-red/10 border border-danger-red/30 rounded-lg p-3 space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <span aria-hidden="true">🚫</span>
+                  <span className="text-sm font-medium text-danger-red">{event.name}</span>
+                </div>
+                <p className="text-xs text-danger-red">{event.reason}</p>
+                <p className="text-2xs text-[var(--muted)]">{event.schedule} · {event.organizer}</p>
+                {event.trafficNote && <p className="text-2xs text-[var(--muted)] italic">{event.trafficNote}</p>}
+                {event.url && (
+                  <a href={event.url} target="_blank" rel="noopener noreferrer" className="text-2xs text-safety-blue hover:underline">Details →</a>
+                )}
+              </div>
+            ))}
+            {tripEvents.filter(e => e.sentiment === 'caution').map(event => (
+              <div key={event.id} className="bg-warning-amber/10 border border-warning-amber/30 rounded-lg p-3 space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <span aria-hidden="true">⚠️</span>
+                  <span className="text-sm font-medium text-warning-amber">{event.name}</span>
+                </div>
+                <p className="text-xs text-warning-amber">{event.reason}</p>
+                <p className="text-2xs text-[var(--muted)]">{event.schedule} · {event.organizer}</p>
+                {event.url && (
+                  <a href={event.url} target="_blank" rel="noopener noreferrer" className="text-2xs text-safety-blue hover:underline">Details →</a>
+                )}
+              </div>
+            ))}
+            {tripEvents.filter(e => e.sentiment === 'fun').length > 0 && (
+              <div className="bg-reef-teal/10 border border-reef-teal/30 rounded-lg p-3 space-y-2">
+                <span className="text-xs font-medium text-reef-teal">Things to do on the water</span>
+                {tripEvents.filter(e => e.sentiment === 'fun').map(event => (
+                  <div key={event.id} className="space-y-0.5">
+                    <div className="text-xs font-medium text-[var(--foreground)]">
+                      <span aria-hidden="true">🎉</span> {event.name}
+                    </div>
+                    <p className="text-2xs text-reef-teal">{event.reason}</p>
+                    <p className="text-2xs text-[var(--muted)]">{event.schedule}</p>
+                    {event.url && (
+                      <a href={event.url} target="_blank" rel="noopener noreferrer" className="text-2xs text-safety-blue hover:underline">Details →</a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

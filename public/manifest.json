@@ -3,6 +3,8 @@
   "short_name": "WhenToBoat",
   "description": "AllTrails-style planning intelligence for water outings. Know when and where to go.",
   "start_url": "/",
+  "id": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0a1628",
   "theme_color": "#0a1628",

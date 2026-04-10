@@ -6,6 +6,7 @@ import type { MonthlyPlan, ZoneConditions } from '@/data/cities/sf-bay/seasonal-
 import { activities } from '@/data/activities';
 import { useAppStore } from '@/store';
 import { Header } from '../components/Header';
+import { WeatherCharts } from '../components/WeatherCharts';
 import { SourceAttribution } from '../components/SourceAttribution';
 import type { ActivityType } from '@/engine/types';
 
@@ -251,6 +252,9 @@ export default function PlannerPage() {
             ))}
           </div>
         </div>
+
+        {/* Weather pattern charts */}
+        <WeatherCharts />
 
         {/* Best / Worst months summary */}
         <div className="space-y-4">

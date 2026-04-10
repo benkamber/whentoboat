@@ -8,6 +8,13 @@ import { vesselPresets } from '@/data/vessels';
 // Persists user preferences to localStorage
 // ============================================
 
+export interface SavedRoute {
+  originId: string;
+  destinationId: string;
+  activity: ActivityType;
+  savedAt: number; // timestamp
+}
+
 interface AppState {
   // Filters
   activity: ActivityType;
@@ -25,6 +32,11 @@ interface AppState {
   vessel: VesselProfile;
   setVessel: (v: VesselProfile) => void;
   setVesselPreset: (type: string) => void;
+
+  // Saved routes (bookmarks)
+  savedRoutes: SavedRoute[];
+  saveRoute: (originId: string, destinationId: string, activity: ActivityType) => void;
+  removeSavedRoute: (originId: string, destinationId: string) => void;
 
   // Trajectory (ephemeral — not persisted)
   selectedOriginId: string | null;
@@ -66,9 +78,20 @@ export const useAppStore = create<AppState>()(
         if (preset) set({ vessel: preset });
       },
 
+      // Saved routes (bookmarks)
+      savedRoutes: [],
+      saveRoute: (originId, destinationId, activity) => set((state) => {
+        const exists = state.savedRoutes.some(r => r.originId === originId && r.destinationId === destinationId);
+        if (exists) return state;
+        return { savedRoutes: [...state.savedRoutes, { originId, destinationId, activity, savedAt: Date.now() }] };
+      }),
+      removeSavedRoute: (originId, destinationId) => set((state) => ({
+        savedRoutes: state.savedRoutes.filter(r => !(r.originId === originId && r.destinationId === destinationId)),
+      })),
+
       // Trajectory (ephemeral)
       selectedOriginId: null,
-      setSelectedOrigin: (id) => set({ selectedOriginId: id }),
+      setSelectedOrigin: (id: string | null) => set({ selectedOriginId: id }),
     }),
     {
       name: 'whentoboat-prefs',
@@ -79,6 +102,7 @@ export const useAppStore = create<AppState>()(
         hour: state.hour,
         homeBaseId: state.homeBaseId,
         vessel: state.vessel,
+        savedRoutes: state.savedRoutes,
       }),
       onRehydrateStorage: () => (state, error) => {
         if (error) {

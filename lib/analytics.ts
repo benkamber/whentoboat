@@ -25,7 +25,8 @@ export type EventName =
   | 'checklist_item_toggled'
   | 'vessel_customized'
   | 'empty_state_shown'
-  | 'feedback_submitted';
+  | 'feedback_submitted'
+  | 'route_saved';
 
 type Primitive = string | number | boolean | null | undefined;
 export type EventProps = Record<string, Primitive>;

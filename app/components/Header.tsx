@@ -22,8 +22,22 @@ export function Header() {
 
       <nav className="flex items-center gap-0.5">
         <NavLink href="/" label="Home" active={pathname === '/'} />
+        <NavLink href="/events" label="Events" active={pathname === '/events'} />
         <NavLink href="/planner" label="Plan" active={pathname === '/planner'} />
+        <NavLink href="/conditions" label="Now" active={pathname === '/conditions'} />
         <NavLink href="/vessels" label="My Boats" active={pathname === '/vessels'} />
+        <span className="mx-1 h-4 w-px bg-[var(--border)] hidden sm:block" />
+        <Link
+          href="/support"
+          className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+            pathname === '/support'
+              ? 'bg-compass-gold/20 text-compass-gold'
+              : 'text-compass-gold/70 hover:text-compass-gold hover:bg-compass-gold/10'
+          }`}
+        >
+          Support
+        </Link>
+        <NavLink href="/privacy" label="Privacy" active={pathname === '/privacy'} />
       </nav>
     </header>
   );

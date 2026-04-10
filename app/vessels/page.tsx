@@ -415,8 +415,8 @@ function VesselsPageInner() {
                       onClick={() => {
                         const customCount = savedVessels.length;
                         const msg = customCount === 1
-                          ? `"${vessel.name}" is your only custom vessel. Deleting it will revert to preset defaults. Continue?`
-                          : `Delete "${vessel.name}"?`;
+                          ? `"${vessel.name}" is your only custom vessel. Deleting it will revert to preset defaults.\n\nYou can always add a new vessel from this page.`
+                          : `Delete "${vessel.name}"?\n\nYou can always re-add it from the presets below or create a new custom vessel.`;
                         if (confirm(msg)) {
                           deleteVessel(vessel.id!);
                           if (activeVessel.id === vessel.id) {
