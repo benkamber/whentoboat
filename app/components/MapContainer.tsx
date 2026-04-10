@@ -19,6 +19,10 @@ import {
   hazardLabelLayer,
   eventCircleLayer,
   eventLabelLayer,
+  zoneOverlayFillLayer,
+  zoneOverlayBorderLayer,
+  zoneOverlayLabelLayer,
+  windArrowLayer,
 } from '@/lib/map-layers';
 
 // Dynamically import react-map-gl to avoid SSR issues with mapbox-gl
@@ -59,6 +63,8 @@ interface MapContainerProps {
   ferryGeoJSON: any;
   hazardsGeoJSON: any;
   eventsGeoJSON: any;
+  zoneOverlayGeoJSON: any;
+  windArrowsGeoJSON: any;
   showNauticalChart: boolean;
   setShowNauticalChart: (v: boolean) => void;
   showFerryRoutes: boolean;
@@ -67,6 +73,8 @@ interface MapContainerProps {
   setShowHazards: (v: boolean) => void;
   showEvents: boolean;
   setShowEvents: (v: boolean) => void;
+  showZones: boolean;
+  setShowZones: (v: boolean) => void;
   onMapLoad: () => void;
   onMapClick: (e: any) => void;
   onMouseEnter: () => void;
@@ -85,6 +93,8 @@ export function MapContainer({
   ferryGeoJSON,
   hazardsGeoJSON,
   eventsGeoJSON,
+  zoneOverlayGeoJSON,
+  windArrowsGeoJSON,
   showNauticalChart,
   setShowNauticalChart,
   showFerryRoutes,
@@ -93,6 +103,8 @@ export function MapContainer({
   setShowHazards,
   showEvents,
   setShowEvents,
+  showZones,
+  setShowZones,
   onMapLoad,
   onMapClick,
   onMouseEnter,
@@ -200,6 +212,17 @@ export function MapContainer({
                 >
                   {showEvents ? 'Events ON' : 'Events'}
                 </button>
+                <button
+                  onClick={() => setShowZones(!showZones)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-md transition-colors shadow-lg ${
+                    showZones
+                      ? 'bg-reef-teal text-white border border-reef-teal'
+                      : 'bg-ocean-900/80 text-ocean-200 border border-ocean-700/50 hover:bg-ocean-800/80'
+                  }`}
+                  title={showZones ? 'Hide zone comfort overlay' : 'Show zone comfort + wind patterns for this month'}
+                >
+                  {showZones ? 'Zones ON' : 'Zones'}
+                </button>
               </div>
 
               {/* Route comfort color legend — explains what the route line colors mean */}
@@ -256,6 +279,20 @@ export function MapContainer({
                   <Layer {...hazardCircleLayer} />
                   <Layer {...hazardLabelLayer} />
                 </Source>
+              )}
+
+              {/* Zone comfort overlay — colored polygons showing conditions */}
+              {showZones && (
+                <>
+                  <Source id="zone-overlay" type="geojson" data={zoneOverlayGeoJSON}>
+                    <Layer {...zoneOverlayFillLayer} />
+                    <Layer {...zoneOverlayBorderLayer} />
+                    <Layer {...zoneOverlayLabelLayer} />
+                  </Source>
+                  <Source id="wind-arrows" type="geojson" data={windArrowsGeoJSON}>
+                    <Layer {...windArrowLayer} />
+                  </Source>
+                </>
               )}
 
               {/* Bay events overlay */}

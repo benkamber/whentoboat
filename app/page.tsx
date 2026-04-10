@@ -7,6 +7,7 @@ import { haversineDistanceMi } from '@/engine/scoring';
 import { getActivity } from '@/data/activities';
 import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
 import { useDestinationGeoJSON, useRouteGeoJSON, useHazardGeoJSON, useEventGeoJSON } from '@/hooks/useMapData';
+import { useZoneOverlayGeoJSON, useWindArrowsGeoJSON } from '@/hooks/useZoneOverlayGeoJSON';
 import { ferryRoutesGeoJSON } from '@/data/geo/sf-bay-ferry-routes';
 import { routeComfort, type ComfortTier } from '@/lib/route-comfort';
 import { routeDifficulty, type DifficultyRating } from '@/lib/route-difficulty';
@@ -57,6 +58,7 @@ export default function Home() {
   const [showFerryRoutes, setShowFerryRoutes] = useState(false);
   const [showHazards, setShowHazards] = useState(false);
   const [showEvents, setShowEvents] = useState(false);
+  const [showZones, setShowZones] = useState(false);
   const [hideShallow, setHideShallow] = useState(false);
   const ferryGeoJSON = useMemo(() => ferryRoutesGeoJSON(), []);
 
@@ -158,6 +160,8 @@ export default function Home() {
   const routesGeoJSON = useRouteGeoJSON(activity, month, hour, vessel, homeBaseId, selectedDestId);
   const hazardsGeoJSON = useHazardGeoJSON();
   const eventsGeoJSON = useEventGeoJSON(month, activity);
+  const zoneOverlayGeoJSON = useZoneOverlayGeoJSON();
+  const windArrowsGeoJSON = useWindArrowsGeoJSON();
 
   // --- Map callbacks ---
 
@@ -352,6 +356,8 @@ export default function Home() {
           ferryGeoJSON={ferryGeoJSON}
           hazardsGeoJSON={hazardsGeoJSON}
           eventsGeoJSON={eventsGeoJSON}
+          zoneOverlayGeoJSON={zoneOverlayGeoJSON}
+          windArrowsGeoJSON={windArrowsGeoJSON}
           showNauticalChart={showNauticalChart}
           setShowNauticalChart={setShowNauticalChart}
           showFerryRoutes={showFerryRoutes}
@@ -360,6 +366,8 @@ export default function Home() {
           setShowHazards={setShowHazards}
           showEvents={showEvents}
           setShowEvents={setShowEvents}
+          showZones={showZones}
+          setShowZones={setShowZones}
           onMapLoad={onMapLoad}
           onMapClick={onMapClick}
           onMouseEnter={onMouseEnter}

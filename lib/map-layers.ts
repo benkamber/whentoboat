@@ -224,3 +224,64 @@ export const eventLabelLayer = {
     'text-halo-width': 1,
   },
 };
+
+// Zone comfort overlay — semi-transparent colored polygons
+export const zoneOverlayFillLayer = {
+  id: 'zone-overlay-fill',
+  type: 'fill' as const,
+  paint: {
+    'fill-color': ['get', 'color'] as any,
+    'fill-opacity': 0.12,
+  },
+};
+
+export const zoneOverlayBorderLayer = {
+  id: 'zone-overlay-border',
+  type: 'line' as const,
+  paint: {
+    'line-color': '#ffffff',
+    'line-width': 1,
+    'line-opacity': 0.2,
+  },
+};
+
+export const zoneOverlayLabelLayer = {
+  id: 'zone-overlay-labels',
+  type: 'symbol' as const,
+  layout: {
+    'text-field': ['concat', ['get', 'zoneName'], '\n', ['to-string', ['get', 'comfort']], '/10'] as any,
+    'text-size': 11,
+    'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+    'text-allow-overlap': true,
+  },
+  paint: {
+    'text-color': ['get', 'color'] as any,
+    'text-halo-color': '#0a1628',
+    'text-halo-width': 1.5,
+    'text-opacity': 0.9,
+  },
+};
+
+// Wind arrow indicators at zone centroids
+export const windArrowLayer = {
+  id: 'wind-arrows',
+  type: 'symbol' as const,
+  layout: {
+    'icon-image': 'arrow',
+    'icon-size': 0.8,
+    'icon-rotate': ['get', 'rotation'] as any,
+    'icon-allow-overlap': true,
+    'icon-rotation-alignment': 'map' as const,
+    'text-field': ['get', 'windLabel'] as any,
+    'text-size': 10,
+    'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+    'text-offset': [0, 1.5] as any,
+    'text-allow-overlap': true,
+  },
+  paint: {
+    'icon-color': ['get', 'color'] as any,
+    'text-color': ['get', 'color'] as any,
+    'text-halo-color': '#0a1628',
+    'text-halo-width': 1.5,
+  },
+};
