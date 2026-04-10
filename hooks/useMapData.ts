@@ -128,13 +128,15 @@ export function useRouteGeoJSON(
         coordinates = waterRoute.waypoints.map(wp => [wp[0], wp[1]]);
         distanceMi = waterRoute.distance;
       } else {
-        // Straight-line approximate connection — only for Bay-range distances
-        // where the line stays over water. Ocean routes (>25mi) without
-        // validated waypoints would draw through peninsulas and headlands.
-        const straightDist = Math.round(haversineDistanceMi(fromDest.lat, fromDest.lng, toDest.lat, toDest.lng) * 10) / 10;
-        if (straightDist > 25) continue; // Skip — would draw through land
+        // Straight-line fallback — safe within the Bay, dangerous across land.
+        // If either endpoint is an ocean zone, the line would cross the
+        // Peninsula or Marin headlands. Require validated waypoints for those.
+        const fromOcean = fromDest.zone.startsWith('ocean');
+        const toOcean = toDest.zone.startsWith('ocean');
+        if (fromOcean || toOcean) continue; // Would draw through land
+
         coordinates = [[fromDest.lng, fromDest.lat], [toDest.lng, toDest.lat]];
-        distanceMi = straightDist;
+        distanceMi = Math.round(haversineDistanceMi(fromDest.lat, fromDest.lng, toDest.lat, toDest.lng) * 10) / 10;
         isApproximate = true;
       }
 
