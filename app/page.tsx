@@ -6,7 +6,7 @@ import { useAppStore } from '@/store';
 import { haversineDistanceMi } from '@/engine/scoring';
 import { getActivity } from '@/data/activities';
 import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
-import { useDestinationGeoJSON, useRouteGeoJSON, useHazardGeoJSON, useEventGeoJSON } from '@/hooks/useMapData';
+import { useDestinationGeoJSON, useRouteGeoJSON, useHazardGeoJSON, useEventGeoJSON, useSupRadiusGeoJSON } from '@/hooks/useMapData';
 import { useZoneOverlayGeoJSON, useWindArrowsGeoJSON } from '@/hooks/useZoneOverlayGeoJSON';
 import { ferryRoutesGeoJSON } from '@/data/geo/sf-bay-ferry-routes';
 import { routeComfort, type ComfortTier } from '@/lib/route-comfort';
@@ -162,6 +162,7 @@ export default function Home() {
   const eventsGeoJSON = useEventGeoJSON(month, activity);
   const zoneOverlayGeoJSON = useZoneOverlayGeoJSON();
   const windArrowsGeoJSON = useWindArrowsGeoJSON();
+  const supRadiusGeoJSON = useSupRadiusGeoJSON(activity, homeBaseId);
 
   // --- Map callbacks ---
 
@@ -358,6 +359,7 @@ export default function Home() {
           eventsGeoJSON={eventsGeoJSON}
           zoneOverlayGeoJSON={zoneOverlayGeoJSON}
           windArrowsGeoJSON={windArrowsGeoJSON}
+          supRadiusGeoJSON={supRadiusGeoJSON}
           showNauticalChart={showNauticalChart}
           setShowNauticalChart={setShowNauticalChart}
           showFerryRoutes={showFerryRoutes}

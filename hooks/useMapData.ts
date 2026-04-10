@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import * as turf from '@turf/turf';
 import { sfBay } from '@/data/cities/sf-bay';
 import { getWaterRoute } from '@/data/cities/sf-bay/water-routes';
 import { hazards } from '@/data/cities/sf-bay/hazards';
@@ -234,4 +235,35 @@ export function useEventGeoJSON(month: number, activity: ActivityType) {
       })),
     };
   }, [month, activity]);
+}
+
+/**
+ * Generate GeoJSON circle for SUP paddling radius around origin.
+ * Shows the practical one-way range (~1.5 mi / 2.4 km) as a circle.
+ */
+export function useSupRadiusGeoJSON(
+  activity: ActivityType,
+  selectedOriginId: string | null
+) {
+  return useMemo(() => {
+    if (activity !== 'sup') {
+      return { type: 'FeatureCollection' as const, features: [] };
+    }
+
+    const origin = selectedOriginId
+      ? sfBay.destinations.find(d => d.id === selectedOriginId)
+      : sfBay.destinations[0];
+    if (!origin) return { type: 'FeatureCollection' as const, features: [] };
+
+    // SUP practical range: 2.5 mph × 1 hr one-way with safety buffer = ~1.5 mi = ~2.4 km
+    const circle = turf.circle([origin.lng, origin.lat], 2.4, { units: 'kilometers', steps: 64 });
+
+    return {
+      type: 'FeatureCollection' as const,
+      features: [{
+        ...circle,
+        properties: { ...circle.properties, originId: origin.id },
+      }],
+    };
+  }, [activity, selectedOriginId]);
 }

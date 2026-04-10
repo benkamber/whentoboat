@@ -4,6 +4,7 @@ import { type MutableRefObject, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { sfBay } from '@/data/cities/sf-bay';
 import { MapErrorBoundary } from './MapErrorBoundary';
+import { ConditionsChip } from './ConditionsChip';
 import {
   routeLineLayer,
   approxRouteLineLayer,
@@ -23,6 +24,8 @@ import {
   zoneOverlayBorderLayer,
   zoneOverlayLabelLayer,
   windArrowLayer,
+  supRadiusFillLayer,
+  supRadiusBorderLayer,
 } from '@/lib/map-layers';
 
 // Dynamically import react-map-gl to avoid SSR issues with mapbox-gl
@@ -65,6 +68,7 @@ interface MapContainerProps {
   eventsGeoJSON: any;
   zoneOverlayGeoJSON: any;
   windArrowsGeoJSON: any;
+  supRadiusGeoJSON: any;
   showNauticalChart: boolean;
   setShowNauticalChart: (v: boolean) => void;
   showFerryRoutes: boolean;
@@ -95,6 +99,7 @@ export function MapContainer({
   eventsGeoJSON,
   zoneOverlayGeoJSON,
   windArrowsGeoJSON,
+  supRadiusGeoJSON,
   showNauticalChart,
   setShowNauticalChart,
   showFerryRoutes,
@@ -166,7 +171,7 @@ export function MapContainer({
               <NavigationControl position="bottom-right" />
 
               {/* Map layer toggle buttons */}
-              <div className="absolute top-3 right-3 z-10 flex gap-1.5">
+              <div className="absolute top-3 right-3 z-10 flex flex-wrap gap-1.5 max-w-[280px] justify-end">
                 <button
                   onClick={() => setShowNauticalChart(!showNauticalChart)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-md transition-colors shadow-lg ${
@@ -224,6 +229,9 @@ export function MapContainer({
                   {showZones ? 'Zones ON' : 'Zones'}
                 </button>
               </div>
+
+              {/* Live conditions chip */}
+              <ConditionsChip />
 
               {/* Route comfort color legend — explains what the route line colors mean */}
               <div
@@ -302,6 +310,12 @@ export function MapContainer({
                   <Layer {...eventLabelLayer} />
                 </Source>
               )}
+
+              {/* SUP paddling radius */}
+              <Source id="sup-radius" type="geojson" data={supRadiusGeoJSON}>
+                <Layer {...supRadiusFillLayer} />
+                <Layer {...supRadiusBorderLayer} />
+              </Source>
 
               {/* Route lines */}
               <Source id="routes" type="geojson" data={routesGeoJSON}>

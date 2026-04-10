@@ -225,6 +225,40 @@ export const eventLabelLayer = {
   },
 };
 
+// SUP radius circle — shows practical paddling range around origin
+export const supRadiusLayer = {
+  id: 'sup-radius',
+  type: 'circle' as const,
+  paint: {
+    // ~2.4km radius (1.5mi) at map zoom. Mapbox 'circle-radius' is in pixels,
+    // so we use a fill layer with a GeoJSON polygon instead. This is a fallback
+    // definition; the actual radius is rendered as a polygon in useMapData.
+    'circle-radius': 1,
+    'circle-color': '#14b8a6',
+    'circle-opacity': 0,
+  },
+};
+
+export const supRadiusFillLayer = {
+  id: 'sup-radius-fill',
+  type: 'fill' as const,
+  paint: {
+    'fill-color': '#14b8a6',
+    'fill-opacity': 0.08,
+  },
+};
+
+export const supRadiusBorderLayer = {
+  id: 'sup-radius-border',
+  type: 'line' as const,
+  paint: {
+    'line-color': '#14b8a6',
+    'line-width': 2,
+    'line-opacity': 0.4,
+    'line-dasharray': [4, 4] as any,
+  },
+};
+
 // Zone comfort overlay — semi-transparent colored polygons
 export const zoneOverlayFillLayer = {
   id: 'zone-overlay-fill',

@@ -9,6 +9,7 @@ const ids = [
   'rwc', 'oyp', 'cop', 'srf', 'val', 'ben', 'ggb', 'stn', 'bol', 'pry', 'mry',
   'scz', 'bdb', 'tmb', 'pcm', 'lrk', 'hsb', 'skm',
   'cnc', 'mcn', 'fcy', 'crb', 'hdb', 'lkm',
+  'emv', 'pet',
 ] as const;
 
 // Raw distance pairs (symmetric — both directions included via matrix builder)
@@ -528,6 +529,29 @@ const raw: [string, string, number][] = [
   ['lkm', 'jls', 2],
   ['lkm', 'crb', 3],
   ['lkm', 'alm', 3],
+
+  // ══════════════════════════════════════════
+  // Emeryville Marina (east_bay)
+  ['emv', 'brk', 2],
+  ['emv', 'alm', 4],
+  ['emv', 'jls', 5],
+  ['emv', 'ang', 6],
+  ['emv', 'sau', 7],
+  ['emv', 'tib', 6],
+  ['emv', 'p39', 6],
+  ['emv', 'fbg', 6],
+  ['emv', 'clp', 4],
+  ['emv', 'ptr', 5],
+
+  // ══════════════════════════════════════════
+  // Petaluma River (san_pablo, far north)
+  ['pet', 'val', 18],
+  ['pet', 'ben', 15],
+  ['pet', 'srf', 20],
+  ['pet', 'ptr', 22],
+  ['pet', 'sau', 30],
+  ['pet', 'brk', 28],
+  ['pet', 'ang', 28],
 ];
 
 // Build symmetric distance matrix

@@ -9,6 +9,7 @@ import { getDocksForDestination } from '@/data/cities/sf-bay/docks';
 import { parseMinDepthFt } from '@/lib/depth-parse';
 import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
 import { getEventsForTrip, eventSentimentSummary } from '@/lib/event-relevance';
+import { DepartureBanner } from './DepartureBanner';
 import { track } from '@/lib/analytics';
 import type { ActivityType, VesselProfile } from '@/engine/types';
 import type { Destination } from '@/engine/types';
@@ -228,6 +229,9 @@ export function Sidebar({
 
       {/* Scrollable destination list */}
       <div className="flex-1 overflow-y-auto">
+        {/* Departure window */}
+        <DepartureBanner />
+
         {/* Saved routes */}
         <SavedRoutesSection onCardClick={onCardClick} />
 

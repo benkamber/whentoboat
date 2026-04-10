@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { sfBay } from '@/data/cities/sf-bay';
+import { guides } from '@/data/cities/sf-bay/guides';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://whentoboat.com';
@@ -66,6 +67,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'yearly',
       priority: 0.3,
     },
+    {
+      url: `${baseUrl}/guides`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    ...guides.map(g => ({
+      url: `${baseUrl}/guides/${g.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    })),
     ...destinationUrls,
   ];
 }

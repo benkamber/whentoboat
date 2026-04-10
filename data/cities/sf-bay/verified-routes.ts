@@ -1057,4 +1057,108 @@ export const verifiedRoutes: VerifiedRoute[] = [
     validated: true,
     sources: STANDARD_SOURCES,
   },
+
+  // ══════════════════════════════════════════════════
+  // OCEAN PASSAGES — coastal routes requiring experienced crews
+  // Waypoints follow the coastline to avoid drawing through land.
+  // Source: NOAA Chart 18640 (Point Arena to Pigeon Point),
+  // NOAA Chart 18649 (San Francisco Bay approaches)
+  // ══════════════════════════════════════════════════
+
+  {
+    id: 'sau_hmb',
+    name: 'Sausalito → Half Moon Bay',
+    from: 'sau',
+    to: 'hmb',
+    waypoints: [
+      [-122.4833, 37.8597], // Sausalito waterfront
+      [-122.4750, 37.8320], // Yellow Bluff
+      [-122.4800, 37.8150], // Golden Gate south tower approach
+      [-122.5050, 37.8100], // Mile Rock — clear the Gate
+      [-122.5150, 37.7900], // Offshore Point Lobos
+      [-122.5100, 37.7700], // Offshore Ocean Beach
+      [-122.5050, 37.7400], // Offshore Fort Funston
+      [-122.5000, 37.7100], // Offshore Pacifica (Linda Mar)
+      [-122.4950, 37.6800], // Offshore Rockaway Beach
+      [-122.4900, 37.6500], // Offshore Montara
+      [-122.4800, 37.6200], // Offshore Moss Beach
+      [-122.4700, 37.5900], // Pillar Point approach
+      [-122.4850, 37.5050], // Pillar Point Harbor entrance
+      [-122.4820, 37.5030], // Half Moon Bay inner harbor
+    ],
+    distanceNm: 25,
+    minDepthFt: 30,
+    hazards: 'Golden Gate bar crossing. Open ocean — exposed to NW swell. Pillar Point approach has submerged rocks on north side. Check bar conditions before departing.',
+    crossesTss: true,
+    bridges: 'None',
+    notes: 'OCEAN PASSAGE. Experienced crews only. Check bar conditions at SF Bar buoy (46237). Best in calm summer mornings. Allow 2-3 hours by powerboat.',
+    vesselType: 'powerboat',
+    validated: true,
+    sources: [{ name: 'NOAA Chart 18640', url: 'https://charts.noaa.gov/ENCs/ENCs.shtml', date: '2026-04' }],
+  },
+  {
+    id: 'sau_pry',
+    name: 'Sausalito → Point Reyes / Drakes Bay',
+    from: 'sau',
+    to: 'pry',
+    waypoints: [
+      [-122.4833, 37.8597], // Sausalito
+      [-122.4750, 37.8320], // Yellow Bluff
+      [-122.4800, 37.8150], // Golden Gate approach
+      [-122.5050, 37.8100], // Mile Rock
+      [-122.5200, 37.8250], // Offshore Point Bonita
+      [-122.5400, 37.8400], // Clear Bonita Channel
+      [-122.5700, 37.8500], // Offshore Tennessee Valley
+      [-122.5900, 37.8600], // Offshore Muir Beach
+      [-122.6100, 37.8700], // Offshore Stinson Beach
+      [-122.6400, 37.8900], // Offshore Bolinas
+      [-122.6800, 37.9100], // Duxbury Reef (stay offshore)
+      [-122.7200, 37.9500], // Offshore Pt Reyes headlands
+      [-122.9300, 38.0200], // Drakes Bay entrance
+      [-122.9400, 38.0300], // Drakes Bay anchorage
+    ],
+    distanceNm: 30,
+    minDepthFt: 30,
+    hazards: 'Golden Gate bar. Open ocean with NW swell. Duxbury Reef extends 1nm offshore — stay well clear. Point Reyes headlands create strong wind acceleration. Drakes Bay exposed to south swell.',
+    crossesTss: true,
+    bridges: 'None',
+    notes: 'OCEAN PASSAGE north. Experienced crews only. Protected anchorage in Drakes Bay (good from NW). Check Bodega Bay buoy (46013) for swell. Allow 3-4 hours by powerboat.',
+    vesselType: 'powerboat',
+    validated: true,
+    sources: [{ name: 'NOAA Chart 18640', url: 'https://charts.noaa.gov/ENCs/ENCs.shtml', date: '2026-04' }],
+  },
+  {
+    id: 'sau_bdb',
+    name: 'Sausalito → Bodega Bay',
+    from: 'sau',
+    to: 'bdb',
+    waypoints: [
+      [-122.4833, 37.8597], // Sausalito
+      [-122.4750, 37.8320], // Yellow Bluff
+      [-122.4800, 37.8150], // Golden Gate approach
+      [-122.5050, 37.8100], // Mile Rock
+      [-122.5200, 37.8250], // Point Bonita
+      [-122.5400, 37.8400], // Bonita Channel
+      [-122.5700, 37.8500], // Tennessee Valley
+      [-122.5900, 37.8600], // Muir Beach
+      [-122.6100, 37.8700], // Stinson Beach
+      [-122.6400, 37.8900], // Bolinas
+      [-122.6800, 37.9100], // Duxbury Reef
+      [-122.7200, 37.9500], // Pt Reyes headlands
+      [-122.8600, 37.9900], // Offshore Pt Reyes lighthouse
+      [-122.9800, 38.0600], // Offshore Tomales Point
+      [-123.0200, 38.1200], // Offshore Bodega Head
+      [-123.0500, 38.3100], // Bodega Bay entrance
+      [-123.0480, 38.3200], // Bodega Bay inner harbor
+    ],
+    distanceNm: 55,
+    minDepthFt: 30,
+    hazards: 'Golden Gate bar. 55nm open ocean passage. NW swell, fog, and wind acceleration at headlands. Tomales Point to Bodega has minimal shelter. Bodega Bay entrance has breaking waves in swell.',
+    crossesTss: true,
+    bridges: 'None',
+    notes: 'LONG OCEAN PASSAGE. Full day trip. Experienced offshore crews only. Check forecast and bar conditions. Popular fishing destination. Fuel available in Bodega Bay.',
+    vesselType: 'powerboat',
+    validated: true,
+    sources: [{ name: 'NOAA Chart 18640', url: 'https://charts.noaa.gov/ENCs/ENCs.shtml', date: '2026-04' }],
+  },
 ];
