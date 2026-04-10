@@ -1,12 +1,13 @@
 import type { VesselType } from '@/engine/types';
 import { verifiedRoutes } from './verified-routes';
+import { generatedRoutes } from './generated-routes';
 
 // ============================================
 // Water Route Lookup
 //
-// Routes are defined in verified-routes.ts with source attribution.
-// This file provides the lookup function used by the map renderer.
-// Only routes with validated: true are returned.
+// Priority: verified routes (hand-charted) > generated routes (auto-pathfinding)
+// Verified routes have source attribution and expert validation.
+// Generated routes use visibility-graph pathfinding against OSM coastline.
 // ============================================
 
 export interface WaterRoute {
@@ -34,18 +35,39 @@ export function getWaterRoute(
       ((r.from === fromId && r.to === toId) ||
         (r.from === toId && r.to === fromId)),
   );
-  if (!verified) return null;
+  if (verified) {
+    const isReversed = verified.from !== fromId;
+    return {
+      fromId: isReversed ? verified.to : verified.from,
+      toId: isReversed ? verified.from : verified.to,
+      vesselType: 'default',
+      waypoints: isReversed
+        ? ([...verified.waypoints].reverse() as [number, number][])
+        : verified.waypoints,
+      distance: verified.distanceNm,
+      zones: [],
+      notes: verified.notes,
+    };
+  }
 
-  const isReversed = verified.from !== fromId;
+  // Fallback: auto-generated route from visibility graph pathfinding
+  const generated = generatedRoutes.find(
+    (r) =>
+      (r.from === fromId && r.to === toId) ||
+      (r.from === toId && r.to === fromId),
+  );
+  if (!generated) return null;
+
+  const isGenReversed = generated.from !== fromId;
   return {
-    fromId: isReversed ? verified.to : verified.from,
-    toId: isReversed ? verified.from : verified.to,
+    fromId: isGenReversed ? generated.to : generated.from,
+    toId: isGenReversed ? generated.from : generated.to,
     vesselType: 'default',
-    waypoints: isReversed
-      ? ([...verified.waypoints].reverse() as [number, number][])
-      : verified.waypoints,
-    distance: verified.distanceNm,
+    waypoints: isGenReversed
+      ? ([...generated.waypoints].reverse() as [number, number][])
+      : generated.waypoints,
+    distance: generated.distanceNm,
     zones: [],
-    notes: verified.notes,
+    notes: 'Auto-generated route. Verify with nautical charts before navigating.',
   };
 }

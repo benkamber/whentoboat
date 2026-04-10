@@ -13,6 +13,7 @@
     "fetch-land": "npx tsx scripts/fetch-land-polygons.ts",
     "validate:waypoints": "npx tsx scripts/validate-waypoints.ts",
     "validate:ferry": "npx tsx scripts/validate-ferry-routes.ts",
+    "generate:routes": "npx tsx scripts/generate-water-routes.ts",
     "fix:ferry": "npx tsx scripts/fix-ferry-routes.ts"
   },
   "dependencies": {
@@ -23,11 +24,14 @@
     "mapbox-gl": "^3.20.0",
     "motion": "^12.38.0",
     "next": "16.2.1",
+    "ngraph.graph": "^20.1.2",
+    "ngraph.path": "^1.6.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-map-gl": "^8.1.0",
     "recharts": "^3.8.0",
     "serwist": "^9.5.7",
+    "visibility-graph.js": "^1.0.0",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
