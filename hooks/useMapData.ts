@@ -128,11 +128,11 @@ export function useRouteGeoJSON(
         coordinates = waterRoute.waypoints.map(wp => [wp[0], wp[1]]);
         distanceMi = waterRoute.distance;
       } else {
-        // Straight-line approximate connection — only for short distances
-        // where the line is unlikely to cross land. Long-range routes without
+        // Straight-line approximate connection — only for Bay-range distances
+        // where the line stays over water. Ocean routes (>25mi) without
         // validated waypoints would draw through peninsulas and headlands.
         const straightDist = Math.round(haversineDistanceMi(fromDest.lat, fromDest.lng, toDest.lat, toDest.lng) * 10) / 10;
-        if (straightDist > 10) continue; // Skip — would draw through land
+        if (straightDist > 25) continue; // Skip — would draw through land
         coordinates = [[fromDest.lng, fromDest.lat], [toDest.lng, toDest.lat]];
         distanceMi = straightDist;
         isApproximate = true;
