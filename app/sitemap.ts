@@ -79,6 +79,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly' as const,
       priority: 0.7,
     })),
+    ...sfBay.destinations
+      .filter(d => d.launchRamp != null || d.activityTags.length > 0)
+      .map(d => ({
+        url: `${baseUrl}/location/sf-bay/${d.id}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.8,
+      })),
     ...destinationUrls,
   ];
 }
