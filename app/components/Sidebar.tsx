@@ -10,6 +10,7 @@ import { parseMinDepthFt } from '@/lib/depth-parse';
 import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
 import { getEventsForTrip, eventSentimentSummary } from '@/lib/event-relevance';
 import { DepartureBanner } from './DepartureBanner';
+import { ShouldIGo } from './ShouldIGo';
 import { track } from '@/lib/analytics';
 import type { ActivityType, VesselProfile } from '@/engine/types';
 import type { Destination } from '@/engine/types';
@@ -231,6 +232,9 @@ export function Sidebar({
 
       {/* Scrollable destination list */}
       <div className="flex-1 overflow-y-auto">
+        {/* Should I Go? — live conditions verdict + tide chart */}
+        <ShouldIGo />
+
         {/* Marine weather alerts */}
         <AlertBanner />
 
