@@ -164,9 +164,9 @@ export function useRouteGeoJSON(
           toName: toDest.name,
           color: isSelected ? '#f59e0b' : tierColor,
           opacity: isApproximate
-            ? (hasSelection ? (isSelected ? 0.85 : 0.2) : 0.45)
-            : (hasSelection ? (isSelected ? 0.9 : 0.18) : 0.7),
-          lineWidth: isApproximate ? 1.5 : (isSelected ? 4 : 2.5),
+            ? (hasSelection ? (isSelected ? 1 : 0.15) : 0.4)
+            : (hasSelection ? (isSelected ? 1 : 0.12) : 0.65),
+          lineWidth: isApproximate ? 1.5 : (isSelected ? 6 : 2.5),
           isApproximate,
           comfort: tier,
           distance: Math.round(distanceMi * 10) / 10,

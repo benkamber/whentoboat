@@ -7,13 +7,12 @@ export const routeLineLayer = {
   filter: ['!=', ['get', 'isApproximate'], true] as any,
   layout: {
     'line-join': 'round' as const,
-    'line-cap': 'butt' as const,
+    'line-cap': 'round' as const,
   },
   paint: {
     'line-color': ['get', 'color'] as any,
     'line-width': ['get', 'lineWidth'] as any,
     'line-opacity': ['get', 'opacity'] as any,
-    'line-dasharray': [2, 2] as any,
   },
 };
 
