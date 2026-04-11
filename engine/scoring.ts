@@ -209,22 +209,27 @@ export function fullConditionsScore(
 
   // 1c. Gust factor — gusts are what capsize kayaks and slam passengers.
   // A 12kt sustained wind with 25kt gusts is fundamentally different from steady 12kt.
+  // IMPORTANT: Only penalize when gusts are actually dangerous in absolute terms,
+  // not just when the ratio is high at low wind speeds (4kt sustained / 12kt gust
+  // is a 3x ratio but harmless for a powerboat).
   let gustPenalty = 0;
   if (conditions.windGustKts && conditions.windKts > 0) {
     const gustRatio = conditions.windGustKts / conditions.windKts;
-    if (gustRatio > 2.0) {
+    const gustAbs = conditions.windGustKts;
+    // Only penalize if gusts exceed the activity's comfort threshold
+    if (gustRatio > 2.0 && gustAbs > activity.maxWind * 0.75) {
       gustPenalty = -2;
       factors.push({
         factor: 'Very gusty conditions',
         severity: 'high',
-        description: `Gusts to ${Math.round(conditions.windGustKts)}kt (${gustRatio.toFixed(1)}x sustained). Sudden gusts can capsize small craft and make conditions unpredictable.`,
+        description: `Gusts to ${Math.round(gustAbs)}kt (${gustRatio.toFixed(1)}x sustained). Sudden gusts can make conditions unpredictable.`,
       });
-    } else if (gustRatio > 1.5 && conditions.windGustKts > 10) {
+    } else if (gustRatio > 1.5 && gustAbs > activity.maxWind * 0.65) {
       gustPenalty = -1;
       factors.push({
         factor: 'Gusty conditions',
         severity: 'medium',
-        description: `Gusts to ${Math.round(conditions.windGustKts)}kt (${gustRatio.toFixed(1)}x sustained). Conditions may feel rougher than the average wind suggests.`,
+        description: `Gusts to ${Math.round(gustAbs)}kt (${gustRatio.toFixed(1)}x sustained). Conditions may feel rougher than the average wind suggests.`,
       });
     }
   }

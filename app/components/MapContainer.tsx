@@ -236,25 +236,29 @@ export function MapContainer({
               {/* Live conditions chip */}
               <ConditionsChip />
 
-              {/* Route comfort color legend — explains what the route line colors mean */}
+              {/* Destination marker legend */}
               <div
                 className="absolute bottom-4 left-3 z-10 bg-ocean-900/85 backdrop-blur-md border border-ocean-700/50 rounded-lg px-3 py-2 text-2xs text-ocean-100 space-y-1 shadow-lg pointer-events-none"
-                aria-label="Route color legend"
+                aria-label="Marker color legend"
               >
                 <div className="text-2xs font-semibold uppercase tracking-wider text-ocean-300 mb-1">
-                  Conditions
+                  Destinations
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-block w-4 h-0.5 bg-[#10b981]" aria-hidden="true" />
-                  Looks good
+                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#10b981]" aria-hidden="true" />
+                  Nearby
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-block w-4 h-0.5 bg-[#f59e0b]" aria-hidden="true" />
-                  Check conditions
+                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#f59e0b]" aria-hidden="true" />
+                  Moderate distance
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-block w-4 h-0.5 bg-[#ef4444]" aria-hidden="true" />
-                  Not recommended
+                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#6b7280]" aria-hidden="true" />
+                  Far
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-block w-3.5 h-3.5 rounded-full bg-[#3b82f6] border-2 border-white" aria-hidden="true" />
+                  Your origin
                 </div>
               </div>
 

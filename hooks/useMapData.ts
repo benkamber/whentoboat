@@ -1,13 +1,10 @@
 import { useMemo } from 'react';
 import * as turf from '@turf/turf';
 import { sfBay } from '@/data/cities/sf-bay';
-import { getWaterRoute } from '@/data/cities/sf-bay/water-routes';
 import { hazards } from '@/data/cities/sf-bay/hazards';
 import { getActivity } from '@/data/activities';
-import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
 import { getEventsForTrip } from '@/lib/event-relevance';
 import { haversineDistanceMi } from '@/engine/scoring';
-import { routeComfort, COMFORT_COLORS } from '@/lib/route-comfort';
 import type { ActivityType, VesselProfile } from '@/engine/types';
 
 /**
@@ -63,8 +60,10 @@ export function useDestinationGeoJSON(
 }
 
 /**
- * Generate GeoJSON for route lines between destinations.
- * Static version — fixed teal color, no scoring.
+ * Route lines are disabled — destinations show as colored markers only.
+ * Ferry routes and shipping lanes are shown via separate overlays.
+ * Route lines were removed because auto-generated paths sometimes cross
+ * land, creating a misleading visual that implies navigable water routes.
  */
 export function useRouteGeoJSON(
   activity: ActivityType,
@@ -75,112 +74,17 @@ export function useRouteGeoJSON(
   selectedDestinationId?: string | null
 ) {
   return useMemo(() => {
-    const features: GeoJSON.Feature[] = [];
-    const origin = selectedOriginId
-      ? sfBay.destinations.find((d) => d.id === selectedOriginId)
-      : null;
-
-    // Only show route lines from the selected origin
-    const pairs: [string, string][] = [];
-    const currentActivity = getActivity(activity);
-
-    if (origin) {
-      for (const dest of sfBay.destinations) {
-        if (dest.id === origin.id) continue;
-        if (!dest.activityTags.includes(activity)) continue;
-        const key = `${origin.id}-${dest.id}`;
-        const revKey = `${dest.id}-${origin.id}`;
-        if (sfBay.distances[key] === undefined && sfBay.distances[revKey] === undefined) continue;
-
-        // Enforce max range for human-powered craft
-        if (currentActivity.maxRangeRoundTripMi !== null) {
-          const matrixDist = sfBay.distances[key] ?? sfBay.distances[revKey];
-          const distance = matrixDist ?? Math.round(haversineDistanceMi(origin.lat, origin.lng, dest.lat, dest.lng) * 10) / 10;
-          if (distance * 2 > currentActivity.maxRangeRoundTripMi) continue;
-        }
-
-        // Activities that cannot cross shipping lanes (kayak, SUP)
-        if (!currentActivity.requiresOpenWaterCrossing) {
-          const vr = verifiedRoutes.find(r =>
-            (r.from === origin.id && r.to === dest.id) ||
-            (r.to === origin.id && r.from === dest.id)
-          );
-          if (vr?.crossesTss) continue;
-          // No verified route to check — conservatively assume TSS crossing for human-powered craft
-          if (!vr) continue;
-        }
-
-        pairs.push([origin.id, dest.id]);
-      }
-    }
-
-    for (const [fromId, toId] of pairs) {
-      const fromDest = sfBay.destinations.find((d) => d.id === fromId);
-      const toDest = sfBay.destinations.find((d) => d.id === toId);
-      if (!fromDest || !toDest) continue;
-
-      // Use validated water route waypoints, or fall back to straight-line approximation
-      const waterRoute = getWaterRoute(fromId, toId, vessel.type);
-      let coordinates: number[][];
-      let distanceMi: number;
-      let isApproximate = false;
-
-      if (waterRoute) {
-        coordinates = waterRoute.waypoints.map(wp => [wp[0], wp[1]]);
-        distanceMi = waterRoute.distance;
-      } else {
-        // Straight-line fallback — safe within the Bay, dangerous across land.
-        // If either endpoint is an ocean zone, the line would cross the
-        // Peninsula or Marin headlands. Require validated waypoints for those.
-        const fromOcean = fromDest.zone.startsWith('ocean');
-        const toOcean = toDest.zone.startsWith('ocean');
-        if (fromOcean || toOcean) continue; // Would draw through land
-
-        coordinates = [[fromDest.lng, fromDest.lat], [toDest.lng, toDest.lat]];
-        distanceMi = Math.round(haversineDistanceMi(fromDest.lat, fromDest.lng, toDest.lat, toDest.lng) * 10) / 10;
-        isApproximate = true;
-      }
-
-      const isSelected = selectedDestinationId === toId;
-      const hasSelection = !!selectedDestinationId;
-
-      const transitMinutes = vessel.cruiseSpeed > 0 ? Math.round((distanceMi / vessel.cruiseSpeed) * 60) : 0;
-
-      // Comfort-tier color lets users eyeball plausibility at a glance,
-      // especially for approximate routes with no validated waypoints.
-      const tier = routeComfort(distanceMi, vessel, currentActivity, toDest.minDepth);
-      const tierColor = COMFORT_COLORS[tier];
-
-      features.push({
-        type: 'Feature',
-        geometry: {
-          type: 'LineString',
-          coordinates,
-        },
-        properties: {
-          fromId,
-          toId,
-          fromName: fromDest.name,
-          toName: toDest.name,
-          color: isSelected ? '#f59e0b' : tierColor,
-          opacity: isApproximate
-            ? (hasSelection ? (isSelected ? 1 : 0.15) : 0.4)
-            : (hasSelection ? (isSelected ? 1 : 0.12) : 0.65),
-          lineWidth: isApproximate ? 1.5 : (isSelected ? 6 : 2.5),
-          isApproximate,
-          comfort: tier,
-          distance: Math.round(distanceMi * 10) / 10,
-          transitMinutes,
-        },
-      });
-    }
-
+    // Route lines disabled — show only destination markers with colors.
+    // Ferry/shipping routes shown separately via ferryGeoJSON overlay.
     return {
       type: 'FeatureCollection' as const,
-      features,
+      features: [] as GeoJSON.Feature[],
     };
   }, [activity, month, hour, vessel, selectedOriginId, selectedDestinationId]);
 }
+
+// Route lines removed — destinations show as colored markers only.
+// Ferry/shipping routes remain as separate map overlays.
 
 /**
  * Generate GeoJSON for navigation hazard markers.
