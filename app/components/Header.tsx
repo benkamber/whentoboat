@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { EmergencyButton } from './EmergencyPanel';
 
 const PRIMARY_LINKS = [
   { href: '/', label: 'Home' },
@@ -53,6 +54,9 @@ export function Header() {
             />
           ))}
         </nav>
+
+        {/* Emergency SOS button — always visible */}
+        <EmergencyButton />
 
         {/* Mobile hamburger */}
         <button

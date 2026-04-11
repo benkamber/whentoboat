@@ -8,6 +8,7 @@ import { getActivity } from '@/data/activities';
 import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
 import { useDestinationGeoJSON, useRouteGeoJSON, useHazardGeoJSON, useEventGeoJSON, useSupRadiusGeoJSON } from '@/hooks/useMapData';
 import { useZoneOverlayGeoJSON, useWindArrowsGeoJSON } from '@/hooks/useZoneOverlayGeoJSON';
+import { useCurrentFlowGeoJSON } from '@/hooks/useCurrentFlowGeoJSON';
 import { ferryRoutesGeoJSON } from '@/data/geo/sf-bay-ferry-routes';
 import { routeComfort, type ComfortTier } from '@/lib/route-comfort';
 import { routeDifficulty, type DifficultyRating } from '@/lib/route-difficulty';
@@ -17,6 +18,7 @@ import { TrajectoryPanel } from './components/TrajectoryPanel';
 import { Onboarding } from './components/Onboarding';
 import { Sidebar } from './components/Sidebar';
 import { MapContainer } from './components/MapContainer';
+import { ComparePanel } from './components/ComparePanel';
 import type { Destination } from '@/engine/types';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -51,6 +53,7 @@ export default function Home() {
   const [popup, setPopup] = useState<PopupInfo | null>(null);
   const [cursor, setCursor] = useState('auto');
   const [trajectoryRoute, setTrajectoryRoute] = useState<{ originId: string; destId: string } | null>(null);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
   const [hoveredDestId, setHoveredDestId] = useState<string | null>(null);
   const [selectedDestId, setSelectedDestId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -163,6 +166,7 @@ export default function Home() {
   const zoneOverlayGeoJSON = useZoneOverlayGeoJSON();
   const windArrowsGeoJSON = useWindArrowsGeoJSON();
   const supRadiusGeoJSON = useSupRadiusGeoJSON(activity, homeBaseId);
+  const currentFlowGeoJSON = useCurrentFlowGeoJSON();
 
   // --- Map callbacks ---
 
@@ -348,6 +352,14 @@ export default function Home() {
           hideShallow={hideShallow}
           setHideShallow={setHideShallow}
           sidebarOpen={sidebarOpen}
+          compareIds={compareIds}
+          onCompareToggle={(destId) => {
+            setCompareIds(prev =>
+              prev.includes(destId)
+                ? prev.filter(id => id !== destId)
+                : prev.length >= 3 ? prev : [...prev, destId]
+            );
+          }}
         />
 
         <MapContainer
@@ -360,6 +372,7 @@ export default function Home() {
           zoneOverlayGeoJSON={zoneOverlayGeoJSON}
           windArrowsGeoJSON={windArrowsGeoJSON}
           supRadiusGeoJSON={supRadiusGeoJSON}
+          currentFlowGeoJSON={currentFlowGeoJSON}
           showNauticalChart={showNauticalChart}
           setShowNauticalChart={setShowNauticalChart}
           showFerryRoutes={showFerryRoutes}
@@ -391,6 +404,15 @@ export default function Home() {
             setTrajectoryRoute(null);
             setSelectedDestId(null);
           }}
+        />
+      )}
+
+      {/* Destination comparison panel */}
+      {compareIds.length >= 2 && (
+        <ComparePanel
+          destIds={compareIds}
+          originId={homeBaseId}
+          onClose={() => setCompareIds([])}
         />
       )}
 

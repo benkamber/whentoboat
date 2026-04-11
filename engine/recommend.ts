@@ -60,6 +60,8 @@ export function recommendActivities(
       sup: 'sup',
       powerboat_cruise: 'powerboat',
       casual_sail: 'sailboat',
+      fishing_boat: 'powerboat',
+      fishing_kayak: 'kayak',
     };
     const vessel = vesselPresets.find(v => v.type === vesselMap[activity.id]) ?? vesselPresets[0];
 
@@ -216,6 +218,18 @@ function generateWhyThisActivity(
       if (bestScore >= 6) return 'Decent wind but may be gusty — reef early';
       if (bestScore <= 3) return 'Too little wind to sail, or too much for casual crew';
       return 'Variable conditions — check specific routes';
+
+    case 'fishing_boat':
+      if (bestScore >= 8) return 'Great fishing conditions — favorable tide and pressure';
+      if (bestScore >= 6) return 'Fishable conditions — check tide timing';
+      if (bestScore <= 3) return 'Rough conditions — fish from shore or wait for better weather';
+      return 'Mixed signals — check tide phase and pressure trend';
+
+    case 'fishing_kayak':
+      if (bestScore >= 8) return 'Perfect kayak fishing — calm water and active fish';
+      if (bestScore >= 6) return 'Fishable from kayak — watch the wind';
+      if (bestScore <= 3) return 'Too rough for kayak fishing — try from shore';
+      return 'Marginal — stay in sheltered flats';
 
     default:
       return '';

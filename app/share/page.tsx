@@ -66,7 +66,7 @@ export default async function SharePage({
   const dest = sfBay.destinations.find(d => d.id === destId);
   const origin = sfBay.destinations.find(d => d.id === originId);
   const act = getActivity(activity);
-  const vesselMap: Record<string, string> = { kayak: 'kayak', sup: 'sup', powerboat_cruise: 'powerboat', casual_sail: 'sailboat' };
+  const vesselMap: Record<string, string> = { kayak: 'kayak', sup: 'sup', powerboat_cruise: 'powerboat', casual_sail: 'sailboat', fishing_boat: 'powerboat', fishing_kayak: 'kayak' };
   const vessel = vesselPresets.find(v => v.type === (vesselMap[activity] ?? 'kayak')) ?? vesselPresets[0];
 
   let score = 7;

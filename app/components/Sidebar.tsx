@@ -11,6 +11,7 @@ import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
 import { getEventsForTrip, eventSentimentSummary } from '@/lib/event-relevance';
 import { DepartureBanner } from './DepartureBanner';
 import { ShouldIGo } from './ShouldIGo';
+import { WeeklyOutlook } from './WeeklyOutlook';
 import { track } from '@/lib/analytics';
 import type { ActivityType, VesselProfile } from '@/engine/types';
 import type { Destination } from '@/engine/types';
@@ -44,6 +45,8 @@ interface SidebarProps {
   hideShallow: boolean;
   setHideShallow: (v: boolean) => void;
   sidebarOpen: boolean;
+  compareIds: string[];
+  onCompareToggle: (destId: string) => void;
 }
 
 export function Sidebar({
@@ -60,6 +63,8 @@ export function Sidebar({
   hideShallow,
   setHideShallow,
   sidebarOpen,
+  compareIds,
+  onCompareToggle,
 }: SidebarProps) {
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const originSelectRef = useRef<HTMLSelectElement>(null);
@@ -235,6 +240,9 @@ export function Sidebar({
         {/* Should I Go? — live conditions verdict + tide chart */}
         <ShouldIGo />
 
+        {/* 7-day outlook */}
+        <WeeklyOutlook />
+
         {/* Marine weather alerts */}
         <AlertBanner />
 
@@ -295,6 +303,19 @@ export function Sidebar({
                     {i + 1}
                   </span>
 
+                  {/* Compare toggle */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onCompareToggle(route.destinationId); }}
+                    className={`shrink-0 w-5 h-5 rounded border text-2xs font-bold transition-colors ${
+                      compareIds.includes(route.destinationId)
+                        ? 'bg-compass-gold border-compass-gold text-ocean-900'
+                        : 'border-[var(--border)] text-[var(--muted)] hover:border-compass-gold/50'
+                    }`}
+                    title={compareIds.includes(route.destinationId) ? 'Remove from comparison' : 'Add to comparison'}
+                  >
+                    {compareIds.includes(route.destinationId) ? '✓' : '+'}
+                  </button>
+
                   {/* Destination info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -319,7 +340,7 @@ export function Sidebar({
                         // Conditions multiplier: paddlers face wind/current swing
                         // hardest, sailboats next, powerboats least.
                         const mult =
-                          activity === 'kayak' || activity === 'sup' ? 1.8
+                          activity === 'kayak' || activity === 'sup' || activity === 'fishing_kayak' ? 1.8
                           : activity === 'casual_sail' ? 1.5
                           : 1.3;
                         const low = route.transitMinutes;

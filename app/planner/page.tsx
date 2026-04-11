@@ -44,6 +44,8 @@ const ACTIVITY_MATCH: Record<ActivityType, string[]> = {
   sup: ['sup'],
   powerboat_cruise: ['powerboat'],
   casual_sail: ['sail'],
+  fishing_boat: ['fish', 'powerboat'],
+  fishing_kayak: ['fish', 'kayak'],
 };
 
 function activityMatchesPlan(actId: ActivityType, planActivity: string): boolean {

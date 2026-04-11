@@ -13,7 +13,7 @@ export interface Source {
 
 // --- Activity ---
 
-export type ActivityType = 'kayak' | 'sup' | 'powerboat_cruise' | 'casual_sail';
+export type ActivityType = 'kayak' | 'sup' | 'powerboat_cruise' | 'casual_sail' | 'fishing_boat' | 'fishing_kayak';
 
 export interface ActivityProfile {
   id: ActivityType;

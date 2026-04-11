@@ -24,6 +24,7 @@ import {
   zoneOverlayBorderLayer,
   zoneOverlayLabelLayer,
   windArrowLayer,
+  currentFlowLayer,
   supRadiusFillLayer,
   supRadiusBorderLayer,
 } from '@/lib/map-layers';
@@ -69,6 +70,7 @@ interface MapContainerProps {
   zoneOverlayGeoJSON: any;
   windArrowsGeoJSON: any;
   supRadiusGeoJSON: any;
+  currentFlowGeoJSON: any;
   showNauticalChart: boolean;
   setShowNauticalChart: (v: boolean) => void;
   showFerryRoutes: boolean;
@@ -100,6 +102,7 @@ export function MapContainer({
   zoneOverlayGeoJSON,
   windArrowsGeoJSON,
   supRadiusGeoJSON,
+  currentFlowGeoJSON,
   showNauticalChart,
   setShowNauticalChart,
   showFerryRoutes,
@@ -299,6 +302,9 @@ export function MapContainer({
                   </Source>
                   <Source id="wind-arrows" type="geojson" data={windArrowsGeoJSON}>
                     <Layer {...windArrowLayer} />
+                  </Source>
+                  <Source id="current-flow" type="geojson" data={currentFlowGeoJSON}>
+                    <Layer {...currentFlowLayer} />
                   </Source>
                 </>
               )}

@@ -58,6 +58,8 @@ export const useAppStore = create<AppState>()(
           sup: 'sup',
           powerboat_cruise: 'powerboat',
           casual_sail: 'sailboat',
+          fishing_boat: 'powerboat',
+          fishing_kayak: 'kayak',
         };
         const vesselType = vesselMap[activity];
         const preset = vesselPresets.find((v) => v.type === vesselType);

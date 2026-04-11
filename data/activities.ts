@@ -201,6 +201,55 @@ export const activities: ActivityProfile[] = [
     notes:
       'Too little wind is boring. Too much is stressful. Sweet spot is 8-15 kts.',
   },
+  {
+    id: 'fishing_boat',
+    name: 'Boat Fishing',
+    description:
+      'Fishing from a powerboat — trolling, drifting, or anchored. Higher wind tolerance than cruising. Tide phase and barometric pressure heavily influence fish activity.',
+    icon: '🎣',
+    idealWindRange: [0, 12],
+    maxWind: 22,
+    maxWave: 4.0,
+    vesselType: 'powerboat',
+    preferredZoneTypes: ['open', 'moderate'],
+    maxShoreDistanceM: null,
+    maxRangeRoundTripMi: null,
+    requiresOpenWaterCrossing: true,
+    beforeYouGo: [
+      { text: 'Check CDFW regulations — seasons and limits change annually', url: 'https://wildlife.ca.gov/fishing', activityTypes: ['fishing_boat', 'fishing_kayak'] },
+      { text: 'Verify tide times — incoming tide is best for most Bay species', url: 'https://tidesandcurrents.noaa.gov/noaatidepredictions.html?id=9414290', activityTypes: ['fishing_boat', 'fishing_kayak'] },
+      { text: 'File a float plan and tell someone where you are going', url: 'https://www.uscgboating.org/recreational-boaters/floating-plan.php', activityTypes: 'all' },
+      { text: 'Check marine forecast for wind and small craft advisories', url: 'https://www.weather.gov/mtr/MarineProducts', activityTypes: 'all' },
+      { text: 'Carry required safety equipment: PFDs, flares, fire extinguisher, VHF radio', url: null, activityTypes: 'all' },
+    ],
+    notes:
+      'A fisherman\'s best day is often a boater\'s worst — overcast, falling pressure, moderate chop. Tide phase matters more than wind.',
+  },
+  {
+    id: 'fishing_kayak',
+    name: 'Kayak Fishing',
+    description:
+      'Fishing from a kayak — drift fishing in sheltered flats and nearshore areas. All kayak safety rules apply plus fishing-specific hazards.',
+    icon: '🎣🛶',
+    idealWindRange: [0, 8],
+    maxWind: 12,
+    maxWave: 1.0,
+    vesselType: 'kayak',
+    preferredZoneTypes: ['sheltered', 'protected'],
+    maxShoreDistanceM: null,
+    maxRangeRoundTripMi: 10,
+    requiresOpenWaterCrossing: false,
+    beforeYouGo: [
+      { text: 'Check CDFW regulations — seasons and limits change annually', url: 'https://wildlife.ca.gov/fishing', activityTypes: ['fishing_boat', 'fishing_kayak'] },
+      { text: 'Verify tide times — incoming tide is best for most Bay species', url: 'https://tidesandcurrents.noaa.gov/noaatidepredictions.html?id=9414290', activityTypes: ['fishing_boat', 'fishing_kayak'] },
+      { text: 'Secure all fishing gear — loose rods and tackle are capsizing hazards', url: null, activityTypes: ['fishing_kayak'] },
+      { text: 'Wear a PFD at all times — fighting a fish from a kayak can capsize you', url: null, activityTypes: ['fishing_kayak'] },
+      { text: 'File a float plan and tell someone where you are going', url: 'https://www.uscgboating.org/recreational-boaters/floating-plan.php', activityTypes: 'all' },
+      { text: 'Check marine forecast for wind and small craft advisories', url: 'https://www.weather.gov/mtr/MarineProducts', activityTypes: 'all' },
+    ],
+    notes:
+      'Kayak fishing combines all kayaking risks with fishing hazards. Stay in sheltered flats — Berkeley Flats, Alameda Wall, Richardson Bay for leopard sharks.',
+  },
 ];
 
 export function getActivity(id: ActivityType): ActivityProfile {

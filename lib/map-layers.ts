@@ -259,6 +259,30 @@ export const supRadiusBorderLayer = {
   },
 };
 
+// Current flow indicators at NOAA stations
+export const currentFlowLayer = {
+  id: 'current-flow',
+  type: 'symbol' as const,
+  layout: {
+    'icon-image': 'arrow',
+    'icon-size': 1.0,
+    'icon-rotate': ['get', 'rotation'] as any,
+    'icon-allow-overlap': true,
+    'icon-rotation-alignment': 'map' as const,
+    'text-field': ['get', 'label'] as any,
+    'text-size': 10,
+    'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+    'text-offset': [0, 2.0] as any,
+    'text-allow-overlap': true,
+  },
+  paint: {
+    'icon-color': ['get', 'color'] as any,
+    'text-color': ['get', 'color'] as any,
+    'text-halo-color': '#0a1628',
+    'text-halo-width': 1.5,
+  },
+};
+
 // Zone comfort overlay — semi-transparent colored polygons
 export const zoneOverlayFillLayer = {
   id: 'zone-overlay-fill',
