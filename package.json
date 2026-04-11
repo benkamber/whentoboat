@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 3000",
     "prebuild": "npm run validate:waypoints && npm run validate:ferry",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",

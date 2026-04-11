@@ -88,7 +88,7 @@ function main() {
   let fixedCount = 0;
   const routeFixes: Map<string, [number, number][]> = new Map();
 
-  for (const route of verifiedRoutes) {
+  for (const route of verifiedRoutes.filter(r => r.validated)) {
     const issues: string[] = [];
     const fixedWaypoints = [...route.waypoints.map(wp => [...wp] as [number, number])];
 

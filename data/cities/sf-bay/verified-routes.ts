@@ -1093,7 +1093,7 @@ export const verifiedRoutes: VerifiedRoute[] = [
     bridges: 'None',
     notes: 'OCEAN PASSAGE. Experienced crews only. Check bar conditions at SF Bar buoy (46237). Best in calm summer mornings. Allow 2-3 hours by powerboat.',
     vesselType: 'powerboat',
-    validated: true,
+    validated: false,
     sources: [{ name: 'NOAA Chart 18640', url: 'https://charts.noaa.gov/ENCs/ENCs.shtml', date: '2026-04' }],
   },
   {
@@ -1124,7 +1124,7 @@ export const verifiedRoutes: VerifiedRoute[] = [
     bridges: 'None',
     notes: 'OCEAN PASSAGE north. Experienced crews only. Protected anchorage in Drakes Bay (good from NW). Check Bodega Bay buoy (46013) for swell. Allow 3-4 hours by powerboat.',
     vesselType: 'powerboat',
-    validated: true,
+    validated: false,
     sources: [{ name: 'NOAA Chart 18640', url: 'https://charts.noaa.gov/ENCs/ENCs.shtml', date: '2026-04' }],
   },
   {
@@ -1158,7 +1158,7 @@ export const verifiedRoutes: VerifiedRoute[] = [
     bridges: 'None',
     notes: 'LONG OCEAN PASSAGE. Full day trip. Experienced offshore crews only. Check forecast and bar conditions. Popular fishing destination. Fuel available in Bodega Bay.',
     vesselType: 'powerboat',
-    validated: true,
+    validated: false,
     sources: [{ name: 'NOAA Chart 18640', url: 'https://charts.noaa.gov/ENCs/ENCs.shtml', date: '2026-04' }],
   },
 ];
