@@ -13,6 +13,7 @@ import { parseMinBridgeClearanceFt } from '@/lib/bridge-parse';
 import { getCurrentTimingForRoute } from '@/data/cities/sf-bay/current-timing';
 import { track } from '@/lib/analytics';
 import { routeComfort, type ComfortTier } from '@/lib/route-comfort';
+import { comfortToConditionTier, getTierInfo } from '@/lib/condition-tier';
 import { getEventsForTrip } from '@/lib/event-relevance';
 import { Term } from './Term';
 import type { Source } from '@/engine/types';
@@ -41,12 +42,6 @@ function BookmarkButton({ originId, destinationId }: { originId: string; destina
 }
 
 type TabId = 'route' | 'conditions' | 'checklist';
-
-const VERDICT: Record<ComfortTier, { emoji: string; label: string; tone: string }> = {
-  comfortable: { emoji: '✅', label: 'Comfortable trip',           tone: 'text-emerald-400' },
-  marginal:    { emoji: '⚠️', label: 'Marginal — watch conditions', tone: 'text-amber-400'   },
-  challenging: { emoji: '🛑', label: 'Challenging — expert only',   tone: 'text-red-400'     },
-};
 
 interface TrajectoryPanelProps {
   originId: string;
@@ -152,7 +147,8 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
   if (!routeInfo) return null;
 
   const { origin, destination, verified, distanceMi, transitMinutes, fuelGallons, dockList, beforeYouGo, verifyLinks, comfort } = routeInfo;
-  const verdict = VERDICT[comfort];
+  const conditionTier = comfortToConditionTier(comfort);
+  const verdict = getTierInfo(conditionTier);
 
   // Top warning: pick the highest-severity message that applies, in order
   // of importance, so the verdict line tells the user what to actually worry
@@ -263,8 +259,8 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
 
         {/* Verdict block */}
         <div className="px-4 pt-3 pb-3">
-          <div className={`flex items-center gap-2 text-base font-semibold ${verdict.tone}`}>
-            <span aria-hidden="true">{verdict.emoji}</span>
+          <div className={`flex items-center gap-2 text-base font-semibold ${verdict.textClass}`}>
+            <span aria-hidden="true">{verdict.icon}</span>
             <span>{verdict.label}</span>
           </div>
           <div className="text-sm text-[var(--secondary)] mt-1">
@@ -772,7 +768,10 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
 
         {/* Data source footer — visible across all tabs */}
         <p className="text-2xs text-[var(--muted)] text-center pb-4 leading-relaxed">
-          Route data from NOAA charts and US Coast Pilot. Not a real-time forecast.
+          Forecast conditions — actual conditions can change rapidly. Not for navigation.
+          Always verify with{' '}
+          <a href="https://www.weather.gov/marine" target="_blank" rel="noopener noreferrer" className="underline">weather.gov/marine</a>{' '}
+          before departure. Wind forecasts may underestimate peak conditions.
         </p>
       </div>
     </div>

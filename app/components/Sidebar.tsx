@@ -15,6 +15,8 @@ import type { ActivityType, VesselProfile } from '@/engine/types';
 import type { Destination } from '@/engine/types';
 import type { ComfortTier } from '@/lib/route-comfort';
 import type { DifficultyRating } from '@/lib/route-difficulty';
+import { difficultyToConditionTier, getTierInfo } from '@/lib/condition-tier';
+import { useMarineAlerts } from '@/hooks/useMarineAlerts';
 
 interface SimplifiedRoute {
   dest: Destination;
@@ -229,6 +231,9 @@ export function Sidebar({
 
       {/* Scrollable destination list */}
       <div className="flex-1 overflow-y-auto">
+        {/* Marine weather alerts */}
+        <AlertBanner />
+
         {/* Departure window */}
         <DepartureBanner />
 
@@ -292,13 +297,18 @@ export function Sidebar({
                       <h3 className="text-sm font-semibold truncate">
                         {route.dest.name}
                       </h3>
-                      <span
-                        className="shrink-0 px-1.5 py-0.5 rounded text-2xs font-semibold"
-                        style={{ backgroundColor: `${route.difficulty.color}20`, color: route.difficulty.color }}
-                        title={route.difficulty.reason}
-                      >
-                        {route.difficulty.label}
-                      </span>
+                      {(() => {
+                        const tier = difficultyToConditionTier(route.difficulty.level);
+                        const info = getTierInfo(tier);
+                        return (
+                          <span
+                            className={`shrink-0 px-1.5 py-0.5 rounded text-2xs font-semibold border ${info.bgClass} ${info.borderClass} ${info.textClass}`}
+                            title={route.difficulty.reason}
+                          >
+                            {info.label}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <div className="text-2xs text-[var(--muted)]">
                       {(() => {
@@ -437,6 +447,31 @@ export function Sidebar({
             <a href="/terms" className="hover:text-[var(--foreground)] transition-colors">Terms</a>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function AlertBanner() {
+  const { alerts, hasActiveAlerts, hasGaleWarning, hasSmallCraftAdvisory } = useMarineAlerts();
+
+  if (!hasActiveAlerts) return null;
+
+  const isGale = hasGaleWarning;
+  const bgColor = isGale ? 'bg-danger-red/15' : 'bg-warning-amber/15';
+  const borderColor = isGale ? 'border-danger-red/40' : 'border-warning-amber/40';
+  const textColor = isGale ? 'text-danger-red' : 'text-warning-amber';
+
+  return (
+    <div className="px-2 pt-2">
+      <div className={`${bgColor} border ${borderColor} rounded-lg px-3 py-2 space-y-1`}>
+        <div className={`text-xs font-semibold ${textColor}`}>
+          {isGale ? '🛑 Gale Warning Active' : hasSmallCraftAdvisory ? '⚠️ Small Craft Advisory' : '⚠️ Marine Alert Active'}
+        </div>
+        {alerts.slice(0, 1).map((alert, i) => (
+          <p key={i} className="text-2xs text-[var(--secondary)]">{alert.headline}</p>
+        ))}
+        <a href="/conditions" className="text-2xs text-safety-blue hover:underline">View details →</a>
       </div>
     </div>
   );

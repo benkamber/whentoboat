@@ -106,3 +106,32 @@ export function getScoreLabel(score: number): string {
   if (clamped <= 8) return 'Good';
   return 'Excellent';
 }
+
+// ── Three-tier condition badge (replaces numerical scores in user-facing UI) ──
+
+import { type ConditionTier, getTierInfo } from '@/lib/condition-tier';
+
+export function TierBadge({
+  tier,
+  size = 'md',
+  showLabel = true,
+}: {
+  tier: ConditionTier;
+  size?: 'sm' | 'md' | 'lg';
+  showLabel?: boolean;
+}) {
+  const info = getTierInfo(tier);
+
+  const sizeClasses = {
+    sm: 'px-2 py-0.5 text-2xs',
+    md: 'px-2.5 py-1 text-xs',
+    lg: 'px-3.5 py-1.5 text-sm',
+  };
+
+  return (
+    <div className={`inline-flex items-center gap-1.5 rounded-lg font-medium border ${info.bgClass} ${info.borderClass} ${info.textClass} ${sizeClasses[size]}`}>
+      <span aria-hidden="true">{info.icon}</span>
+      {showLabel && <span>{info.label}</span>}
+    </div>
+  );
+}

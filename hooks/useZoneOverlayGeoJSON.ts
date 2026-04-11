@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useAppStore } from '@/store';
 import { zoneBoundaries } from '@/data/cities/sf-bay/zone-boundaries';
 import { zones } from '@/data/cities/sf-bay/zones';
+import { getConditionTier, getTierInfo } from '@/lib/condition-tier';
 
 const COMFORT_FILLS: Record<string, string> = {
   great:   '#10b981', // green — comfort 7-10
@@ -29,6 +30,8 @@ export function useZoneOverlayGeoJSON() {
       const mc = zone?.monthlyConditions[month];
       const conditions = mc ? (isAM ? mc.am : mc.pm) : null;
       const comfort = conditions?.comfort ?? 5;
+      const tier = getConditionTier(comfort);
+      const tierInfo = getTierInfo(tier);
 
       return {
         type: 'Feature' as const,
@@ -40,7 +43,8 @@ export function useZoneOverlayGeoJSON() {
           zoneId: zb.zoneId,
           zoneName: zone?.name ?? zb.zoneId,
           comfort,
-          color: comfortColor(comfort),
+          tierLabel: tierInfo.label,
+          color: tierInfo.color,
           windKts: conditions?.windKts ?? 0,
           waveHtFt: conditions?.waveHtFt ?? 0,
         },

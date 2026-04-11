@@ -11,15 +11,15 @@ export default function TermsPage() {
       <Header />
       <main className="flex-1 max-w-2xl mx-auto px-4 py-10 space-y-8">
         <h1 className="text-3xl font-bold text-compass-gold">Terms of Service</h1>
-        <p className="text-sm text-[var(--muted)]">Last updated: March 2026</p>
+        <p className="text-sm text-[var(--muted)]">Last updated: April 2026</p>
 
         <section className="space-y-4 text-sm text-[var(--secondary)] leading-relaxed">
           <h2 className="text-lg font-semibold text-[var(--foreground)]">1. Planning Tool Disclaimer</h2>
           <p>
-            WhenToBoat is a recreational planning tool that provides comfort scores and destination recommendations based on historical weather patterns, statistical models, and publicly available environmental data from the National Oceanic and Atmospheric Administration (NOAA), the National Weather Service (NWS), and other government sources.
+            WhenToBoat is a recreational planning tool that interprets publicly available environmental data from the National Oceanic and Atmospheric Administration (NOAA), the National Weather Service (NWS), and other government sources into plain-language condition assessments for recreational water activities.
           </p>
           <p>
-            <strong>WhenToBoat is NOT a real-time weather forecasting service, navigational aid, or safety authority.</strong> Comfort scores, variability ranges, and recommendations are derived from historical data and do not reflect current or predicted conditions at the time of your outing.
+            <strong>WhenToBoat is NOT a real-time weather forecasting service, navigational aid, or safety authority.</strong> Condition assessments are derived from forecast models and historical data. Wind forecasts may underestimate peak conditions, especially during afternoon thermal winds. Tidal current predictions may deviate significantly during strong wind events. Do not solely rely on WhenToBoat for trip planning decisions.
           </p>
 
           <h2 className="text-lg font-semibold text-[var(--foreground)]">2. Assumption of Risk</h2>
@@ -45,7 +45,7 @@ export default function TermsPage() {
 
           <h2 className="text-lg font-semibold text-[var(--foreground)]">4. Limitation of Liability</h2>
           <p>
-            In no event shall WhenToBoat, its creators, developers, or contributors be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from your use of or reliance on the application, including but not limited to personal injury, death, property damage, or economic loss.
+            WhenToBoat accepts no liability for any direct, indirect, incidental, special, consequential, or punitive damages arising from your use of or reliance on the service, including but not limited to bodily injury, death, property damage, or economic loss arising from adverse weather conditions, errors in data upon which the service is based, or reliance on the service for planning water-based activities. No guarantees are made regarding tidal current predictions. You may not use this data if anyone or anything could come to harm as a result. Our total liability shall not exceed the greater of $100 or the fees paid by you in the prior 12 months.
           </p>
 
           <h2 className="text-lg font-semibold text-[var(--foreground)]">5. Data Sources</h2>

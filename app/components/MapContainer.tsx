@@ -239,19 +239,19 @@ export function MapContainer({
                 aria-label="Route color legend"
               >
                 <div className="text-2xs font-semibold uppercase tracking-wider text-ocean-300 mb-1">
-                  Route comfort
+                  Conditions
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="inline-block w-4 h-0.5 bg-[#10b981]" aria-hidden="true" />
-                  Comfortable
+                  Looks good
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="inline-block w-4 h-0.5 bg-[#f59e0b]" aria-hidden="true" />
-                  Marginal
+                  Check conditions
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="inline-block w-4 h-0.5 bg-[#ef4444]" aria-hidden="true" />
-                  Challenging
+                  Not recommended
                 </div>
               </div>
 

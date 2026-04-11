@@ -8,7 +8,8 @@ import { routeComfort } from '@/engine/scoring';
 import { getRouteZones } from '@/engine/routing';
 import { getTimeConditions } from '@/engine/interpolation';
 import { Header } from '../components/Header';
-import { ScoreBadge, getScoreLabel } from '../components/ScoreBadge';
+import { TierBadge } from '../components/ScoreBadge';
+import { getConditionTier, getTierInfo } from '@/lib/condition-tier';
 import type { ScoredRoute, VesselType } from '@/engine/types';
 
 // ---------------------------------------------------------------------------
@@ -49,13 +50,11 @@ function formatTime(decimalHours: number): string {
   return `${h}:${m.toString().padStart(2, '0')} ${ampm}`;
 }
 
-// Status badge uses the unified score label system (no competing color systems)
+// Status badge uses the three-tier condition system
 function getStatusBadge(score: number): { label: string; classes: string } {
-  const label = getScoreLabel(score);
-  if (score >= 8) return { label, classes: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' };
-  if (score >= 5) return { label, classes: 'bg-compass-gold/20 text-compass-gold border-compass-gold/30' };
-  if (score >= 3) return { label, classes: 'bg-warning-amber/20 text-warning-amber border-warning-amber/30' };
-  return { label, classes: 'bg-danger-red/20 text-danger-red border-danger-red/30' };
+  const tier = getConditionTier(score);
+  const info = getTierInfo(tier);
+  return { label: info.label, classes: `${info.bgClass} ${info.textClass} ${info.borderClass}` };
 }
 
 function getDepartHour(month: number, window: TimeWindow): number {
@@ -291,13 +290,9 @@ export default function SchedulePage() {
                 <div className="p-4 sm:p-5 space-y-3">
                   {/* Top row: score badge, name, status */}
                   <div className="flex items-start gap-3">
-                    <ScoreBadge
-                      score={entry.scored.score}
+                    <TierBadge
+                      tier={getConditionTier(entry.scored.score)}
                       size="lg"
-                      showRange={{
-                        p10: entry.scored.scoreRange.p10,
-                        p90: entry.scored.scoreRange.p90,
-                      }}
                     />
 
                     <div className="flex-1 min-w-0">
@@ -313,7 +308,7 @@ export default function SchedulePage() {
                         </span>
                       </div>
                       <p className="text-xs text-[var(--muted)] mt-0.5">
-                        {getScoreLabel(entry.scored.score)} &middot;{' '}
+                        {getTierInfo(getConditionTier(entry.scored.score)).label} &middot;{' '}
                         {entry.scored.distance} mi &middot;{' '}
                         {entry.scored.transitMinutes} min transit
                       </p>

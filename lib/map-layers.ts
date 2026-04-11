@@ -283,7 +283,7 @@ export const zoneOverlayLabelLayer = {
   id: 'zone-overlay-labels',
   type: 'symbol' as const,
   layout: {
-    'text-field': ['concat', ['get', 'zoneName'], '\n', ['to-string', ['get', 'comfort']], '/10'] as any,
+    'text-field': ['concat', ['get', 'zoneName'], '\n', ['get', 'tierLabel']] as any,
     'text-size': 11,
     'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
     'text-allow-overlap': true,

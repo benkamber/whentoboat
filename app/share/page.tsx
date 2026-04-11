@@ -3,7 +3,8 @@ import { getActivity } from '@/data/activities';
 import { vesselPresets } from '@/data/vessels';
 import { routeComfort } from '@/engine/scoring';
 import { Header } from '../components/Header';
-import { ScoreBadge, getScoreLabel } from '../components/ScoreBadge';
+import { TierBadge } from '../components/ScoreBadge';
+import { getConditionTier, getTierInfo } from '@/lib/condition-tier';
 import { ShareActions } from './ShareActions';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -81,7 +82,8 @@ export default async function SharePage({
     transitMinutes = scored.transitMinutes;
   }
 
-  const scoreLabel = getScoreLabel(score);
+  const tier = getConditionTier(score);
+  const tierInfo = getTierInfo(tier);
   const formatHour = (h: number) => {
     if (h === 0 || h === 12) return h === 0 ? '12 AM' : '12 PM';
     return h < 12 ? `${h} AM` : `${h - 12} PM`;
@@ -96,7 +98,7 @@ export default async function SharePage({
           {/* The card */}
           <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-2xl">
             {/* Header band */}
-            <div className={`px-6 py-4 ${score >= 7 ? 'bg-reef-teal' : score >= 5 ? 'bg-compass-gold' : 'bg-danger-red'} text-white`}>
+            <div className={`px-6 py-4 ${tier === 'looks-good' ? 'bg-reef-teal' : tier === 'check-conditions' ? 'bg-compass-gold' : 'bg-danger-red'} text-white`}>
               <p className="text-xs font-medium opacity-80 uppercase tracking-wider">Best for {act.name}</p>
               <h1 className="text-2xl font-bold mt-1">{dest?.name ?? 'SF Bay'}</h1>
               <p className="text-sm opacity-90 mt-0.5">{date} &middot; {formatHour(hour)}</p>
@@ -105,9 +107,9 @@ export default async function SharePage({
             {/* Score + details */}
             <div className="px-6 py-5 space-y-4">
               <div className="flex items-center gap-4">
-                <ScoreBadge score={score} size="lg" />
+                <TierBadge tier={tier} size="lg" />
                 <div>
-                  <p className="text-lg font-bold">{scoreLabel}</p>
+                  <p className="text-lg font-bold">{tierInfo.label}</p>
                   <p className="text-sm text-[var(--muted)]">{primaryReason}</p>
                 </div>
               </div>
