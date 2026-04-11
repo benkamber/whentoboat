@@ -476,10 +476,10 @@ export function TrajectoryPanel({ originId, destinationId, onClose }: Trajectory
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-[var(--muted)]">
-                  Crosses <Term id="tss">shipping lane</Term>
+                  Crosses shipping lanes
                 </span>
                 <span className={`font-medium ${verified.crossesTss ? 'text-warning-amber' : ''}`}>
-                  {verified.crossesTss ? 'Yes — use caution' : 'No'}
+                  {verified.crossesTss ? 'Yes — large vessel traffic, use caution' : 'No'}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">

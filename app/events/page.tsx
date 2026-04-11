@@ -369,11 +369,17 @@ function RacingCard({ event, isMajor }: { event: BayEvent; isMajor: boolean }) {
         <p className="text-2xs text-warning-amber">{event.trafficNote}</p>
       )}
 
-      {event.biennial && (
-        <span className="text-2xs text-[var(--muted)] italic">
-          {event.biennial === 'even' ? 'Even years only' : 'Odd years only'}
-        </span>
-      )}
+      <div className="flex items-center gap-3 text-2xs text-[var(--muted)]">
+        {event.biennial && (
+          <span className="italic">
+            {event.biennial === 'even' ? 'Even years only' : 'Odd years only'}
+          </span>
+        )}
+        <span className="italic">Dates shift yearly — verify with organizer</span>
+        {event.url && (
+          <span>Source: <a href={event.url} target="_blank" rel="noopener noreferrer" className="text-safety-blue hover:underline">{new URL(event.url).hostname.replace('www.', '')}</a></span>
+        )}
+      </div>
     </div>
   );
 }
@@ -419,6 +425,13 @@ function ShowCard({ event, isHighlight }: { event: BayEvent; isHighlight: boolea
       {event.trafficNote && (
         <p className="text-2xs text-warning-amber">{event.trafficNote}</p>
       )}
+
+      <div className="flex items-center gap-3 text-2xs text-[var(--muted)]">
+        <span className="italic">Dates shift yearly — verify with organizer</span>
+        {event.url && (
+          <span>Source: <a href={event.url} target="_blank" rel="noopener noreferrer" className="text-safety-blue hover:underline">{(() => { try { return new URL(event.url).hostname.replace('www.', ''); } catch { return 'link'; } })()}</a></span>
+        )}
+      </div>
 
       {event.url && (
         <a

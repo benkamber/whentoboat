@@ -8,7 +8,7 @@ const ids = [
   'sau', 'ang', 'tib', 'aqp', 'p39', 'fbg', 'mcc', 'clp', 'jls', 'alm', 'brk', 'ptr', 'hmb',
   'rwc', 'oyp', 'cop', 'srf', 'val', 'ben', 'ggb', 'stn', 'bol', 'pry', 'mry',
   'scz', 'bdb', 'tmb', 'pcm', 'lrk', 'hsb', 'skm',
-  'cnc', 'mcn', 'fcy', 'crb', 'hdb', 'lkm',
+  'cnc', 'mcn', 'fcy', 'crb', 'hdb',
   'emv', 'pet',
 ] as const;
 
@@ -524,11 +524,7 @@ const raw: [string, string, number][] = [
   ['hdb', 'tmb', 5],
   ['hdb', 'bdb', 20],
 
-  // ══════════════════════════════════════════
-  // Lake Merritt (east_bay, Oakland — urban lake)
-  ['lkm', 'jls', 2],
-  ['lkm', 'crb', 3],
-  ['lkm', 'alm', 3],
+  // Lake Merritt removed — inland lake, not SF Bay.
 
   // ══════════════════════════════════════════
   // Emeryville Marina (east_bay)

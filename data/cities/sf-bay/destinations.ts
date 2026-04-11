@@ -826,28 +826,7 @@ export const destinations: Destination[] = [
       { name: 'Blue Waters Kayaking', url: 'https://www.bluewaterskayak.com', type: 'kayak' },
     ],
   },
-  {
-    id: 'lkm',
-    name: 'Lake Merritt',
-    code: 'LKM',
-    lat: 37.8044,
-    lng: -122.2583,
-    zone: 'east_bay',
-    area: 'east',
-    dockInfo: 'Lake Merritt Boating Center',
-    activityTags: ['kayak', 'sup'],
-    launchRamp: {
-      name: 'Lake Merritt Boating Center',
-      type: 'public',
-      hours: '10am - 5pm (seasonal)',
-      fee: '$5 launch',
-      parking: 'Street parking',
-      maxBoatLength: null,
-      source: 'City of Oakland',
-    },
-    minDepth: 6,
-    notes: 'Urban estuary lake. Very popular for casual SUP and kayak. PFDs required at all times (USCG enforced). No standing in boats near bird sanctuary. Strictly no combustion engines. Ideal for absolute beginners.',
-  },
+  // Lake Merritt removed — it's an inland lake, not SF Bay.
 
   // ── New destinations from route plausibility research ──
 
