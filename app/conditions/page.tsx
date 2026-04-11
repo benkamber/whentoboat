@@ -77,6 +77,9 @@ export default function ConditionsPage() {
                       {new Date(alert.onset).toLocaleString()} — {new Date(alert.expires).toLocaleString()}
                     </p>
                   )}
+                  <a href="https://www.weather.gov/mtr/" target="_blank" rel="noopener noreferrer" className="text-2xs text-safety-blue hover:underline">
+                    Verify at NWS →
+                  </a>
                 </div>
               );
             })}

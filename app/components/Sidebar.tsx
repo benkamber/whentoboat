@@ -496,7 +496,10 @@ function AlertBanner() {
         {alerts.slice(0, 1).map((alert, i) => (
           <p key={i} className="text-2xs text-[var(--secondary)]">{alert.headline}</p>
         ))}
-        <a href="/conditions" className="text-2xs text-safety-blue hover:underline">View details →</a>
+        <div className="flex gap-3 text-2xs">
+          <a href="/conditions" className="text-safety-blue hover:underline">View details →</a>
+          <a href="https://www.weather.gov/mtr/" target="_blank" rel="noopener noreferrer" className="text-[var(--muted)] hover:underline">Source: NWS →</a>
+        </div>
       </div>
     </div>
   );

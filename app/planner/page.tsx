@@ -3,12 +3,17 @@
 import React, { useState, useMemo } from 'react';
 import { seasonalPlanning } from '@/data/cities/sf-bay/seasonal-planning';
 import type { MonthlyPlan, ZoneConditions } from '@/data/cities/sf-bay/seasonal-planning';
-import { activities } from '@/data/activities';
+import { activities, getActivity } from '@/data/activities';
+import { sfBay } from '@/data/cities/sf-bay';
 import { useAppStore } from '@/store';
+import { routeComfort } from '@/engine/scoring';
+import { getDocksForDestination } from '@/data/cities/sf-bay/docks';
+import { getConditionTier, getTierInfo } from '@/lib/condition-tier';
 import { Header } from '../components/Header';
 import { WeatherCharts } from '../components/WeatherCharts';
 import { SourceAttribution } from '../components/SourceAttribution';
-import type { ActivityType } from '@/engine/types';
+import Link from 'next/link';
+import type { ActivityType, ScoredRoute } from '@/engine/types';
 
 // ---------------------------------------------------------------------------
 // Zone display names (keyed to seasonal-planning zone IDs)
@@ -200,8 +205,9 @@ function tierBorderClass(tier: MonthTier): string {
 // ---------------------------------------------------------------------------
 
 export default function PlannerPage() {
-  const { activity: storeActivity, setActivity } = useAppStore();
+  const { activity: storeActivity, setActivity, vessel, homeBaseId } = useAppStore();
   const [selectedActivity, setSelectedActivity] = useState<ActivityType>(storeActivity);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [expandedMonth, setExpandedMonth] = useState<number | null>(null);
 
   // Determine best months for the selected activity
@@ -227,6 +233,29 @@ export default function PlannerPage() {
 
   // Selected activity display name
   const activityName = activities.find((a) => a.id === selectedActivity)?.name ?? selectedActivity;
+
+  // Ranked destinations for selected month + activity
+  const rankedDestinations = useMemo(() => {
+    const origin = sfBay.destinations.find(d => d.id === homeBaseId);
+    if (!origin) return [];
+    const act = getActivity(selectedActivity);
+
+    return sfBay.destinations
+      .filter(d => d.id !== origin.id && d.activityTags.includes(selectedActivity))
+      .map(dest => {
+        try {
+          const scored = routeComfort(origin, dest, selectedMonth, 9, act, vessel, sfBay);
+          const docks = getDocksForDestination(dest.id);
+          const diningCount = docks.reduce((sum, d) => sum + d.dineOptions.length, 0);
+          return { dest, scored, docks: docks.length, diningCount };
+        } catch {
+          return null;
+        }
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null && x.scored.inRange)
+      .sort((a, b) => b.scored.score - a.scored.score)
+      .slice(0, 15);
+  }, [selectedActivity, selectedMonth, homeBaseId, vessel]);
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
@@ -257,6 +286,69 @@ export default function PlannerPage() {
 
         {/* Weather pattern charts */}
         <WeatherCharts />
+
+        {/* Month selector for destination ranking */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-bold text-[var(--foreground)]">
+            Best Destinations for {activityName}
+          </h2>
+          <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
+            {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => (
+              <button
+                key={i}
+                onClick={() => setSelectedMonth(i)}
+                className={`shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  selectedMonth === i
+                    ? 'bg-compass-gold text-ocean-900 shadow-sm'
+                    : 'bg-[var(--card)] text-[var(--secondary)] border border-[var(--border)] hover:border-compass-gold/50'
+                }`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+
+          {/* Ranked destination cards */}
+          {rankedDestinations.length === 0 ? (
+            <p className="text-sm text-[var(--muted)] py-4">No destinations in range for {activityName} from your home base.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {rankedDestinations.map(({ dest, scored, docks, diningCount }, i) => {
+                const tier = getConditionTier(scored.score);
+                const info = getTierInfo(tier);
+                return (
+                  <Link
+                    key={dest.id}
+                    href={`/location/sf-bay/${dest.id}`}
+                    className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 space-y-2 hover:border-compass-gold/40 hover:shadow-lg hover:shadow-compass-gold/5 transition-all"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-[var(--muted)]">#{i + 1}</span>
+                          <h3 className="text-sm font-semibold text-[var(--foreground)] truncate">{dest.name}</h3>
+                        </div>
+                        <p className="text-2xs text-[var(--muted)] mt-0.5">{scored.primaryReason}</p>
+                      </div>
+                      <span className={`shrink-0 px-2 py-0.5 rounded-lg text-2xs font-semibold border ${info.bgClass} ${info.borderClass} ${info.textClass}`}>
+                        {info.icon} {info.label}
+                      </span>
+                    </div>
+                    <div className="flex gap-3 text-2xs text-[var(--muted)]">
+                      <span>{Math.round(scored.distance * 10) / 10} mi</span>
+                      <span>{scored.transitMinutes} min</span>
+                      {docks > 0 && <span>{docks} dock{docks !== 1 ? 's' : ''}</span>}
+                      {diningCount > 0 && <span>🍽 {diningCount}</span>}
+                    </div>
+                    <div className="text-2xs text-safety-blue font-medium">
+                      Plan trip →
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Best / Worst months summary */}
         <div className="space-y-4">
