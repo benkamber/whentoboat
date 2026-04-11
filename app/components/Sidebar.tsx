@@ -9,9 +9,8 @@ import { getDocksForDestination } from '@/data/cities/sf-bay/docks';
 import { parseMinDepthFt } from '@/lib/depth-parse';
 import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
 import { getEventsForTrip, eventSentimentSummary } from '@/lib/event-relevance';
-import { DepartureBanner } from './DepartureBanner';
 import { ShouldIGo } from './ShouldIGo';
-import { WeeklyOutlook } from './WeeklyOutlook';
+import { ActivityGlance } from './ActivityGlance';
 import { track } from '@/lib/analytics';
 import type { ActivityType, VesselProfile } from '@/engine/types';
 import type { Destination } from '@/engine/types';
@@ -237,23 +236,14 @@ export function Sidebar({
 
       {/* Scrollable destination list */}
       <div className="flex-1 overflow-y-auto">
-        {/* Should I Go? — live conditions verdict + tide chart */}
-        <ShouldIGo />
+        {/* All activities at a glance (default) or single-activity verdict */}
+        <ActivityGlance onSelectActivity={(id) => { setActivity(id); }} />
 
-        {/* 7-day outlook */}
-        <WeeklyOutlook />
-
-        {/* Marine weather alerts */}
+        {/* Marine weather alerts — safety-critical, always shown when active */}
         <AlertBanner />
 
-        {/* Departure window */}
-        <DepartureBanner />
-
-        {/* Saved routes */}
+        {/* Saved routes — collapsed */}
         <SavedRoutesSection onCardClick={onCardClick} />
-
-        {/* Monthly events summary */}
-        <EventsBanner activity={activity} />
 
         <div className="p-2 space-y-1.5">
           {destinations.map((route, i) => {

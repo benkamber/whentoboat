@@ -48,7 +48,8 @@ export const destinationCircleLayer = {
   type: 'circle' as const,
   filter: ['!', ['get', 'isOrigin']] as any,
   paint: {
-    'circle-radius': 7,
+    'circle-radius': 10,
+    'circle-blur': 0.15,
     'circle-color': ['get', 'color'] as any,
     'circle-stroke-width': 2,
     'circle-stroke-color': '#0a1628',

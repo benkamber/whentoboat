@@ -353,7 +353,16 @@ function RacingCard({ event, isMajor }: { event: BayEvent; isMajor: boolean }) {
       <div className={`flex flex-wrap gap-x-4 gap-y-1 ${isMajor ? 'text-sm' : 'text-xs'} text-[var(--secondary)]`}>
         <div>
           <span className="text-[var(--muted)]">When: </span>
-          <span className="font-medium text-[var(--foreground)]">{event.schedule}</span>
+          <span className="font-medium text-[var(--foreground)]">
+            {event.typicalDate ? (
+              <>
+                {new Date(event.typicalDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                {event.typicalEndDate && ` – ${new Date(event.typicalEndDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                {', '}
+                {new Date(event.typicalDate + 'T12:00:00').getFullYear()}
+              </>
+            ) : event.schedule}
+          </span>
         </div>
         <div>
           <span className="text-[var(--muted)]">Where: </span>

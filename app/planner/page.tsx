@@ -9,6 +9,8 @@ import { useAppStore } from '@/store';
 import { routeComfort } from '@/engine/scoring';
 import { getDocksForDestination } from '@/data/cities/sf-bay/docks';
 import { getConditionTier, getTierInfo } from '@/lib/condition-tier';
+import { getEventsForTrip } from '@/lib/event-relevance';
+import { getEventsForMonth, type BayEvent } from '@/data/cities/sf-bay/events';
 import { Header } from '../components/Header';
 import { WeatherCharts } from '../components/WeatherCharts';
 import { SourceAttribution } from '../components/SourceAttribution';
@@ -349,6 +351,52 @@ export default function PlannerPage() {
             </div>
           )}
         </div>
+
+        {/* Events this month */}
+        {(() => {
+          const monthEvents = getEventsForMonth(selectedMonth + 1)
+            .filter(e => e.category !== 'beer-can' && e.category !== 'midwinter') // Skip recurring weekly
+            .slice(0, 8);
+          if (monthEvents.length === 0) return null;
+          return (
+            <div className="space-y-3">
+              <h2 className="text-lg font-bold text-[var(--foreground)]">
+                Events in {['January','February','March','April','May','June','July','August','September','October','November','December'][selectedMonth]}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {monthEvents.map(event => (
+                  <div key={event.id} className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 space-y-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="text-sm font-semibold text-[var(--foreground)]">{event.name}</h3>
+                      {event.restrictedZone === 'major' && (
+                        <span className="shrink-0 px-1.5 py-0.5 rounded text-2xs font-medium bg-danger-red/20 text-danger-red border border-danger-red/30">
+                          Restricted Zone
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-[var(--secondary)]">
+                      {event.typicalDate ? (
+                        <span className="font-medium text-compass-gold">
+                          {new Date(event.typicalDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {event.typicalEndDate && ` – ${new Date(event.typicalEndDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                        </span>
+                      ) : (
+                        <span>{event.schedule}</span>
+                      )}
+                      {' · '}{event.organizer}
+                    </div>
+                    <div className="text-2xs text-[var(--muted)]">{event.sizeEstimate}</div>
+                    {event.url && (
+                      <a href={event.url} target="_blank" rel="noopener noreferrer" className="text-2xs text-safety-blue hover:underline">
+                        {(() => { try { return new URL(event.url).hostname.replace('www.', ''); } catch { return 'Details'; } })() } →
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Best / Worst months summary */}
         <div className="space-y-4">

@@ -155,7 +155,7 @@ export function MapContainer({
                 zoom: sfBay.defaultZoom,
               }}
               style={{ width: '100%', height: '100%' }}
-              mapStyle="mapbox://styles/mapbox/dark-v11"
+              mapStyle="mapbox://styles/mapbox/navigation-night-v1"
               interactiveLayerIds={['destination-circles', 'destination-labels', 'origin-circle', 'route-lines-hit', 'hazard-markers']}
               onClick={onMapClick}
               onMouseEnter={onMouseEnter}

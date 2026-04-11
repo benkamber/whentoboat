@@ -7,11 +7,16 @@ import { EmergencyButton } from './EmergencyPanel';
 
 const PRIMARY_LINKS = [
   { href: '/', label: 'Home' },
-  { href: '/events', label: 'Events' },
-  { href: '/guides', label: 'Guides' },
   { href: '/planner', label: 'Plan' },
   { href: '/conditions', label: 'Now' },
+];
+
+const MORE_LINKS = [
+  { href: '/events', label: 'Events' },
+  { href: '/guides', label: 'Guides' },
   { href: '/vessels', label: 'My Boats' },
+  { href: '/support', label: 'Support' },
+  { href: '/privacy', label: 'Privacy' },
 ];
 
 const SECONDARY_LINKS = [
@@ -43,16 +48,27 @@ export function Header() {
           {PRIMARY_LINKS.map(link => (
             <NavLink key={link.href} href={link.href} label={link.label} active={pathname === link.href} />
           ))}
-          <span className="mx-1 h-4 w-px bg-[var(--border)]" />
-          {SECONDARY_LINKS.map(link => (
-            <NavLink
-              key={link.href}
-              href={link.href}
-              label={link.label}
-              active={pathname === link.href}
-              accent={link.accent}
-            />
-          ))}
+          {/* More dropdown */}
+          <div className="relative group">
+            <button className="px-3.5 py-2 rounded-lg text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card-elevated)] transition-colors">
+              More ▾
+            </button>
+            <div className="absolute right-0 top-full mt-1 w-40 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+              {MORE_LINKS.map(link => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`block px-4 py-2.5 text-sm transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                    pathname === link.href
+                      ? 'text-compass-gold bg-[var(--card-elevated)]'
+                      : 'text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card-elevated)]'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </div>
         </nav>
 
         {/* Emergency SOS button — always visible */}

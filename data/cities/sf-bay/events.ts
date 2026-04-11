@@ -27,6 +27,10 @@ export interface BayEvent {
   trafficNote?: string;
   /** For biennial events: 'even' or 'odd' years only */
   biennial?: 'even' | 'odd';
+  /** Approximate date for the current year (YYYY-MM-DD). Null for recurring weekly events. */
+  typicalDate?: string;
+  /** End date if multi-day event */
+  typicalEndDate?: string;
 }
 
 export type EventCategory =
@@ -60,6 +64,8 @@ export const majorRegattas: BayEvent[] = [
     organizer: 'St. Francis Yacht Club',
     months: [9],
     schedule: 'Mid-September, 4-5 days',
+    typicalDate: '2026-09-16',
+    typicalEndDate: '2026-09-20',
     location: 'SF Cityfront / Central Bay',
     lat: 37.8075,
     lng: -122.4350,
@@ -75,6 +81,7 @@ export const majorRegattas: BayEvent[] = [
     organizer: 'Singlehanded Sailing Society',
     months: [1],
     schedule: 'Last Saturday in January',
+    typicalDate: '2026-01-31',
     location: 'Bay-wide (GG Bridge, Bay Bridge, Richmond-San Rafael Bridge)',
     lat: 37.8200,
     lng: -122.4200,
@@ -90,6 +97,8 @@ export const majorRegattas: BayEvent[] = [
     organizer: 'YRA / Vallejo Yacht Club',
     months: [5],
     schedule: 'First weekend of May (Sat-Sun)',
+    typicalDate: '2026-05-02',
+    typicalEndDate: '2026-05-03',
     location: 'Berkeley Circle to Vallejo via San Pablo Bay',
     lat: 37.8800,
     lng: -122.3400,
@@ -105,6 +114,8 @@ export const majorRegattas: BayEvent[] = [
     organizer: 'SF Bay Master Mariners Benevolent Association',
     months: [5],
     schedule: 'Memorial Day weekend (Sat-Sun)',
+    typicalDate: '2026-05-23',
+    typicalEndDate: '2026-05-24',
     location: 'StFYC Cityfront to Clipper Cove / Treasure Island',
     lat: 37.8100,
     lng: -122.4300,
@@ -120,6 +131,8 @@ export const majorRegattas: BayEvent[] = [
     organizer: 'Richmond Yacht Club',
     months: [10],
     schedule: 'Last weekend of October',
+    typicalDate: '2026-10-24',
+    typicalEndDate: '2026-10-25',
     location: 'NE Bay near Richmond',
     lat: 37.9100,
     lng: -122.3700,
@@ -865,6 +878,7 @@ export const paradesAndSpectacles: BayEvent[] = [
     organizer: 'Pacific Inter-Club Yacht Association (PICYA)',
     months: [4],
     schedule: 'Last Sunday of April',
+    typicalDate: '2026-04-26',
     dayOfWeek: 0,
     location: 'Blessing at Raccoon Strait (10:30 AM); parade Crissy Field to Pier 39 (noon-2 PM)',
     lat: 37.8075,
@@ -881,6 +895,8 @@ export const paradesAndSpectacles: BayEvent[] = [
     organizer: 'SF Fleet Week Association / USN / USCG',
     months: [10],
     schedule: 'Early-mid October (9 days)',
+    typicalDate: '2026-10-04',
+    typicalEndDate: '2026-10-12',
     location: 'Central SF Bay waterfront',
     lat: 37.8070,
     lng: -122.4100,

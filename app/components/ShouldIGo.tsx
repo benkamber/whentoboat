@@ -153,7 +153,7 @@ export function ShouldIGo() {
             <span className="text-2xs font-medium text-compass-gold uppercase tracking-wider">Today&apos;s Tide</span>
             <span className="text-2xs text-[var(--muted)]">NOAA CO-OPS prediction</span>
           </div>
-          <ResponsiveContainer width="100%" height={100}>
+          <ResponsiveContainer width="100%" height={140}>
             <AreaChart data={tideData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
               <defs>
                 <linearGradient id="tideGrad" x1="0" y1="0" x2="0" y2="1">
