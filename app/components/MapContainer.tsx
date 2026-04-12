@@ -9,6 +9,7 @@ import {
   routeLineLayer,
   approxRouteLineLayer,
   routeHitLayer,
+  selectedDestRingLayer,
   destinationCircleLayer,
   originCircleLayer,
   originRingLayer,
@@ -336,6 +337,7 @@ export function MapContainer({
 
               {/* Destination markers */}
               <Source id="destinations" type="geojson" data={destinationsGeoJSON}>
+                <Layer {...selectedDestRingLayer} />
                 <Layer {...originRingLayer} />
                 <Layer {...originCircleLayer} />
                 <Layer {...originNameLayer} />

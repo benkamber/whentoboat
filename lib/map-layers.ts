@@ -42,13 +42,27 @@ export const routeHitLayer = {
   },
 };
 
+// Selected destination glow ring
+export const selectedDestRingLayer = {
+  id: 'selected-dest-ring',
+  type: 'circle' as const,
+  filter: ['==', ['get', 'isSelected'], true] as any,
+  paint: {
+    'circle-radius': 22,
+    'circle-color': 'transparent',
+    'circle-stroke-width': 3,
+    'circle-stroke-color': '#f59e0b',
+    'circle-opacity': 0.5,
+  },
+};
+
 // Non-origin destination circles — color driven by distance from origin
 export const destinationCircleLayer = {
   id: 'destination-circles',
   type: 'circle' as const,
   filter: ['!', ['get', 'isOrigin']] as any,
   paint: {
-    'circle-radius': 10,
+    'circle-radius': ['case', ['get', 'isSelected'], 14, 10] as any,
     'circle-blur': 0.15,
     'circle-color': ['get', 'color'] as any,
     'circle-stroke-width': 2,

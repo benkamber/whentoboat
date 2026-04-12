@@ -16,7 +16,8 @@ export function useDestinationGeoJSON(
   month: number,
   hour: number,
   vessel: VesselProfile,
-  selectedOriginId: string | null
+  selectedOriginId: string | null,
+  selectedDestId?: string | null,
 ) {
   return useMemo(() => {
     const origin = selectedOriginId
@@ -36,6 +37,8 @@ export function useDestinationGeoJSON(
         dist < 15 ? '#f59e0b' :
         '#6b7280';
 
+      const isSelected = dest.id === selectedDestId;
+
       return {
         type: 'Feature' as const,
         geometry: {
@@ -46,8 +49,9 @@ export function useDestinationGeoJSON(
           id: dest.id,
           name: dest.name,
           code: dest.code,
-          color,
+          color: isSelected ? '#f59e0b' : color,
           isOrigin: dest.id === origin?.id,
+          isSelected,
         },
       };
     });
@@ -56,7 +60,7 @@ export function useDestinationGeoJSON(
       type: 'FeatureCollection' as const,
       features,
     };
-  }, [activity, month, hour, vessel, selectedOriginId]);
+  }, [activity, month, hour, vessel, selectedOriginId, selectedDestId]);
 }
 
 /**

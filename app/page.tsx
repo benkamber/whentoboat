@@ -159,7 +159,7 @@ export default function Home() {
   const hasMapToken = !!(MAPBOX_TOKEN && MAPBOX_TOKEN !== 'pk.your_token_here');
 
   // Map data hooks
-  const destinationsGeoJSON = useDestinationGeoJSON(activity, month, hour, vessel, homeBaseId);
+  const destinationsGeoJSON = useDestinationGeoJSON(activity, month, hour, vessel, homeBaseId, selectedDestId);
   const routesGeoJSON = useRouteGeoJSON(activity, month, hour, vessel, homeBaseId, selectedDestId);
   const hazardsGeoJSON = useHazardGeoJSON();
   const eventsGeoJSON = useEventGeoJSON(month, activity);
@@ -305,12 +305,21 @@ export default function Home() {
 
     if (mapRef.current) {
       const dest = sfBay.destinations.find(d => d.id === destId);
-      if (dest) {
-        mapRef.current.flyTo({
-          center: [dest.lng, dest.lat],
-          zoom: 13,
-          duration: 1000,
-        });
+      const orig = sfBay.destinations.find(d => d.id === homeBaseId);
+      if (dest && orig) {
+        // Fit both origin and destination in view with padding
+        const minLng = Math.min(orig.lng, dest.lng);
+        const maxLng = Math.max(orig.lng, dest.lng);
+        const minLat = Math.min(orig.lat, dest.lat);
+        const maxLat = Math.max(orig.lat, dest.lat);
+        const padLng = (maxLng - minLng) * 0.3 || 0.02;
+        const padLat = (maxLat - minLat) * 0.3 || 0.02;
+        mapRef.current.fitBounds(
+          [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
+          { duration: 800, maxZoom: 13 }
+        );
+      } else if (dest) {
+        mapRef.current.flyTo({ center: [dest.lng, dest.lat], zoom: 11, duration: 800 });
       }
     }
 
