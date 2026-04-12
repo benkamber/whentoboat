@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useLiveForecast } from '@/hooks/useLiveForecast';
 import { useMarineAlerts } from '@/hooks/useMarineAlerts';
 import { useAppStore } from '@/store';
@@ -140,6 +140,9 @@ export function ShouldIGo() {
           </div>
         )}
 
+        {/* Accuracy feedback */}
+        <FeedbackButtons tier={result.tier} />
+
         <p className="text-2xs text-[var(--muted)] italic">
           Based on forecast data — conditions can change rapidly.
           Verify with <a href="https://www.weather.gov/marine" target="_blank" rel="noopener noreferrer" className="underline">NOAA</a>.
@@ -194,6 +197,40 @@ export function ShouldIGo() {
           </ResponsiveContainer>
         </div>
       )}
+    </div>
+  );
+}
+
+function FeedbackButtons({ tier }: { tier: ConditionTier }) {
+  const { activity, homeBaseId, addFeedback, addInboxItem } = useAppStore();
+  const [submitted, setSubmitted] = useState(false);
+
+  if (submitted) {
+    return <p className="text-2xs text-reef-teal text-center">Thanks for the feedback!</p>;
+  }
+
+  const handleFeedback = (rating: 'better' | 'about-right' | 'worse') => {
+    addFeedback({
+      date: new Date().toISOString().split('T')[0],
+      activity,
+      originId: homeBaseId,
+      predictedTier: tier,
+      actualRating: rating,
+    });
+    addInboxItem({
+      type: 'feedback-thanks',
+      title: 'Feedback recorded',
+      body: `You rated today's ${tier.replace(/-/g, ' ')} forecast as "${rating}." This helps improve our accuracy.`,
+    });
+    setSubmitted(true);
+  };
+
+  return (
+    <div className="flex items-center gap-2 pt-1 border-t border-[var(--border)]">
+      <span className="text-2xs text-[var(--muted)]">How was it?</span>
+      <button onClick={() => handleFeedback('better')} className="px-2 py-0.5 rounded text-2xs text-reef-teal bg-reef-teal/10 hover:bg-reef-teal/20 transition-colors">Better</button>
+      <button onClick={() => handleFeedback('about-right')} className="px-2 py-0.5 rounded text-2xs text-compass-gold bg-compass-gold/10 hover:bg-compass-gold/20 transition-colors">About right</button>
+      <button onClick={() => handleFeedback('worse')} className="px-2 py-0.5 rounded text-2xs text-warning-amber bg-warning-amber/10 hover:bg-warning-amber/20 transition-colors">Worse</button>
     </div>
   );
 }

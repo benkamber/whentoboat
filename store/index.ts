@@ -12,7 +12,30 @@ export interface SavedRoute {
   originId: string;
   destinationId: string;
   activity: ActivityType;
-  savedAt: number; // timestamp
+  savedAt: number;
+}
+
+export interface InboxItem {
+  id: string;
+  type: 'perfect-day' | 'alert' | 'feedback-thanks' | 'event-reminder' | 'system';
+  title: string;
+  body: string;
+  timestamp: number;
+  read: boolean;
+  archived: boolean;
+  /** Link to open when tapped */
+  href?: string;
+  /** Activity this relates to */
+  activity?: ActivityType;
+}
+
+export interface FeedbackEntry {
+  date: string; // ISO date
+  activity: ActivityType;
+  originId: string;
+  predictedTier: string;
+  actualRating: 'better' | 'about-right' | 'worse';
+  timestamp: number;
 }
 
 interface AppState {
@@ -37,6 +60,16 @@ interface AppState {
   savedRoutes: SavedRoute[];
   saveRoute: (originId: string, destinationId: string, activity: ActivityType) => void;
   removeSavedRoute: (originId: string, destinationId: string) => void;
+
+  // Inbox (notifications)
+  inbox: InboxItem[];
+  addInboxItem: (item: Omit<InboxItem, 'id' | 'timestamp' | 'read' | 'archived'>) => void;
+  markRead: (id: string) => void;
+  archiveItem: (id: string) => void;
+  deleteItem: (id: string) => void;
+  // Accuracy feedback
+  feedbackLog: FeedbackEntry[];
+  addFeedback: (entry: Omit<FeedbackEntry, 'timestamp'>) => void;
 
   // Trajectory (ephemeral — not persisted)
   selectedOriginId: string | null;
@@ -91,6 +124,27 @@ export const useAppStore = create<AppState>()(
         savedRoutes: state.savedRoutes.filter(r => !(r.originId === originId && r.destinationId === destinationId)),
       })),
 
+      // Inbox
+      inbox: [],
+      addInboxItem: (item) => set((state) => ({
+        inbox: [{ ...item, id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, timestamp: Date.now(), read: false, archived: false }, ...state.inbox].slice(0, 100),
+      })),
+      markRead: (id) => set((state) => ({
+        inbox: state.inbox.map(i => i.id === id ? { ...i, read: true } : i),
+      })),
+      archiveItem: (id) => set((state) => ({
+        inbox: state.inbox.map(i => i.id === id ? { ...i, archived: true } : i),
+      })),
+      deleteItem: (id) => set((state) => ({
+        inbox: state.inbox.filter(i => i.id !== id),
+      })),
+
+      // Accuracy feedback
+      feedbackLog: [],
+      addFeedback: (entry: Omit<FeedbackEntry, 'timestamp'>) => set((state) => ({
+        feedbackLog: [{ ...entry, timestamp: Date.now() }, ...state.feedbackLog].slice(0, 200),
+      })),
+
       // Trajectory (ephemeral)
       selectedOriginId: null,
       setSelectedOrigin: (id: string | null) => set({ selectedOriginId: id }),
@@ -105,6 +159,8 @@ export const useAppStore = create<AppState>()(
         homeBaseId: state.homeBaseId,
         vessel: state.vessel,
         savedRoutes: state.savedRoutes,
+        inbox: state.inbox,
+        feedbackLog: state.feedbackLog,
       }),
       onRehydrateStorage: () => (state, error) => {
         if (error) {

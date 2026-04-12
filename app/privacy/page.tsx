@@ -79,7 +79,7 @@ export default function PrivacyPage() {
             </li>
             <li>
               <code className="text-xs bg-[var(--card-elevated)] px-1.5 py-0.5 rounded text-compass-gold">whentoboat-prefs</code>{' '}
-              also stores any routes you bookmark (origin and destination IDs only — no personal data).
+              also stores bookmarked routes, inbox notifications, and forecast accuracy feedback (all local, no personal data).
             </li>
             <li>
               <code className="text-xs bg-[var(--card-elevated)] px-1.5 py-0.5 rounded text-compass-gold">whentoboat-disclaimer-accepted</code>

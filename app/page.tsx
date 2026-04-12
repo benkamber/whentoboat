@@ -171,14 +171,8 @@ export default function Home() {
   // --- Map callbacks ---
 
   const onMapLoad = useCallback(() => {
-    const map = mapRef.current?.getMap?.();
-    if (map) {
-      try {
-        map.setPaintProperty('water', 'fill-color', '#0a1628');
-      } catch {
-        // Style may not have 'water' layer
-      }
-    }
+    // Let the navigation-night-v1 style handle water colors naturally.
+    // No overrides — the nautical-inspired style has better depth shading.
   }, []);
 
   const onMapClick = useCallback((e: any) => {

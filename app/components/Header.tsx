@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { EmergencyButton } from './EmergencyPanel';
+import { useAppStore } from '@/store';
 
 const PRIMARY_LINKS = [
   { href: '/', label: 'Home' },
@@ -71,7 +72,8 @@ export function Header() {
           </div>
         </nav>
 
-        {/* Emergency SOS button — always visible */}
+        {/* Inbox + Emergency — always visible */}
+        <InboxBell />
         <EmergencyButton />
 
         {/* Mobile hamburger */}
@@ -113,6 +115,23 @@ export function Header() {
         </nav>
       )}
     </header>
+  );
+}
+
+function InboxBell() {
+  const unread = useAppStore(s => s.inbox.filter(i => !i.read && !i.archived).length);
+  return (
+    <Link href="/inbox" className="relative p-2 rounded-lg text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card-elevated)] transition-colors" title="Inbox">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+      </svg>
+      {unread > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-danger-red text-white text-[10px] font-bold flex items-center justify-center">
+          {unread > 9 ? '9+' : unread}
+        </span>
+      )}
+    </Link>
   );
 }
 

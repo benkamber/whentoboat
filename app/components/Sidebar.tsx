@@ -502,10 +502,11 @@ function SavedRoutesSection({ onCardClick }: { onCardClick: (destId: string) => 
 
   return (
     <div className="px-2 pt-2">
-      <div className="text-2xs font-medium text-compass-gold uppercase tracking-wider px-1 mb-1">
-        Saved Routes
-      </div>
-      <div className="space-y-1">
+      <details className="group">
+        <summary className="cursor-pointer text-2xs font-medium text-compass-gold uppercase tracking-wider px-1 mb-1 flex items-center gap-1">
+          Saved Routes ({savedRoutes.length}) <span className="text-[var(--muted)] group-open:rotate-90 transition-transform">▸</span>
+        </summary>
+      <div className="space-y-1 mt-1">
         {savedRoutes.map(route => {
           const origin = sfBay.destinations.find(d => d.id === route.originId);
           const dest = sfBay.destinations.find(d => d.id === route.destinationId);
@@ -536,6 +537,7 @@ function SavedRoutesSection({ onCardClick }: { onCardClick: (destId: string) => 
           );
         })}
       </div>
+      </details>
     </div>
   );
 }
