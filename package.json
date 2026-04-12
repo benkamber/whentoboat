@@ -14,6 +14,7 @@
     "validate:waypoints": "npx tsx scripts/validate-waypoints.ts",
     "validate:ferry": "npx tsx scripts/validate-ferry-routes.ts",
     "generate:routes": "npx tsx scripts/generate-water-routes.ts",
+    "generate:city": "npx tsx scripts/generate-city-data.ts",
     "fix:ferry": "npx tsx scripts/fix-ferry-routes.ts"
   },
   "dependencies": {
