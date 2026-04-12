@@ -141,7 +141,7 @@ export function ShouldIGo() {
         )}
 
         {/* Accuracy feedback */}
-        <FeedbackButtons tier={result.tier} />
+        <FeedbackButtons tier={result.tier} windKts={result.conditions.windKts} />
 
         <p className="text-2xs text-[var(--muted)] italic">
           Based on forecast data — conditions can change rapidly.
@@ -201,12 +201,12 @@ export function ShouldIGo() {
   );
 }
 
-function FeedbackButtons({ tier }: { tier: ConditionTier }) {
+function FeedbackButtons({ tier, windKts }: { tier: ConditionTier; windKts?: number }) {
   const { activity, homeBaseId, addFeedback, addInboxItem } = useAppStore();
   const [submitted, setSubmitted] = useState(false);
 
   if (submitted) {
-    return <p className="text-2xs text-reef-teal text-center">Thanks for the feedback!</p>;
+    return <p className="text-2xs text-reef-teal text-center">Thanks — this helps improve accuracy!</p>;
   }
 
   const handleFeedback = (rating: 'better' | 'about-right' | 'worse') => {
