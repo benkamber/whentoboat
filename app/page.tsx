@@ -3,6 +3,7 @@
 import { useRef, useCallback, useState, useMemo, useEffect } from 'react';
 import { sfBay } from '@/data/cities/sf-bay';
 import { useAppStore } from '@/store';
+import { useCity } from '@/lib/city-context';
 import { haversineDistanceMi } from '@/engine/scoring';
 import { getActivity } from '@/data/activities';
 import { verifiedRoutes } from '@/data/cities/sf-bay/verified-routes';
@@ -44,11 +45,12 @@ interface SimplifiedRoute {
 
 export default function Home() {
   const {
-    activity, month, hour, vessel, homeBaseId,
+    activity, month, hour, vessel, homeBaseId, cityId,
     selectedOriginId,
     setActivity, setHomeBase,
     setSelectedOrigin,
   } = useAppStore();
+  const city = useCity();
 
   const [popup, setPopup] = useState<PopupInfo | null>(null);
   const [cursor, setCursor] = useState('auto');
@@ -71,8 +73,10 @@ export default function Home() {
   // localStorage value points at a destination that no longer exists
   // (e.g., we removed a slug between deploys), we silently fall through
   // to the first destination here AND fire the recovery effect below.
-  const resolvedOrigin = sfBay.destinations.find((d) => d.id === homeBaseId);
-  const origin = resolvedOrigin ?? sfBay.destinations[0];
+  // Use city data for origin resolution — falls back to sfBay for components that haven't migrated yet
+  const cityDests = city.destinations.length > 0 ? city.destinations : sfBay.destinations;
+  const resolvedOrigin = cityDests.find((d: any) => d.id === homeBaseId);
+  const origin = resolvedOrigin ?? cityDests[0];
 
   // Sync selectedOriginId with homeBaseId
   useEffect(() => {
@@ -96,16 +100,25 @@ export default function Home() {
     }
   }, [resolvedOrigin, homeBaseId, setHomeBase]);
 
-  // Fly map to origin when it changes
+  // Fly map to origin or city center when city/origin changes
   useEffect(() => {
-    if (!mapRef.current || !resolvedOrigin) return;
-    const isOcean = resolvedOrigin.zone.startsWith('ocean');
-    mapRef.current.flyTo({
-      center: [resolvedOrigin.lng, resolvedOrigin.lat],
-      zoom: isOcean ? 8 : sfBay.defaultZoom,
-      duration: 800,
-    });
-  }, [homeBaseId, resolvedOrigin]);
+    if (!mapRef.current) return;
+    if (resolvedOrigin) {
+      const isOcean = resolvedOrigin.zone?.startsWith('ocean');
+      mapRef.current.flyTo({
+        center: [resolvedOrigin.lng, resolvedOrigin.lat],
+        zoom: isOcean ? 8 : city.defaultZoom,
+        duration: 800,
+      });
+    } else {
+      // No origin resolved — fly to city center
+      mapRef.current.flyTo({
+        center: [city.center[1], city.center[0]],
+        zoom: city.defaultZoom,
+        duration: 800,
+      });
+    }
+  }, [homeBaseId, resolvedOrigin, cityId, city]);
 
   // Destinations sorted by distance — static planning tool, no scoring
   const scoredRoutes = useMemo((): SimplifiedRoute[] => {
@@ -376,6 +389,8 @@ export default function Home() {
           windArrowsGeoJSON={windArrowsGeoJSON}
           supRadiusGeoJSON={supRadiusGeoJSON}
           currentFlowGeoJSON={currentFlowGeoJSON}
+          cityCenter={city.center}
+          cityZoom={city.defaultZoom}
           showNauticalChart={showNauticalChart}
           setShowNauticalChart={setShowNauticalChart}
           showFerryRoutes={showFerryRoutes}

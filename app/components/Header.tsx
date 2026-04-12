@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { EmergencyButton } from './EmergencyPanel';
 import { useAppStore } from '@/store';
+import { AVAILABLE_CITIES } from '@/lib/city-context';
 
 const PRIMARY_LINKS = [
   { href: '/', label: 'Home' },
@@ -35,14 +36,12 @@ export function Header() {
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-compass-gold/40 to-transparent" />
 
       <div className="flex items-center justify-between px-5 py-4">
-        <Link href="/" className="flex items-center gap-2.5">
-          <span className="text-xl font-extrabold text-compass-gold tracking-tight">
+        <div className="flex items-center gap-2.5">
+          <Link href="/" className="text-xl font-extrabold text-compass-gold tracking-tight">
             WhenToBoat
-          </span>
-          <span className="text-xs text-[var(--muted)] hidden sm:inline font-medium">
-            SF Bay
-          </span>
-        </Link>
+          </Link>
+          <CitySelector />
+        </div>
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-0.5">
@@ -115,6 +114,22 @@ export function Header() {
         </nav>
       )}
     </header>
+  );
+}
+
+function CitySelector() {
+  const { cityId, setCityId } = useAppStore();
+  return (
+    <select
+      value={cityId}
+      onChange={(e) => setCityId(e.target.value)}
+      className="bg-[var(--card-elevated)] border border-[var(--border)] rounded-lg px-2 py-1 text-xs text-[var(--foreground)] cursor-pointer focus:border-compass-gold focus:outline-none appearance-none"
+      title="Select region"
+    >
+      {AVAILABLE_CITIES.map(city => (
+        <option key={city.id} value={city.id}>{city.name}</option>
+      ))}
+    </select>
   );
 }
 

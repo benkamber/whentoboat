@@ -75,6 +75,8 @@ interface MapContainerProps {
   windArrowsGeoJSON: any;
   supRadiusGeoJSON: any;
   currentFlowGeoJSON: any;
+  cityCenter: [number, number];
+  cityZoom: number;
   showNauticalChart: boolean;
   setShowNauticalChart: (v: boolean) => void;
   showFerryRoutes: boolean;
@@ -107,6 +109,8 @@ export function MapContainer({
   windArrowsGeoJSON,
   supRadiusGeoJSON,
   currentFlowGeoJSON,
+  cityCenter,
+  cityZoom,
   showNauticalChart,
   setShowNauticalChart,
   showFerryRoutes,
@@ -154,9 +158,9 @@ export function MapContainer({
               ref={mapRef}
               mapboxAccessToken={mapboxToken}
               initialViewState={{
-                longitude: sfBay.center[1],
-                latitude: sfBay.center[0],
-                zoom: sfBay.defaultZoom,
+                longitude: cityCenter[1],
+                latitude: cityCenter[0],
+                zoom: cityZoom,
               }}
               style={{ width: '100%', height: '100%' }}
               mapStyle="mapbox://styles/mapbox/navigation-night-v1"

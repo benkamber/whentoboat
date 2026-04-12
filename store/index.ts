@@ -71,6 +71,10 @@ interface AppState {
   feedbackLog: FeedbackEntry[];
   addFeedback: (entry: Omit<FeedbackEntry, 'timestamp'>) => void;
 
+  // City selection
+  cityId: string;
+  setCityId: (id: string) => void;
+
   // Trajectory (ephemeral — not persisted)
   selectedOriginId: string | null;
   setSelectedOrigin: (id: string | null) => void;
@@ -145,6 +149,10 @@ export const useAppStore = create<AppState>()(
         feedbackLog: [{ ...entry, timestamp: Date.now() }, ...state.feedbackLog].slice(0, 200),
       })),
 
+      // City selection
+      cityId: 'sf-bay',
+      setCityId: (cityId: string) => set({ cityId, homeBaseId: 'sau' }), // Reset home base when city changes
+
       // Trajectory (ephemeral)
       selectedOriginId: null,
       setSelectedOrigin: (id: string | null) => set({ selectedOriginId: id }),
@@ -161,6 +169,7 @@ export const useAppStore = create<AppState>()(
         savedRoutes: state.savedRoutes,
         inbox: state.inbox,
         feedbackLog: state.feedbackLog,
+        cityId: state.cityId,
       }),
       onRehydrateStorage: () => (state, error) => {
         if (error) {
