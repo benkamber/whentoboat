@@ -74,7 +74,7 @@ export default function ConditionsPage() {
                   <p className="text-xs text-[var(--secondary)]">{alert.headline}</p>
                   {alert.onset && alert.expires && (
                     <p className="text-2xs text-[var(--muted)]">
-                      {new Date(alert.onset).toLocaleString()} — {new Date(alert.expires).toLocaleString()}
+                      {new Date(alert.onset).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} — {new Date(alert.expires).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}
                     </p>
                   )}
                   <a href="https://www.weather.gov/mtr/" target="_blank" rel="noopener noreferrer" className="text-2xs text-safety-blue hover:underline">

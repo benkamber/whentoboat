@@ -377,8 +377,8 @@ export default function PlannerPage() {
                     <div className="text-xs text-[var(--secondary)]">
                       {event.typicalDate ? (
                         <span className="font-medium text-compass-gold">
-                          {new Date(event.typicalDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          {event.typicalEndDate && ` – ${new Date(event.typicalEndDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                          {new Date(event.typicalDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                          {event.typicalEndDate && ` – ${new Date(event.typicalEndDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`}
                         </span>
                       ) : (
                         <span>{event.schedule}</span>

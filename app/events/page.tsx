@@ -356,8 +356,8 @@ function RacingCard({ event, isMajor }: { event: BayEvent; isMajor: boolean }) {
           <span className="font-medium text-[var(--foreground)]">
             {event.typicalDate ? (
               <>
-                {new Date(event.typicalDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                {event.typicalEndDate && ` – ${new Date(event.typicalEndDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                {new Date(event.typicalDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                {event.typicalEndDate && ` – ${new Date(event.typicalEndDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`}
                 {', '}
                 {new Date(event.typicalDate + 'T12:00:00').getFullYear()}
               </>
