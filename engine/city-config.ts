@@ -93,10 +93,10 @@ export const cityRegistry: CityConfig[] = [
     center: [47.6, -122.4],
     defaultZoom: 10,
     bbox: [-123.2, 47.0, -122.0, 48.8],
-    buoyStations: [], // TBD from research
+    buoyStations: ['46088', 'WPOW1', 'EBSW1', 'BMTW1'],
     tideStation: '9447130', // Seattle
-    currentStations: [], // TBD — ~135 stations from 2014-2017 ADCP survey
-    nwsZones: ['PZZ131', 'PZZ132', 'PZZ133'],
+    currentStations: ['PUG1607', 'PUG1625', 'PUG1627', 'PUG1639', 'PUG1720'],
+    nwsZones: ['PZZ131', 'PZZ132', 'PZZ134', 'PZZ135'],
     activities: ['kayak', 'sup', 'powerboat_cruise', 'casual_sail', 'fishing_boat'],
     notes: 'Convergence Zone weather, extreme tidal ranges, San Juan Islands',
     hasVerifiedRoutes: false,
@@ -113,10 +113,10 @@ export const cityRegistry: CityConfig[] = [
     center: [25.76, -80.19],
     defaultZoom: 11,
     bbox: [-80.5, 25.3, -79.8, 26.0],
-    buoyStations: [], // TBD
+    buoyStations: ['VAKF1', '41122', 'PEGF1', 'FWYF1'],
     tideStation: '8723214', // Virginia Key
-    currentStations: [], // TBD
-    nwsZones: ['AMZ610', 'AMZ630', 'AMZ650'],
+    currentStations: [], // No CO-OPS current predictions — Gulf Stream dominates
+    nwsZones: ['AMZ651'],
     activities: ['powerboat_cruise', 'fishing_boat', 'casual_sail', 'kayak', 'sup'],
     notes: 'Gulf Stream proximity, afternoon thunderstorms May-Oct, year-round season',
     hasVerifiedRoutes: false,
@@ -133,10 +133,10 @@ export const cityRegistry: CityConfig[] = [
     center: [32.71, -117.16],
     defaultZoom: 12,
     bbox: [-117.5, 32.5, -116.9, 33.0],
-    buoyStations: [], // TBD
+    buoyStations: ['46225', '46258', 'LJAC1', 'SDBC1'],
     tideStation: '9410170', // San Diego
-    currentStations: [], // TBD
-    nwsZones: ['PZZ750', 'PZZ775'],
+    currentStations: [], // Negligible tidal currents in SD Bay
+    nwsZones: ['PZZ740', 'PZZ745'],
     activities: ['casual_sail', 'powerboat_cruise', 'fishing_boat', 'kayak', 'sup'],
     notes: 'Best year-round sailing climate in US, kelp beds, La Jolla marine reserve',
     hasVerifiedRoutes: false,
@@ -153,10 +153,10 @@ export const cityRegistry: CityConfig[] = [
     center: [33.98, -118.46],
     defaultZoom: 11,
     bbox: [-118.8, 33.6, -118.1, 34.1],
-    buoyStations: [], // TBD
+    buoyStations: ['46221', '46268', '46253'],
     tideStation: '9410660', // Los Angeles
-    currentStations: [], // TBD
-    nwsZones: ['PZZ650', 'PZZ670'],
+    currentStations: ['PCT1451', 'NB0101', 'NB0201'], // Weak currents
+    nwsZones: ['PZZ650', 'PZZ655'],
     activities: ['powerboat_cruise', 'casual_sail', 'fishing_boat', 'kayak', 'sup'],
     notes: 'Santa Ana winds, Channel Islands offshore, Catalina day trips',
     hasVerifiedRoutes: false,
