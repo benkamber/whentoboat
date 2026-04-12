@@ -1,28 +1,37 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { FullConditions } from '@/engine/types';
 import type { ForecastHour, ForecastResponse } from '@/app/api/forecast/route';
+import { useAppStore } from '@/store';
 
-const SF_BAY_LAT = 37.8;
-const SF_BAY_LNG = -122.4;
+// City center coordinates for forecast queries
+const CITY_COORDS: Record<string, [number, number]> = {
+  'sf-bay': [37.8, -122.4],
+  'puget-sound': [48.0, -122.6],
+  'miami': [25.76, -80.19],
+  'san-diego': [32.71, -117.16],
+  'los-angeles': [33.98, -118.46],
+};
 
 /**
  * Hook that fetches live forecast and converts it to FullConditions
  * for direct use in the scoring engine.
  *
- * When live data is available, it replaces historical zone averages
- * for the corresponding date/hour.
+ * Automatically uses the correct coordinates for the selected city.
  */
 export function useLiveForecast() {
+  const cityId = useAppStore(s => s.cityId ?? 'sf-bay');
   const [forecast, setForecast] = useState<ForecastResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [lat, lng] = CITY_COORDS[cityId] ?? CITY_COORDS['sf-bay'];
 
   const fetchForecast = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(
-        `/api/forecast?lat=${SF_BAY_LAT}&lng=${SF_BAY_LNG}&days=7`,
+        `/api/forecast?lat=${lat}&lng=${lng}&days=7`,
         { signal }
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -36,7 +45,7 @@ export function useLiveForecast() {
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
-  }, []);
+  }, [lat, lng]);
 
   useEffect(() => {
     const controller = new AbortController();
