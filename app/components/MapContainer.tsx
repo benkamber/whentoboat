@@ -9,7 +9,10 @@ import {
   routeLineLayer,
   approxRouteLineLayer,
   routeHitLayer,
+  selectedDestHaloLayer,
   selectedDestRingLayer,
+  selectedDestCircleLayer,
+  selectedDestLabelLayer,
   destinationCircleLayer,
   originCircleLayer,
   originRingLayer,
@@ -157,7 +160,7 @@ export function MapContainer({
               }}
               style={{ width: '100%', height: '100%' }}
               mapStyle="mapbox://styles/mapbox/navigation-night-v1"
-              interactiveLayerIds={['destination-circles', 'destination-labels', 'origin-circle', 'route-lines-hit', 'hazard-markers']}
+              interactiveLayerIds={['destination-circles', 'destination-labels', 'selected-dest-circle', 'selected-dest-label', 'origin-circle', 'route-lines-hit', 'hazard-markers']}
               onClick={onMapClick}
               onMouseEnter={onMouseEnter}
               onMouseLeave={onMouseLeave}
@@ -261,6 +264,13 @@ export function MapContainer({
                   <span className="inline-block w-3.5 h-3.5 rounded-full bg-[#3b82f6] border-2 border-white" aria-hidden="true" />
                   Your origin
                 </div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="inline-block w-3.5 h-3.5 rounded-full bg-[#f59e0b] border-2 border-white ring-2 ring-[#f59e0b]/60"
+                    aria-hidden="true"
+                  />
+                  Selected destination
+                </div>
               </div>
 
               {/* NOAA nautical chart overlay */}
@@ -335,14 +345,23 @@ export function MapContainer({
                 <Layer {...routeHitLayer} />
               </Source>
 
-              {/* Destination markers */}
+              {/* Destination markers.
+                  Render order matters — bottom to top:
+                    1. Selected-destination soft halo sits under everything.
+                    2. Origin ring/circle/name (your home base).
+                    3. Regular destination dots + tiny labels.
+                    4. Selected-destination ring, circle, and bold label on top
+                       so nothing can occlude the active destination. */}
               <Source id="destinations" type="geojson" data={destinationsGeoJSON}>
-                <Layer {...selectedDestRingLayer} />
+                <Layer {...selectedDestHaloLayer} />
                 <Layer {...originRingLayer} />
                 <Layer {...originCircleLayer} />
                 <Layer {...originNameLayer} />
                 <Layer {...destinationCircleLayer} />
                 <Layer {...destinationLabelLayer} />
+                <Layer {...selectedDestRingLayer} />
+                <Layer {...selectedDestCircleLayer} />
+                <Layer {...selectedDestLabelLayer} />
               </Source>
 
               {/* Popup on hover */}

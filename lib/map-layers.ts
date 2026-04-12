@@ -42,27 +42,55 @@ export const routeHitLayer = {
   },
 };
 
-// Selected destination glow ring
+// Selected destination outer halo — soft amber glow behind everything
+export const selectedDestHaloLayer = {
+  id: 'selected-dest-halo',
+  type: 'circle' as const,
+  filter: ['==', ['get', 'isSelected'], true] as any,
+  paint: {
+    'circle-radius': 36,
+    'circle-color': '#f59e0b',
+    'circle-opacity': 0.18,
+    'circle-blur': 0.9,
+  },
+};
+
+// Selected destination ring — bold amber outline above other dots
 export const selectedDestRingLayer = {
   id: 'selected-dest-ring',
   type: 'circle' as const,
   filter: ['==', ['get', 'isSelected'], true] as any,
   paint: {
-    'circle-radius': 22,
+    'circle-radius': 26,
     'circle-color': 'transparent',
-    'circle-stroke-width': 3,
+    'circle-stroke-width': 4,
     'circle-stroke-color': '#f59e0b',
-    'circle-opacity': 0.5,
+    'circle-opacity': 1,
   },
 };
 
-// Non-origin destination circles — color driven by distance from origin
+// Selected destination circle — bigger + sharper than regular destinations
+export const selectedDestCircleLayer = {
+  id: 'selected-dest-circle',
+  type: 'circle' as const,
+  filter: ['==', ['get', 'isSelected'], true] as any,
+  paint: {
+    'circle-radius': 18,
+    'circle-color': '#f59e0b',
+    'circle-stroke-width': 3,
+    'circle-stroke-color': '#ffffff',
+    'circle-opacity': 1,
+  },
+};
+
+// Non-origin destination circles — color driven by distance from origin.
+// Excludes the selected destination; that gets its own dedicated layers above.
 export const destinationCircleLayer = {
   id: 'destination-circles',
   type: 'circle' as const,
-  filter: ['!', ['get', 'isOrigin']] as any,
+  filter: ['all', ['!', ['get', 'isOrigin']], ['!', ['get', 'isSelected']]] as any,
   paint: {
-    'circle-radius': ['case', ['get', 'isSelected'], 14, 10] as any,
+    'circle-radius': 10,
     'circle-blur': 0.15,
     'circle-color': ['get', 'color'] as any,
     'circle-stroke-width': 2,
@@ -99,11 +127,12 @@ export const originRingLayer = {
   },
 };
 
-// Name labels near destination circles (non-origin)
+// Name labels near destination circles (non-origin, non-selected).
+// The selected destination gets its own dedicated bold label below.
 export const destinationLabelLayer = {
   id: 'destination-labels',
   type: 'symbol' as const,
-  filter: ['!', ['get', 'isOrigin']] as any,
+  filter: ['all', ['!', ['get', 'isOrigin']], ['!', ['get', 'isSelected']]] as any,
   layout: {
     'text-field': ['get', 'name'] as any,
     'text-size': 9,
@@ -117,6 +146,28 @@ export const destinationLabelLayer = {
     'text-color': '#ffffff',
     'text-halo-color': '#0a1628',
     'text-halo-width': 1,
+  },
+};
+
+// Selected destination label — bigger, bold, amber to match the marker,
+// and always drawn (overlap/ignore-placement) so it can't get hidden.
+export const selectedDestLabelLayer = {
+  id: 'selected-dest-label',
+  type: 'symbol' as const,
+  filter: ['==', ['get', 'isSelected'], true] as any,
+  layout: {
+    'text-field': ['get', 'name'] as any,
+    'text-size': 13,
+    'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+    'text-anchor': 'top' as const,
+    'text-offset': [0, 2.2] as any,
+    'text-allow-overlap': true,
+    'text-ignore-placement': true,
+  },
+  paint: {
+    'text-color': '#f59e0b',
+    'text-halo-color': '#0a1628',
+    'text-halo-width': 2,
   },
 };
 
