@@ -93,12 +93,23 @@ export const cityRegistry: CityConfig[] = [
     center: [48.0, -122.6],
     defaultZoom: 9,
     bbox: [-124.1, 47.0, -122.0, 49.1], // Extended north to include Gulf Islands (Canada)
-    buoyStations: ['46088', 'WPOW1', 'EBSW1', 'BMTW1'],
-    tideStation: '9447130', // Seattle
-    currentStations: ['PUG1607', 'PUG1625', 'PUG1627', 'PUG1639', 'PUG1720'],
-    nwsZones: ['PZZ131', 'PZZ132', 'PZZ134', 'PZZ135'],
+    buoyStations: [
+      '46088', 'WPOW1', 'EBSW1', 'BMTW1', // US (NDBC)
+      '46146', '46134', '46303',             // Canada (cross-listed on NDBC)
+    ],
+    tideStation: '9447130', // Seattle (US) — also CHS 07330 Fulford Harbour (Canada)
+    currentStations: [
+      'PUG1607', 'PUG1625', 'PUG1627', 'PUG1639', 'PUG1720', // US (CO-OPS)
+      // Canadian passes via CHS IWLS API (api-iwls.dfo-mpo.gc.ca):
+      // CHS-07527 (Active Pass 6kt), CHS-07438 (Porlier Pass 6kt),
+      // CHS-07487 (Dodd Narrows 8kt), CHS-07545 (Gabriola Passage 6kt)
+    ],
+    nwsZones: [
+      'PZZ131', 'PZZ132', 'PZZ134', 'PZZ135', // US (NWS)
+      // Canadian zones via ECCC: 14305 (Strait of Georgia S), 06100 (Haro Strait)
+    ],
     activities: ['kayak', 'sup', 'powerboat_cruise', 'casual_sail', 'fishing_boat'],
-    notes: 'Convergence Zone weather, extreme tidal ranges, San Juan Islands',
+    notes: 'Binational Salish Sea. Convergence Zone weather. Extreme tidal ranges (16ft). San Juan Islands + Gulf Islands (Canada). Active Pass currents up to 8kt. CBSA customs required for Canada entry.',
     hasVerifiedRoutes: false,
     hasEvents: false,
     hasFishingData: false,
