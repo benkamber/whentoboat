@@ -88,11 +88,11 @@ export const cityRegistry: CityConfig[] = [
   // Future cities — populated by research + auto-generation scripts
   {
     id: 'puget-sound',
-    name: 'Puget Sound',
-    region: 'Washington',
-    center: [47.6, -122.4],
-    defaultZoom: 10,
-    bbox: [-123.2, 47.0, -122.0, 48.8],
+    name: 'Salish Sea (Puget Sound + Gulf Islands)',
+    region: 'Washington / British Columbia',
+    center: [48.0, -122.6],
+    defaultZoom: 9,
+    bbox: [-124.1, 47.0, -122.0, 49.1], // Extended north to include Gulf Islands (Canada)
     buoyStations: ['46088', 'WPOW1', 'EBSW1', 'BMTW1'],
     tideStation: '9447130', // Seattle
     currentStations: ['PUG1607', 'PUG1625', 'PUG1627', 'PUG1639', 'PUG1720'],
