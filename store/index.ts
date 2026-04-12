@@ -151,7 +151,16 @@ export const useAppStore = create<AppState>()(
 
       // City selection
       cityId: 'sf-bay',
-      setCityId: (cityId: string) => set({ cityId, homeBaseId: 'sau' }), // Reset home base when city changes
+      setCityId: (cityId: string) => {
+        const defaultOrigins: Record<string, string> = {
+          'sf-bay': 'sau',
+          'puget-sound': 'shilshole',
+          'miami': 'miami-beach-mari',
+          'san-diego': 'shelter-island-boa',
+          'los-angeles': 'marina-del-rey',
+        };
+        set({ cityId, homeBaseId: defaultOrigins[cityId] ?? 'sau' });
+      },
 
       // Trajectory (ephemeral)
       selectedOriginId: null,
